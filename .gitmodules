@@ -1,0 +1,6 @@
+[submodule "Dependencies/HedgeLib"]
+	path = Dependencies/HedgeLib
+	url = https://github.com/Radfordhound/HedgeLib.git
+[submodule "Dependencies/DirectXTex"]
+	path = Dependencies/DirectXTex
+	url = https://github.com/microsoft/DirectXTex.git

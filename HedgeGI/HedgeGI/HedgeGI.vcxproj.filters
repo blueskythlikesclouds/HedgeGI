@@ -1,0 +1,132 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Pch.cpp" />
+    <ClCompile Include="Scene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Instance.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="LightFieldBaker.cpp">
+      <Filter>Baker</Filter>
+    </ClCompile>
+    <ClCompile Include="SHLightFieldBaker.cpp">
+      <Filter>Baker</Filter>
+    </ClCompile>
+    <ClCompile Include="SGGIBaker.cpp">
+      <Filter>Baker</Filter>
+    </ClCompile>
+    <ClCompile Include="GIBaker.cpp">
+      <Filter>Baker</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneFactory.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Light.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Bitmap.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Random.cpp">
+      <Filter>Other</Filter>
+    </ClCompile>
+    <ClCompile Include="RaytracingDevice.cpp">
+      <Filter>Embree</Filter>
+    </ClCompile>
+    <ClCompile Include="BakingFactory.cpp">
+      <Filter>Baker</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Pch.h" />
+    <ClInclude Include="Scene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Instance.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="LightFieldBaker.h">
+      <Filter>Baker</Filter>
+    </ClInclude>
+    <ClInclude Include="SHLightFieldBaker.h">
+      <Filter>Baker</Filter>
+    </ClInclude>
+    <ClInclude Include="SGGIBaker.h">
+      <Filter>Baker</Filter>
+    </ClInclude>
+    <ClInclude Include="GIBaker.h">
+      <Filter>Baker</Filter>
+    </ClInclude>
+    <ClInclude Include="HHPackedFileInfo.h">
+      <Filter>HedgeLib</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneFactory.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="HHLight.h">
+      <Filter>HedgeLib</Filter>
+    </ClInclude>
+    <ClInclude Include="Bitmap.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="AxisAlignedBoundingBox.h">
+      <Filter>Other</Filter>
+    </ClInclude>
+    <ClInclude Include="FileStream.h">
+      <Filter>Other</Filter>
+    </ClInclude>
+    <ClInclude Include="Path.h">
+      <Filter>Other</Filter>
+    </ClInclude>
+    <ClInclude Include="Random.h">
+      <Filter>Other</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities.h">
+      <Filter>Other</Filter>
+    </ClInclude>
+    <ClInclude Include="Math.h">
+      <Filter>Other</Filter>
+    </ClInclude>
+    <ClInclude Include="RaytracingDevice.h">
+      <Filter>Embree</Filter>
+    </ClInclude>
+    <ClInclude Include="BakingFactory.h">
+      <Filter>Baker</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{3854e397-03ca-4821-93c4-e8027368f3f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Baker">
+      <UniqueIdentifier>{a8078bea-492c-4297-94b8-fcf84f9a0885}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HedgeLib">
+      <UniqueIdentifier>{2a7d149a-8240-4a09-aba7-3426fa41fe61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Embree">
+      <UniqueIdentifier>{51f4cb31-9de3-4af5-a172-38d41c0a1207}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Other">
+      <UniqueIdentifier>{88f2083c-2ca3-4355-b131-bc0be26ef292}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
