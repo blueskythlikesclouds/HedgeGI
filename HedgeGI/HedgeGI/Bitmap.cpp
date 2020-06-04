@@ -3,8 +3,7 @@
 Bitmap::Bitmap() = default;
 
 Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize)
-    : width(width), height(height), arraySize(arraySize),
-      data(std::make_unique<Eigen::Vector4f[]>(width * height * arraySize))
+    : width(width), height(height), arraySize(arraySize), data(std::make_unique<Eigen::Vector4f[]>(width * height * arraySize))
 {
 }
 
@@ -25,8 +24,7 @@ Eigen::Vector4f Bitmap::pickColor(const Eigen::Vector2f& uv, const uint32_t arra
 
 Eigen::Vector4f Bitmap::pickColor(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
 {
-    return data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(
-        0u, std::min(width - 1, x))];
+    return data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))];
 }
 
 void Bitmap::putColor(const Eigen::Vector4f& color, const Eigen::Vector2f& uv, const uint32_t arrayIndex) const
@@ -39,8 +37,7 @@ void Bitmap::putColor(const Eigen::Vector4f& color, const Eigen::Vector2f& uv, c
 
 void Bitmap::putColor(const Eigen::Vector4f& color, const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
 {
-    data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(
-        0u, std::min(width - 1, x))] = color;
+    data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))] = color;
 }
 
 void Bitmap::read(const FileStream& file)
@@ -70,17 +67,46 @@ void Bitmap::save(const std::string& filePath) const
         victimScratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
 
         for (uint32_t i = 0; i < arraySize; i++)
-            memcpy(victimScratchImage.GetImage(0, i, 0)->pixels, &data[width * height * i],
-                   width * height * sizeof(Eigen::Vector4f));
+            memcpy(victimScratchImage.GetImage(0, i, 0)->pixels, &data[width * height * i], width * height * sizeof(Eigen::Vector4f));
 
-        Convert(victimScratchImage.GetImages(), victimScratchImage.GetImageCount(), victimScratchImage.GetMetadata(),
-                DXGI_FORMAT_R16G16B16A16_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT,
-                scratchImage);
+        Convert(victimScratchImage.GetImages(), victimScratchImage.GetImageCount(), victimScratchImage.GetMetadata(), 
+            DXGI_FORMAT_R16G16B16A16_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
     }
 
     WCHAR wideCharFilePath[MAX_PATH];
     MultiByteToWideChar(CP_UTF8, NULL, filePath.c_str(), -1, wideCharFilePath, MAX_PATH);
 
-    SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_FORCE_LINEAR,
-                  GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
+    SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_FORCE_LINEAR, GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
+}
+
+void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format) const
+{
+    DirectX::ScratchImage scratchImage;
+    {
+        DirectX::ScratchImage victimScratchImage;
+        victimScratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+
+        for (uint32_t i = 0; i < arraySize; i++)
+            memcpy(victimScratchImage.GetImage(0, i, 0)->pixels, &data[width * height * i], width * height * sizeof(Eigen::Vector4f));
+
+        if (format == DXGI_FORMAT_R32G32B32A32_FLOAT)
+        {
+            std::swap(scratchImage, victimScratchImage);
+        }
+        else if (DirectX::IsCompressed(format))
+        {
+            Compress(victimScratchImage.GetImages(), victimScratchImage.GetImageCount(), victimScratchImage.GetMetadata(), 
+                format, DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
+        }
+        else
+        {
+            Convert(victimScratchImage.GetImages(), victimScratchImage.GetImageCount(), victimScratchImage.GetMetadata(), 
+                format, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT,scratchImage);
+        }
+    }
+
+    WCHAR wideCharFilePath[MAX_PATH];
+    MultiByteToWideChar(CP_UTF8, NULL, filePath.c_str(), -1, wideCharFilePath, MAX_PATH);
+
+    SaveToDDSFile(scratchImage.GetImages(), scratchImage.GetImageCount(), scratchImage.GetMetadata(), DirectX::DDS_FLAGS_NONE, wideCharFilePath);
 }

@@ -42,4 +42,3 @@
 #include "Path.h"
 #include "Random.h"
 #include "RaytracingDevice.h"
-#include "Utilities.h"

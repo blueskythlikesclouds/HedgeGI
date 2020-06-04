@@ -21,8 +21,7 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     else if (metadata.format != DXGI_FORMAT_R32G32B32A32_FLOAT)
     {
         std::unique_ptr<DirectX::ScratchImage> newScratchImage = std::make_unique<DirectX::ScratchImage>();
-        Convert(*scratchImage->GetImage(0, 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, DirectX::TEX_FILTER_DEFAULT,
-                DirectX::TEX_THRESHOLD_DEFAULT, *newScratchImage);
+        Convert(*scratchImage->GetImage(0, 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, *newScratchImage);
         scratchImage.swap(newScratchImage);
     }
 
@@ -36,8 +35,7 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     bitmap->data = std::make_unique<Eigen::Vector4f[]>(bitmap->width * bitmap->height * bitmap->arraySize);
 
     for (size_t i = 0; i < bitmap->arraySize; i++)
-        memcpy(&bitmap->data[bitmap->width * bitmap->height * i], scratchImage->GetImage(0, i, 0)->pixels,
-               bitmap->width * bitmap->height * sizeof(Eigen::Vector4f));
+        memcpy(&bitmap->data[bitmap->width * bitmap->height * i], scratchImage->GetImage(0, i, 0)->pixels, bitmap->width * bitmap->height * sizeof(Eigen::Vector4f));
 
     return bitmap;
 }

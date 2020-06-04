@@ -2,7 +2,7 @@
 
 class FileStream
 {
-    FILE* file {};
+    FILE* file{};
 
 public:
     FileStream(const char* filePath, const char* mode)

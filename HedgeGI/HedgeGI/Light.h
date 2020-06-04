@@ -11,11 +11,11 @@ enum LightType
 class Light
 {
 public:
-    LightType type;
+    LightType type{};
     Eigen::Vector3f positionOrDirection;
     Eigen::Vector3f color;
-    float innerRange;
-    float outerRange;
+    float innerRange{};
+    float outerRange{};
 
     Eigen::Matrix3f getTangentToWorldMatrix() const;
 

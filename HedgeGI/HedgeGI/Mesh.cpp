@@ -12,19 +12,12 @@ Eigen::Matrix3f Vertex::getTangentToWorldMatrix() const
     return tangentToWorld;
 }
 
-bool Triangle::isBackfacing() const
-{
-    return c < a;
-}
-
 RTCGeometry Mesh::createRTCGeometry() const
 {
     const RTCGeometry rtcGeometry = rtcNewGeometry(RaytracingDevice::get(), RTC_GEOMETRY_TYPE_TRIANGLE);
 
-    rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, vertices.get(), 0,
-                               sizeof(Vertex), vertexCount);
-    rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, triangles.get(), 0,
-                               sizeof(Triangle), triangleCount);
+    rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, vertices.get(), 0, sizeof(Vertex), vertexCount);
+    rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, triangles.get(), 0, sizeof(Triangle), triangleCount);
 
     rtcCommitGeometry(rtcGeometry);
     return rtcGeometry;

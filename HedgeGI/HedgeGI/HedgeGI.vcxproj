@@ -90,6 +90,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <OmitFramePointers>true</OmitFramePointers>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,6 +110,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BitmapPainter.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="BakingFactory.cpp" />
     <ClCompile Include="GIBaker.cpp" />
@@ -123,7 +125,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pch.h</PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="Random.cpp" />
     <ClCompile Include="RaytracingDevice.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneFactory.cpp" />
@@ -133,6 +134,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AxisAlignedBoundingBox.h" />
+    <ClInclude Include="BakePoint.h" />
+    <ClInclude Include="BitmapPainter.h" />
     <ClInclude Include="HHLight.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="BakingFactory.h" />
@@ -153,7 +156,6 @@
     <ClInclude Include="SGGIBaker.h" />
     <ClInclude Include="SHLightFieldBaker.h" />
     <ClInclude Include="Bitmap.h" />
-    <ClInclude Include="Utilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

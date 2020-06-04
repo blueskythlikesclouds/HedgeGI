@@ -1,6 +1,6 @@
 ﻿#include "RaytracingDevice.h"
 
-RTCDevice RaytracingDevice::rtcDevice {};
+RTCDevice RaytracingDevice::rtcDevice{};
 
 RTCDevice RaytracingDevice::get()
 {

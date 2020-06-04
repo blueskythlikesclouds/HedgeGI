@@ -1,9 +1,8 @@
 ﻿#pragma once
 
-#define M_PI 3.14159265358979323846264338327950288f
+#define PI 3.14159265358979323846264338327950288f
 
-static Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const Eigen::Vector3f& a,
-                                            const Eigen::Vector3f& b, const Eigen::Vector3f& c)
+static Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
 {
     const Eigen::Vector3f v0 = c - a;
     const Eigen::Vector3f v1 = b - a;
@@ -54,12 +53,12 @@ static Eigen::Vector2f squareToConcentricDiskMapping(const float x, const float 
         if (a > b)
         {
             r = a;
-            phi = (M_PI / 4.0f) * (b / a);
+            phi = (PI / 4.0f) * (b / a);
         }
         else
         {
             r = b;
-            phi = (M_PI / 4.0f) * (2.0f - (a / b));
+            phi = (PI / 4.0f) * (2.0f - (a / b));
         }
     }
     else
@@ -67,13 +66,13 @@ static Eigen::Vector2f squareToConcentricDiskMapping(const float x, const float 
         if (a < b)
         {
             r = -a;
-            phi = (M_PI / 4.0f) * (4.0f + (b / a));
+            phi = (PI / 4.0f) * (4.0f + (b / a));
         }
         else
         {
             r = -b;
             if (b != 0)
-                phi = (M_PI / 4.0f) * (6.0f - (a / b));
+                phi = (PI / 4.0f) * (6.0f - (a / b));
             else
                 phi = 0;
         }
@@ -93,9 +92,7 @@ static Eigen::Vector3f sampleCosineWeightedHemisphere(const float u1, const floa
     return { u, v, std::sqrt(std::max(0.0f, 1.0f - r)) };
 }
 
-static Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sX, const size_t sY,
-                                                                const size_t sqrtNumSamples, const float u1,
-                                                                const float u2)
+static Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sX, const size_t sY, const size_t sqrtNumSamples, const float u1, const float u2)
 {
     float jitteredX = (sX + u1) / sqrtNumSamples;
     float jitteredY = (sY + u2) / sqrtNumSamples;
@@ -113,8 +110,7 @@ static Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sX,
     return dir;
 }
 
-static Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sampleIndex, const size_t sqrtNumSamples,
-                                                                const float u1, const float u2)
+static Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sampleIndex, const size_t sqrtNumSamples, const float u1, const float u2)
 {
     return sampleStratifiedCosineWeightedHemisphere(sampleIndex % sqrtNumSamples, sampleIndex / sqrtNumSamples, u1, u2);
 }
@@ -123,14 +119,14 @@ static Eigen::Vector3f sampleDirectionHemisphere(const float u1, const float u2)
 {
     float z = u1;
     float r = std::sqrt(std::max(0.0f, 1.0f - z * z));
-    float phi = 2 * M_PI * u2;
+    float phi = 2 * PI * u2;
     float x = r * std::cos(phi);
     float y = r * std::sin(phi);
 
     return { x, y, z };
 }
 
-const float GOLDEN_ANGLE = M_PI * (3 - sqrtf(5));
+const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
 
 static Eigen::Vector3f sampleSphere(const size_t index, const size_t sampleCount)
 {

@@ -18,11 +18,9 @@ struct Vertex
 
 struct Triangle
 {
-    uint32_t a;
-    uint32_t b;
-    uint32_t c;
-
-    bool isBackfacing() const;
+    uint32_t a{};
+    uint32_t b{};
+    uint32_t c{};
 };
 
 enum MeshType
@@ -36,12 +34,12 @@ enum MeshType
 class Mesh
 {
 public:
-    MeshType type {};
-    uint32_t vertexCount {};
-    uint32_t triangleCount {};
+    MeshType type{};
+    uint32_t vertexCount{};
+    uint32_t triangleCount{};
     std::unique_ptr<Vertex[]> vertices;
     std::unique_ptr<Triangle[]> triangles;
-    const Material* material {};
+    const Material* material{};
 
     RTCGeometry createRTCGeometry() const;
 

@@ -8,8 +8,8 @@
 
 struct RaytracingContext
 {
-    const class Scene* scene;
-    RTCScene rtcScene;
+    const class Scene* scene{};
+    RTCScene rtcScene{};
 
     RaytracingContext(RaytracingContext const&) = delete;
     RaytracingContext(RaytracingContext&&) = delete;

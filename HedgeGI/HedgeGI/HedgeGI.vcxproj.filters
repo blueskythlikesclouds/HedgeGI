@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Main.cpp" />
     <ClCompile Include="Pch.cpp" />
     <ClCompile Include="Scene.cpp">
       <Filter>Scene</Filter>
@@ -15,35 +14,36 @@
     <ClCompile Include="Instance.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="LightFieldBaker.cpp">
-      <Filter>Baker</Filter>
-    </ClCompile>
-    <ClCompile Include="SHLightFieldBaker.cpp">
-      <Filter>Baker</Filter>
-    </ClCompile>
-    <ClCompile Include="SGGIBaker.cpp">
-      <Filter>Baker</Filter>
-    </ClCompile>
-    <ClCompile Include="GIBaker.cpp">
-      <Filter>Baker</Filter>
-    </ClCompile>
     <ClCompile Include="SceneFactory.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="Light.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Bitmap.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Random.cpp">
-      <Filter>Other</Filter>
-    </ClCompile>
     <ClCompile Include="RaytracingDevice.cpp">
       <Filter>Embree</Filter>
     </ClCompile>
     <ClCompile Include="BakingFactory.cpp">
       <Filter>Baker</Filter>
+    </ClCompile>
+    <ClCompile Include="Bitmap.cpp">
+      <Filter>Bitmap</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="BitmapPainter.cpp">
+      <Filter>Bitmap</Filter>
+    </ClCompile>
+    <ClCompile Include="GIBaker.cpp">
+      <Filter>Baker\Iterations</Filter>
+    </ClCompile>
+    <ClCompile Include="LightFieldBaker.cpp">
+      <Filter>Baker\Iterations</Filter>
+    </ClCompile>
+    <ClCompile Include="SGGIBaker.cpp">
+      <Filter>Baker\Iterations</Filter>
+    </ClCompile>
+    <ClCompile Include="SHLightFieldBaker.cpp">
+      <Filter>Baker\Iterations</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -60,18 +60,6 @@
     <ClInclude Include="Instance.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="LightFieldBaker.h">
-      <Filter>Baker</Filter>
-    </ClInclude>
-    <ClInclude Include="SHLightFieldBaker.h">
-      <Filter>Baker</Filter>
-    </ClInclude>
-    <ClInclude Include="SGGIBaker.h">
-      <Filter>Baker</Filter>
-    </ClInclude>
-    <ClInclude Include="GIBaker.h">
-      <Filter>Baker</Filter>
-    </ClInclude>
     <ClInclude Include="HHPackedFileInfo.h">
       <Filter>HedgeLib</Filter>
     </ClInclude>
@@ -84,13 +72,34 @@
     <ClInclude Include="HHLight.h">
       <Filter>HedgeLib</Filter>
     </ClInclude>
+    <ClInclude Include="RaytracingDevice.h">
+      <Filter>Embree</Filter>
+    </ClInclude>
     <ClInclude Include="Bitmap.h">
-      <Filter>Scene</Filter>
+      <Filter>Bitmap</Filter>
+    </ClInclude>
+    <ClInclude Include="BitmapPainter.h">
+      <Filter>Bitmap</Filter>
+    </ClInclude>
+    <ClInclude Include="GIBaker.h">
+      <Filter>Baker\Iterations</Filter>
+    </ClInclude>
+    <ClInclude Include="LightFieldBaker.h">
+      <Filter>Baker\Iterations</Filter>
+    </ClInclude>
+    <ClInclude Include="SGGIBaker.h">
+      <Filter>Baker\Iterations</Filter>
+    </ClInclude>
+    <ClInclude Include="SHLightFieldBaker.h">
+      <Filter>Baker\Iterations</Filter>
     </ClInclude>
     <ClInclude Include="AxisAlignedBoundingBox.h">
       <Filter>Other</Filter>
     </ClInclude>
     <ClInclude Include="FileStream.h">
+      <Filter>Other</Filter>
+    </ClInclude>
+    <ClInclude Include="Math.h">
       <Filter>Other</Filter>
     </ClInclude>
     <ClInclude Include="Path.h">
@@ -99,16 +108,10 @@
     <ClInclude Include="Random.h">
       <Filter>Other</Filter>
     </ClInclude>
-    <ClInclude Include="Utilities.h">
-      <Filter>Other</Filter>
-    </ClInclude>
-    <ClInclude Include="Math.h">
-      <Filter>Other</Filter>
-    </ClInclude>
-    <ClInclude Include="RaytracingDevice.h">
-      <Filter>Embree</Filter>
-    </ClInclude>
     <ClInclude Include="BakingFactory.h">
+      <Filter>Baker</Filter>
+    </ClInclude>
+    <ClInclude Include="BakePoint.h">
       <Filter>Baker</Filter>
     </ClInclude>
   </ItemGroup>
@@ -127,6 +130,12 @@
     </Filter>
     <Filter Include="Other">
       <UniqueIdentifier>{88f2083c-2ca3-4355-b131-bc0be26ef292}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Bitmap">
+      <UniqueIdentifier>{c41e70d6-bf3f-4bd7-9ddc-a197effc4613}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Baker\Iterations">
+      <UniqueIdentifier>{d2790bb7-5357-4478-98bd-d0cbd9a79a3a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

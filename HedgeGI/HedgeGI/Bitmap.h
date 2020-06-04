@@ -4,9 +4,9 @@ class Bitmap
 {
 public:
     std::string name;
-    uint32_t width {};
-    uint32_t height {};
-    uint32_t arraySize {};
+    uint32_t width{};
+    uint32_t height{};
+    uint32_t arraySize{};
     std::unique_ptr<Eigen::Vector4f[]> data;
 
     Bitmap();
@@ -24,4 +24,5 @@ public:
     void write(const FileStream& file) const;
 
     void save(const std::string& filePath) const;
+    void save(const std::string& filePath, DXGI_FORMAT format) const;
 };
