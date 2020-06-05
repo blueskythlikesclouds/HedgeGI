@@ -34,16 +34,16 @@
       <Filter>Bitmap</Filter>
     </ClCompile>
     <ClCompile Include="GIBaker.cpp">
-      <Filter>Baker\Iterations</Filter>
+      <Filter>Baker\Types</Filter>
     </ClCompile>
     <ClCompile Include="LightFieldBaker.cpp">
-      <Filter>Baker\Iterations</Filter>
+      <Filter>Baker\Types</Filter>
     </ClCompile>
     <ClCompile Include="SGGIBaker.cpp">
-      <Filter>Baker\Iterations</Filter>
+      <Filter>Baker\Types</Filter>
     </ClCompile>
     <ClCompile Include="SHLightFieldBaker.cpp">
-      <Filter>Baker\Iterations</Filter>
+      <Filter>Baker\Types</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -82,16 +82,16 @@
       <Filter>Bitmap</Filter>
     </ClInclude>
     <ClInclude Include="GIBaker.h">
-      <Filter>Baker\Iterations</Filter>
+      <Filter>Baker\Types</Filter>
     </ClInclude>
     <ClInclude Include="LightFieldBaker.h">
-      <Filter>Baker\Iterations</Filter>
+      <Filter>Baker\Types</Filter>
     </ClInclude>
     <ClInclude Include="SGGIBaker.h">
-      <Filter>Baker\Iterations</Filter>
+      <Filter>Baker\Types</Filter>
     </ClInclude>
     <ClInclude Include="SHLightFieldBaker.h">
-      <Filter>Baker\Iterations</Filter>
+      <Filter>Baker\Types</Filter>
     </ClInclude>
     <ClInclude Include="AxisAlignedBoundingBox.h">
       <Filter>Other</Filter>
@@ -134,7 +134,7 @@
     <Filter Include="Bitmap">
       <UniqueIdentifier>{c41e70d6-bf3f-4bd7-9ddc-a197effc4613}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Baker\Iterations">
+    <Filter Include="Baker\Types">
       <UniqueIdentifier>{d2790bb7-5357-4478-98bd-d0cbd9a79a3a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

@@ -5,6 +5,8 @@ Bitmap::Bitmap() = default;
 Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize)
     : width(width), height(height), arraySize(arraySize), data(std::make_unique<Eigen::Vector4f[]>(width * height * arraySize))
 {
+    for (size_t i = 0; i < width * height * arraySize; i++)
+        data[i] = Eigen::Vector4f::Zero();
 }
 
 void Bitmap::getPixelCoords(const Eigen::Vector2f& uv, uint32_t& x, uint32_t& y) const

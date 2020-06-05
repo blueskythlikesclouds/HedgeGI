@@ -40,10 +40,15 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
     std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&raytracingContext, &bakeParams, &sunLight, &lightTangentToWorld](TBakePoint& bakePoint)
     {
-        const Eigen::Vector3f position = bakePoint.getPosition();
+        if (!bakePoint.isValid())
+            return;
+
+        const Eigen::Vector3f position = bakePoint.position;
 
         Eigen::Affine3f tangentToWorld;
-        tangentToWorld = bakePoint.getTangentToWorldMatrix();
+        tangentToWorld = bakePoint.tangentToWorldMatrix;
+
+        bakePoint.initialize();
 
         // WHY IS THIS SO NOISY
         for (uint32_t i = 0; i < bakeParams.lightSampleCount; i++)
@@ -99,7 +104,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 const Vertex& c = mesh.vertices[triangle.c];
                 const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, { query.hit.v, query.hit.u });
 
-                shadow = std::max(shadow, mesh.material && mesh.material->bitmap ? mesh.material->bitmap->pickColor(hitUV)[3] : 1);
+                shadow = std::max(shadow, mesh.material && mesh.material->diffuse ? mesh.material->diffuse->pickColor(hitUV)[3] : 1);
                 currPosition = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
             } while (shadow < 0.99f);
 

@@ -12,6 +12,9 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     DirectX::TexMetadata metadata;
     LoadFromDDSMemory(data, length, DirectX::DDS_FLAGS_NONE, &metadata, *scratchImage);
 
+    if (!scratchImage->GetImages())
+        return nullptr;
+
     if (DirectX::IsCompressed(metadata.format))
     {
         std::unique_ptr<DirectX::ScratchImage> newScratchImage = std::make_unique<DirectX::ScratchImage>();
@@ -47,7 +50,8 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::HHMaterialV3* materia
     for (size_t i = 0; i < material->TextureCount; i++)
     {
         hl::HHTexture* unit = material->Textures.Get()[i].Get();
-        if (strcmp(unit->Type.Get(), "diffuse") != 0)
+        if (strcmp(unit->Type.Get(), "diffuse") != 0 &&
+            strcmp(unit->Type.Get(), "displacement") != 0)
             continue;
 
         bool found = false;
@@ -56,7 +60,10 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::HHMaterialV3* materia
             if (strcmp(unit->TextureName.Get(), bitmap->name.c_str()) != 0)
                 continue;
 
-            newMaterial->bitmap = bitmap.get();
+            if (strcmp(unit->Type.Get(), "diffuse") != 0)
+                newMaterial->diffuse = bitmap.get();
+            else
+                newMaterial->emission = bitmap.get();
 
             found = true;
             break;
@@ -99,16 +106,6 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
                 size = vertex.normal.size();
                 break;
 
-            case hl::HHVERTEX_TYPE_TANGENT:
-                destination = vertex.tangent.data();
-                size = vertex.tangent.size();
-                break;
-
-            case hl::HHVERTEX_TYPE_BINORMAL:
-                destination = vertex.binormal.data();
-                size = vertex.binormal.size();
-                break;
-
             case hl::HHVERTEX_TYPE_UV:
                 if (element->Index == 0)
                 {
@@ -131,7 +128,10 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
             }
 
             if (!destination)
+            {
+                element++;
                 continue;
+            }
 
             uint8_t* source = mesh->Vertices + i * mesh->VertexSize + element->Offset;
 
@@ -224,6 +224,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
         break;
     }
 
+    newMesh->generateTangents();
     return newMesh;
 }
 
@@ -307,6 +308,9 @@ void SceneFactory::loadResources(const hl::Archive& archive, Scene& scene)
             continue;
 
         std::unique_ptr<Bitmap> bitmap = createBitmap(file.Data.get(), file.Size);
+        if (!bitmap)
+            continue;
+
         bitmap->name = getFileNameWithoutExtension(file.Path.get());
 
         scene.bitmaps.push_back(std::move(bitmap));

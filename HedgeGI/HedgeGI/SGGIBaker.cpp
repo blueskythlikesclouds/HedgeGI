@@ -34,13 +34,13 @@ public:
     void finalize(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 4; i++)
-            colors[i] *= (2.0f * PI) / (float)sampleCount;
+            colors[i] /= (float)sampleCount;
     }
 };
 
 std::pair<std::unique_ptr<Bitmap>, std::unique_ptr<Bitmap>> SGGIBaker::bake(const RaytracingContext& context, const Instance& instance, const uint16_t size, const BakeParams& bakeParams)
 {
-    std::vector<SGGIPoint> bakePoints = createTexelPoints<SGGIPoint>(instance, size);
+    std::vector<SGGIPoint> bakePoints = createTexelPoints<SGGIPoint>(context, instance, size);
     
     BakingFactory::bake(context, bakePoints, bakeParams);
     

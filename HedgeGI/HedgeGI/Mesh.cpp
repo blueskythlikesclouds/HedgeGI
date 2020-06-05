@@ -23,6 +23,44 @@ RTCGeometry Mesh::createRTCGeometry() const
     return rtcGeometry;
 }
 
+void Mesh::generateTangents() const
+{
+    for (uint32_t i = 0; i < vertexCount; i++)
+    {
+        Vertex& vertex = vertices[i];
+        vertex.tangent = Eigen::Vector3f::Zero();
+        vertex.binormal = Eigen::Vector3f::Zero();
+    }
+
+    for (uint32_t i = 0; i < triangleCount; i++)
+    {
+        const Triangle& triangle = triangles[i];
+        Vertex& a = vertices[triangle.a];
+        Vertex& b = vertices[triangle.b];
+        Vertex& c = vertices[triangle.c];
+
+        const Eigen::Vector3f e1 = c.position - a.position;
+        const Eigen::Vector3f e2 = b.position - a.position;
+
+        const Eigen::Vector2f uv1 = c.vPos - a.vPos;
+        const Eigen::Vector2f uv2 = b.vPos - a.vPos;
+
+        float r = 1.0f / (uv1[0] * uv2[1] - uv1[1] * uv2[0]);
+        const Eigen::Vector3f tangent = (e1 * uv2[1] - e2 * uv1[1]) * r;
+        const Eigen::Vector3f binormal = (e2 * uv1[0] - e1 * uv2[0]) * r;
+
+        a.tangent += tangent; b.tangent += tangent; c.tangent += tangent;
+        a.binormal += binormal; b.binormal += binormal; c.binormal += binormal;
+    }
+
+    for (uint32_t i = 0; i < vertexCount; i++)
+    {
+        Vertex& vertex = vertices[i];
+        vertex.tangent.normalize();
+        vertex.binormal.normalize();
+    }
+}
+
 void Mesh::read(const FileStream& file, const Scene& scene)
 {
     vertexCount = file.read<uint32_t>();

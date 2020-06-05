@@ -1,17 +1,15 @@
 ﻿#pragma once
 
-#include "Instance.h"
-#include "Mesh.h"
+#include "Scene.h"
 
 #define DEFINE_BAKE_POINT(basisCount) \
     static const uint32_t BASIS_COUNT = basisCount; \
     \
     static Eigen::Vector3f sampleDirection(float u1, float u2); \
     \
-    Eigen::Vector3f getPosition() const; \
-    Eigen::Matrix3f getTangentToWorldMatrix() const; \
-    Eigen::Vector2f getVPos() const; \
+    bool isValid() const;\
     \
+    void initialize(); \
     void addSample(const Eigen::Vector3f& color, const Eigen::Vector3f& tangentSpaceDirection) = delete; \
     void finalize(uint32_t sampleCount) = delete; \
 
@@ -19,31 +17,30 @@ template<uint32_t BasisCount>
 class TexelPoint
 {
 public:
-    const Mesh* mesh{};
-    const Triangle* triangle{};
-    Eigen::Vector2f uv;
-    uint16_t x{}, y{};
+    Eigen::Vector3f position;
+    Eigen::Matrix3f tangentToWorldMatrix;
+    uint16_t x{ (uint16_t)-1 }, y{ (uint16_t)-1 };
 
-    std::array<Eigen::Vector3f, BasisCount> colors;
+    std::array<Eigen::Vector3f, BasisCount> colors{};
     float shadow{};
 
     DEFINE_BAKE_POINT(BasisCount)
 };
 
 template <typename TBakePoint>
-std::vector<TBakePoint> createTexelPoints(const Instance& instance, const uint16_t size)
+std::vector<TBakePoint> createTexelPoints(const RaytracingContext& raytracingContext, const Instance& instance, const uint16_t size)
 {
     std::vector<TBakePoint> texelPoints;
-    texelPoints.reserve(size * size);
+    texelPoints.resize(size * size);
 
     for (auto& mesh : instance.meshes)
     {
         for (uint32_t i = 0; i < mesh->triangleCount; i++)
         {
-            const Triangle* triangle = &mesh->triangles[i];
-            Vertex& a = mesh->vertices[triangle->a];
-            Vertex& b = mesh->vertices[triangle->b];
-            Vertex& c = mesh->vertices[triangle->c];
+            const Triangle& triangle = mesh->triangles[i];
+            const Vertex& a = mesh->vertices[triangle.a];
+            const Vertex& b = mesh->vertices[triangle.b];
+            const Vertex& c = mesh->vertices[triangle.c];
 
             Eigen::Vector3f aVPos(a.vPos[0], a.vPos[1], 0);
             Eigen::Vector3f bVPos(b.vPos[0], b.vPos[1], 0);
@@ -73,8 +70,92 @@ std::vector<TBakePoint> createTexelPoints(const Instance& instance, const uint16
                         1 - baryUV[0] - baryUV[1] > 1)
                         continue;
 
-                    texelPoints.push_back({ mesh, triangle, baryUV, x, y });
+                    const Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
+                    const Eigen::Vector3f tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
+                    const Eigen::Vector3f binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
+                    const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
+
+                    Eigen::Matrix3f tangentToWorld;
+                    tangentToWorld <<
+                        tangent[0], binormal[0], normal[0],
+                        tangent[1], binormal[1], normal[1],
+                        tangent[2], binormal[2], normal[2];
+
+                    texelPoints[y * size + x] = { position, tangentToWorld, x, y, {}, {} };
                 }
+            }
+        }
+    }
+
+    return texelPoints;
+
+    // Try fixing the shadow leaks by pushing the points out a little.
+    for (uint16_t x = 0; x < size; x++)
+    {
+        for (uint16_t y = 0; y < size; y++)
+        {
+            TBakePoint& basePoint = texelPoints[y * size + x];
+            if (!basePoint.isValid())
+                continue;
+
+            const TBakePoint& neighborX = texelPoints[y * size + (x & 1 ? x - 1 : x + 1)];
+            const TBakePoint& neighborY = texelPoints[(y & 1 ? y - 1 : y + 1) * size + x];
+
+            if (!neighborX.isValid() || !neighborY.isValid())
+                continue;
+
+            const float rayDistance = (neighborX.position - basePoint.position).cwiseAbs().cwiseMax(
+                (neighborY.position - basePoint.position).cwiseAbs()).maxCoeff() * std::sqrtf(2.0f) * 0.5f;
+
+            const Eigen::Vector3f rayDirections[] =
+            {
+                Eigen::Vector3f(1, 0, 1),
+                Eigen::Vector3f(-1, 0, 1),
+                Eigen::Vector3f(0, 1, 1),
+                Eigen::Vector3f(0, -1, 1)
+            };
+
+            Eigen::Affine3f tangentToWorld;
+            tangentToWorld = basePoint.tangentToWorldMatrix;
+
+            for (auto& rayDirection : rayDirections)
+            {
+                const Eigen::Vector3f& rayDirInWorldSpace = (tangentToWorld * rayDirection).normalized();
+
+                RTCIntersectContext context{};
+                rtcInitIntersectContext(&context);
+
+                RTCRayHit query{};
+                query.ray.dir_x = rayDirInWorldSpace[0];
+                query.ray.dir_y = rayDirInWorldSpace[1];
+                query.ray.dir_z = rayDirInWorldSpace[2];
+                query.ray.org_x = basePoint.position[0];
+                query.ray.org_y = basePoint.position[1];
+                query.ray.org_z = basePoint.position[2];
+                query.ray.tnear = 0.0001f;
+                query.ray.tfar = rayDistance;
+                query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+                rtcIntersect1(raytracingContext.rtcScene, &context, &query);
+
+                if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+                    continue;
+
+                const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
+                const Triangle& triangle = mesh.triangles[query.hit.primID];
+                const Vertex& a = mesh.vertices[triangle.a];
+                const Vertex& b = mesh.vertices[triangle.b];
+                const Vertex& c = mesh.vertices[triangle.c];
+
+                const Eigen::Vector3f normal = (c.position - a.position).cross(
+                    b.position - a.position).normalized();
+
+                if (normal.dot(rayDirInWorldSpace) < 0.0f)
+                    continue;
+
+                basePoint.position = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
+                break;
             }
         }
     }
@@ -89,39 +170,16 @@ Eigen::Vector3f TexelPoint<BasisCount>::sampleDirection(const float u1, const fl
 }
 
 template <uint32_t BasisCount>
-Eigen::Vector3f TexelPoint<BasisCount>::getPosition() const
+bool TexelPoint<BasisCount>::isValid() const
 {
-    const Vertex& a = mesh->vertices[triangle->a];
-    const Vertex& b = mesh->vertices[triangle->b];
-    const Vertex& c = mesh->vertices[triangle->c];
-    return barycentricLerp(a.position, b.position, c.position, uv);
+    return x != (uint16_t)-1 && y != (uint16_t)-1;
 }
 
 template <uint32_t BasisCount>
-Eigen::Matrix3f TexelPoint<BasisCount>::getTangentToWorldMatrix() const
+void TexelPoint<BasisCount>::initialize()
 {
-    const Vertex& a = mesh->vertices[triangle->a];
-    const Vertex& b = mesh->vertices[triangle->b];
-    const Vertex& c = mesh->vertices[triangle->c];
+    for (uint32_t i = 0; i < BasisCount; i++)
+        colors[i] = Eigen::Vector3f::Zero();
 
-    const Eigen::Vector3f tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, uv).normalized();
-    const Eigen::Vector3f binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, uv).normalized();
-    const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, uv).normalized();
-
-    Eigen::Matrix3f tangentToWorld;
-    tangentToWorld <<
-        tangent[0], binormal[0], normal[0],
-        tangent[1], binormal[1], normal[1],
-        tangent[2], binormal[2], normal[2];
-
-    return tangentToWorld;
-}
-
-template <uint32_t BasisCount>
-Eigen::Vector2f TexelPoint<BasisCount>::getVPos() const
-{
-    const Vertex& a = mesh->vertices[triangle->a];
-    const Vertex& b = mesh->vertices[triangle->b];
-    const Vertex& c = mesh->vertices[triangle->c];
-    return barycentricLerp(a.vPos, b.vPos, c.vPos, uv);
+    shadow = 0.0f;
 }

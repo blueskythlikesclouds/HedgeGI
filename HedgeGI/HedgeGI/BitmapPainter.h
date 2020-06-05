@@ -24,8 +24,11 @@ public:
 template <typename TBakePoint>
 void BitmapPainter::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& bakePoints, const PaintFlags paintFlags)
 {
-    for (auto& bakePoint : bakePoints)
+    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&bitmap, paintFlags](const TBakePoint& bakePoint)
     {
+        if (!bakePoint.isValid())
+            return;
+
         for (uint32_t i = 0; i < TBakePoint::BASIS_COUNT; i++)
         {
             Eigen::Vector4f color{};
@@ -47,7 +50,7 @@ void BitmapPainter::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& b
 
             bitmap.putColor(color, bakePoint.x, bakePoint.y, i);
         }
-    }
+    });
 }
 
 template <typename TBakePoint>

@@ -29,7 +29,7 @@ static Eigen::Vector2f clampUV(const Eigen::Vector2f& uv)
 {
     float temp;
 
-    Eigen::Vector2f value { modf(uv[0], &temp), modf(uv[1], &temp) };
+    Eigen::Vector2f value { std::modf(uv[0], &temp), std::modf(uv[1], &temp) };
 
     if (value[0] < 0)
         value[0] += 1.0f;
@@ -131,25 +131,25 @@ const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
 static Eigen::Vector3f sampleSphere(const size_t index, const size_t sampleCount)
 {
     const float y = 1 - (float)index / (float)(sampleCount - 1) * 2;
-    const float radius = sqrtf(1 - y * y);
+    const float radius = std::sqrt(1 - y * y);
 
     const float theta = GOLDEN_ANGLE * (float)index;
 
-    const float x = cosf(theta) * radius;
-    const float z = sinf(theta) * radius;
+    const float x = std::cos(theta) * radius;
+    const float z = std::sin(theta) * radius;
 
     return { x, y, z };
 }
 
 static Eigen::Vector2f sampleVogelDisk(const size_t index, const size_t sampleCount, const float phi)
 {
-    const float radius = sqrtf(index + 0.5f) / sqrtf((float)sampleCount);
+    const float radius = std::sqrt(index + 0.5f) / std::sqrt((float)sampleCount);
     const float theta = index * GOLDEN_ANGLE + phi;
 
-    return { radius * cosf(theta), radius * sinf(theta) };
+    return { radius * std::cos(theta), radius * std::sin(theta) };
 }
 
 static Eigen::Vector4f gammaCorrect(const Eigen::Vector4f& color)
 {
-    return { powf(color[0], 2.2f), powf(color[1], 2.2f), powf(color[2], 2.2f), color[3] };
+    return { std::pow(color[0], 2.2f), std::pow(color[1], 2.2f), std::pow(color[2], 2.2f), color[3] };
 }
