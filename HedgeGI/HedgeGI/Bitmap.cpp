@@ -3,7 +3,7 @@
 Bitmap::Bitmap() = default;
 
 Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize)
-    : width(width), height(height), arraySize(arraySize), data(std::make_unique<Eigen::Vector4f[]>(width * height * arraySize))
+    : width(width), height(height), arraySize(arraySize), data(std::make_unique<Eigen::Array4f[]>(width * height * arraySize))
 {
     for (size_t i = 0; i < width * height * arraySize; i++)
         data[i] = Eigen::Vector4f::Zero();
@@ -16,7 +16,7 @@ void Bitmap::getPixelCoords(const Eigen::Vector2f& uv, uint32_t& x, uint32_t& y)
     y = std::max(0u, std::min(height - 1, (uint32_t)std::roundf(clamped[1] * height)));
 }
 
-Eigen::Vector4f Bitmap::pickColor(const Eigen::Vector2f& uv, const uint32_t arrayIndex) const
+Eigen::Array4f Bitmap::pickColor(const Eigen::Vector2f& uv, const uint32_t arrayIndex) const
 {
     uint32_t x, y;
     getPixelCoords(uv, x, y);
@@ -24,12 +24,12 @@ Eigen::Vector4f Bitmap::pickColor(const Eigen::Vector2f& uv, const uint32_t arra
     return data[width * height * arrayIndex + y * width + x];
 }
 
-Eigen::Vector4f Bitmap::pickColor(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
+Eigen::Array4f Bitmap::pickColor(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
 {
     return data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))];
 }
 
-void Bitmap::putColor(const Eigen::Vector4f& color, const Eigen::Vector2f& uv, const uint32_t arrayIndex) const
+void Bitmap::putColor(const Eigen::Array4f& color, const Eigen::Vector2f& uv, const uint32_t arrayIndex) const
 {
     uint32_t x, y;
     getPixelCoords(uv, x, y);
@@ -37,7 +37,7 @@ void Bitmap::putColor(const Eigen::Vector4f& color, const Eigen::Vector2f& uv, c
     data[width * height * arrayIndex + y * width + x] = color;
 }
 
-void Bitmap::putColor(const Eigen::Vector4f& color, const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
+void Bitmap::putColor(const Eigen::Array4f& color, const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
 {
     data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))] = color;
 }
@@ -48,7 +48,7 @@ void Bitmap::read(const FileStream& file)
     width = file.read<uint32_t>();
     height = file.read<uint32_t>();
     arraySize = file.read<uint32_t>();
-    data = std::make_unique<Eigen::Vector4f[]>(width * height * arraySize);
+    data = std::make_unique<Eigen::Array4f[]>(width * height * arraySize);
     file.read(data.get(), width * height * arraySize);
 }
 

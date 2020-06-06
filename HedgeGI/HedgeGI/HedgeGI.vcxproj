@@ -110,10 +110,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BitmapPainter.cpp" />
+    <ClCompile Include="Direct3D11Device.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="BakingFactory.cpp" />
     <ClCompile Include="GIBaker.cpp" />
     <ClCompile Include="Instance.cpp" />
+    <ClCompile Include="LightField.cpp" />
     <ClCompile Include="LightFieldBaker.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -128,6 +130,7 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneFactory.cpp" />
     <ClCompile Include="SGGIBaker.cpp" />
+    <ClCompile Include="SHLightField.cpp" />
     <ClCompile Include="SHLightFieldBaker.cpp" />
     <ClCompile Include="Bitmap.cpp" />
   </ItemGroup>
@@ -135,9 +138,11 @@
     <ClInclude Include="AxisAlignedBoundingBox.h" />
     <ClInclude Include="BakePoint.h" />
     <ClInclude Include="BitmapPainter.h" />
+    <ClInclude Include="Direct3D11Device.h" />
     <ClInclude Include="HHLight.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="BakingFactory.h" />
+    <ClInclude Include="LightField.h" />
     <ClInclude Include="RaytracingDevice.h" />
     <ClInclude Include="SceneFactory.h" />
     <ClInclude Include="FileStream.h" />
@@ -153,6 +158,7 @@
     <ClInclude Include="Random.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SGGIBaker.h" />
+    <ClInclude Include="SHLightField.h" />
     <ClInclude Include="SHLightFieldBaker.h" />
     <ClInclude Include="Bitmap.h" />
   </ItemGroup>

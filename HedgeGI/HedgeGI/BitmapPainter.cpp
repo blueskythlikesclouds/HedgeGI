@@ -6,7 +6,7 @@ std::unique_ptr<Bitmap> BitmapPainter::dilate(const Bitmap& bitmap)
 
     const size_t bitmapSize = bitmap.width * bitmap.height;
 
-    std::for_each(std::execution::par_unseq, &dilated->data[0], &dilated->data[bitmapSize * bitmap.arraySize], [&bitmap, &dilated, bitmapSize](Eigen::Vector4f& outputColor)
+    std::for_each(std::execution::par_unseq, &dilated->data[0], &dilated->data[bitmapSize * bitmap.arraySize], [&bitmap, &dilated, bitmapSize](Eigen::Array4f& outputColor)
     {
         const size_t i = std::distance(&dilated->data[0], &outputColor);
 
@@ -16,7 +16,7 @@ std::unique_ptr<Bitmap> BitmapPainter::dilate(const Bitmap& bitmap)
         const uint32_t x = (uint32_t)(currentBitmap % bitmap.height);
         const uint32_t y = (uint32_t)(currentBitmap / bitmap.height);
 
-        Eigen::Vector4f resultColor = bitmap.pickColor(x, y, arrayIndex);
+        Eigen::Array4f resultColor = bitmap.pickColor(x, y, arrayIndex);
         if (resultColor.maxCoeff() > 0.0f)
         {
             outputColor = resultColor;
@@ -31,7 +31,7 @@ std::unique_ptr<Bitmap> BitmapPainter::dilate(const Bitmap& bitmap)
         {
             for (auto& dy : indices)
             {
-                const Eigen::Vector4f color = bitmap.pickColor(x + dx, y + dy, arrayIndex);
+                const Eigen::Array4f color = bitmap.pickColor(x + dx, y + dy, arrayIndex);
                 if (color.maxCoeff() <= 0.0f)
                     continue;
 

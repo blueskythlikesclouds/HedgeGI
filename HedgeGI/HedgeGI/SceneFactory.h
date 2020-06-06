@@ -20,4 +20,5 @@ public:
     static void loadTerrain(const hl::Archive& archive, Scene& scene);
 
     static std::unique_ptr<Scene> createFromGenerations(const std::string& directoryPath);
+    static std::unique_ptr<Scene> createFromLostWorldOrForces(const std::string& directoryPath);
 };

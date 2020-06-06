@@ -21,7 +21,7 @@
       <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="RaytracingDevice.cpp">
-      <Filter>Embree</Filter>
+      <Filter>Devices</Filter>
     </ClCompile>
     <ClCompile Include="BakingFactory.cpp">
       <Filter>Baker</Filter>
@@ -34,16 +34,25 @@
       <Filter>Bitmap</Filter>
     </ClCompile>
     <ClCompile Include="GIBaker.cpp">
-      <Filter>Baker\Types</Filter>
+      <Filter>Baker\Subclasses</Filter>
     </ClCompile>
     <ClCompile Include="LightFieldBaker.cpp">
-      <Filter>Baker\Types</Filter>
+      <Filter>Baker\Subclasses</Filter>
     </ClCompile>
     <ClCompile Include="SGGIBaker.cpp">
-      <Filter>Baker\Types</Filter>
+      <Filter>Baker\Subclasses</Filter>
     </ClCompile>
     <ClCompile Include="SHLightFieldBaker.cpp">
-      <Filter>Baker\Types</Filter>
+      <Filter>Baker\Subclasses</Filter>
+    </ClCompile>
+    <ClCompile Include="LightField.cpp">
+      <Filter>HedgehogEngine\LightField</Filter>
+    </ClCompile>
+    <ClCompile Include="SHLightField.cpp">
+      <Filter>HedgehogEngine\LightField</Filter>
+    </ClCompile>
+    <ClCompile Include="Direct3D11Device.cpp">
+      <Filter>Devices</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -61,7 +70,7 @@
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="HHPackedFileInfo.h">
-      <Filter>HedgeLib</Filter>
+      <Filter>HedgehogEngine</Filter>
     </ClInclude>
     <ClInclude Include="SceneFactory.h">
       <Filter>Scene</Filter>
@@ -70,10 +79,10 @@
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="HHLight.h">
-      <Filter>HedgeLib</Filter>
+      <Filter>HedgehogEngine</Filter>
     </ClInclude>
     <ClInclude Include="RaytracingDevice.h">
-      <Filter>Embree</Filter>
+      <Filter>Devices</Filter>
     </ClInclude>
     <ClInclude Include="Bitmap.h">
       <Filter>Bitmap</Filter>
@@ -82,16 +91,16 @@
       <Filter>Bitmap</Filter>
     </ClInclude>
     <ClInclude Include="GIBaker.h">
-      <Filter>Baker\Types</Filter>
+      <Filter>Baker\Subclasses</Filter>
     </ClInclude>
     <ClInclude Include="LightFieldBaker.h">
-      <Filter>Baker\Types</Filter>
+      <Filter>Baker\Subclasses</Filter>
     </ClInclude>
     <ClInclude Include="SGGIBaker.h">
-      <Filter>Baker\Types</Filter>
+      <Filter>Baker\Subclasses</Filter>
     </ClInclude>
     <ClInclude Include="SHLightFieldBaker.h">
-      <Filter>Baker\Types</Filter>
+      <Filter>Baker\Subclasses</Filter>
     </ClInclude>
     <ClInclude Include="AxisAlignedBoundingBox.h">
       <Filter>Other</Filter>
@@ -114,6 +123,15 @@
     <ClInclude Include="BakePoint.h">
       <Filter>Baker</Filter>
     </ClInclude>
+    <ClInclude Include="LightField.h">
+      <Filter>HedgehogEngine\LightField</Filter>
+    </ClInclude>
+    <ClInclude Include="SHLightField.h">
+      <Filter>HedgehogEngine\LightField</Filter>
+    </ClInclude>
+    <ClInclude Include="Direct3D11Device.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scene">
@@ -122,19 +140,22 @@
     <Filter Include="Baker">
       <UniqueIdentifier>{a8078bea-492c-4297-94b8-fcf84f9a0885}</UniqueIdentifier>
     </Filter>
-    <Filter Include="HedgeLib">
-      <UniqueIdentifier>{2a7d149a-8240-4a09-aba7-3426fa41fe61}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Embree">
-      <UniqueIdentifier>{51f4cb31-9de3-4af5-a172-38d41c0a1207}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Other">
       <UniqueIdentifier>{88f2083c-2ca3-4355-b131-bc0be26ef292}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bitmap">
       <UniqueIdentifier>{c41e70d6-bf3f-4bd7-9ddc-a197effc4613}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Baker\Types">
+    <Filter Include="Devices">
+      <UniqueIdentifier>{51f4cb31-9de3-4af5-a172-38d41c0a1207}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HedgehogEngine">
+      <UniqueIdentifier>{2a7d149a-8240-4a09-aba7-3426fa41fe61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HedgehogEngine\LightField">
+      <UniqueIdentifier>{827ec09c-29e1-43c9-8ee3-a1421498315f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Baker\Subclasses">
       <UniqueIdentifier>{d2790bb7-5357-4478-98bd-d0cbd9a79a3a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

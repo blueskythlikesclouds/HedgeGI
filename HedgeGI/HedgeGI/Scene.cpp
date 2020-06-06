@@ -24,6 +24,27 @@ RaytracingContext Scene::createRaytracingContext() const
     return { this, createRTCScene() };
 }
 
+void Scene::removeUnusedBitmaps()
+{
+    std::unordered_set<const Bitmap*> bitmapSet;
+    for (auto& material : materials)
+    {
+        bitmapSet.insert(material->diffuse);
+        bitmapSet.insert(material->emission);
+    }
+
+    std::vector<std::unique_ptr<const Bitmap>> distinctBitmaps;
+    for (auto& bitmap : bitmaps)
+    {
+        if (bitmapSet.find(bitmap.get()) == bitmapSet.end())
+            continue;
+
+        distinctBitmaps.push_back(std::move(bitmap));
+    }
+
+    std::swap(bitmaps, distinctBitmaps);
+}
+
 void Scene::read(const FileStream& file)
 {
     const uint32_t bitmapCount = file.read<uint32_t>();

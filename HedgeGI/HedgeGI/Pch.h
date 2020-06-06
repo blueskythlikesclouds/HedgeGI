@@ -29,6 +29,8 @@
 #include <execution>
 #include <filesystem>
 #include <random>
+#include <unordered_set>
+#include <vector>
 
 #undef min
 #undef max

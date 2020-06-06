@@ -13,7 +13,7 @@ class Light
 public:
     LightType type{};
     Eigen::Vector3f positionOrDirection;
-    Eigen::Vector3f color;
+    Eigen::Array3f color;
     float innerRange{};
     float outerRange{};
 

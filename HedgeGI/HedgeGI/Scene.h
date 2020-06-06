@@ -28,6 +28,8 @@ public:
     RTCScene createRTCScene() const;
     RaytracingContext createRaytracingContext() const;
 
+    void removeUnusedBitmaps();
+
     void read(const FileStream& file);
     void write(const FileStream& file) const;
 

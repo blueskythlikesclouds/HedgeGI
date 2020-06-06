@@ -35,7 +35,7 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     bitmap->width = (uint32_t)metadata.width;
     bitmap->height = (uint32_t)metadata.height;
     bitmap->arraySize = 1;
-    bitmap->data = std::make_unique<Eigen::Vector4f[]>(bitmap->width * bitmap->height * bitmap->arraySize);
+    bitmap->data = std::make_unique<Eigen::Array4f[]>(bitmap->width * bitmap->height * bitmap->arraySize);
 
     for (size_t i = 0; i < bitmap->arraySize; i++)
         memcpy(&bitmap->data[bitmap->width * bitmap->height * i], scratchImage->GetImage(0, i, 0)->pixels, bitmap->width * bitmap->height * sizeof(Eigen::Vector4f));
@@ -60,7 +60,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::HHMaterialV3* materia
             if (strcmp(unit->TextureName.Get(), bitmap->name.c_str()) != 0)
                 continue;
 
-            if (strcmp(unit->Type.Get(), "diffuse") != 0)
+            if (strcmp(unit->Type.Get(), "diffuse") == 0)
                 newMaterial->diffuse = bitmap.get();
             else
                 newMaterial->emission = bitmap.get();
@@ -173,8 +173,6 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
 
         vertex.position = transformation * vertex.position;
         vertex.normal = (rotation * vertex.normal).normalized();
-        vertex.tangent = (rotation * vertex.tangent).normalized();
-        vertex.binormal = (rotation * vertex.binormal).normalized();
     }
 
     std::vector<Triangle> triangles;
@@ -233,14 +231,22 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::HHTerrainInstanceInfo
 {
     std::unique_ptr<Instance> newInstance = std::make_unique<Instance>();
 
-    newInstance->name = instance->Filename.Get();
+    newInstance->name = instance ? instance->Filename.Get() : model->Name.Get();
 
     Eigen::Matrix4f transformationMatrix;
-    transformationMatrix <<
-        instance->Matrix->M11, instance->Matrix->M12, instance->Matrix->M13, instance->Matrix->M14,
-        instance->Matrix->M21, instance->Matrix->M22, instance->Matrix->M23, instance->Matrix->M24,
-        instance->Matrix->M31, instance->Matrix->M32, instance->Matrix->M33, instance->Matrix->M34,
-        instance->Matrix->M41, instance->Matrix->M42, instance->Matrix->M43, instance->Matrix->M44;
+
+    if (instance)
+    {
+        transformationMatrix <<
+            instance->Matrix->M11, instance->Matrix->M12, instance->Matrix->M13, instance->Matrix->M14,
+            instance->Matrix->M21, instance->Matrix->M22, instance->Matrix->M23, instance->Matrix->M24,
+            instance->Matrix->M31, instance->Matrix->M32, instance->Matrix->M33, instance->Matrix->M34,
+            instance->Matrix->M41, instance->Matrix->M42, instance->Matrix->M43, instance->Matrix->M44;
+    }
+    else
+    {
+        transformationMatrix = Eigen::Matrix4f::Identity();
+    }
 
     Eigen::Affine3f transformationAffine;
     transformationAffine = transformationMatrix;
@@ -359,6 +365,7 @@ void SceneFactory::loadTerrain(const hl::Archive& archive, Scene& scene)
 
         hl::HHTerrainModel* model = hl::DHHGetData<hl::HHTerrainModel>(file.Data.get());
         model->EndianSwapRecursive(true);
+        model->Flags = false;
 
         models.push_back(model);
     }
@@ -378,12 +385,20 @@ void SceneFactory::loadTerrain(const hl::Archive& archive, Scene& scene)
             if (strcmp(model->Name.Get(), instance->ModelName.Get()) != 0)
                 continue;
 
-            std::unique_ptr<Instance> newInstance = createInstance(instance, model, scene);
-            newInstance->name = instance->Filename.Get();
+            model->Flags = true;
 
-            scene.instances.push_back(std::move(newInstance));
+            scene.instances.push_back(createInstance(instance, model, scene));
             break;
         }
+    }
+
+    // Load models that aren't bound to any instances
+    for (auto& model : models)
+    {
+        if (model->Flags)
+            continue;
+
+        scene.instances.push_back(createInstance(nullptr, model, scene));
     }
 }
 
@@ -432,5 +447,30 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
         loadTerrain(tgArchive, *scene);
     }
 
+    scene->removeUnusedBitmaps();
+    return scene;
+}
+
+std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::string& directoryPath)
+{
+    std::unique_ptr<Scene> scene = std::make_unique<Scene>();
+
+    const std::string stageName = getFileNameWithoutExtension(directoryPath);
+    {
+        hl::Archive archive((directoryPath + "/" + stageName + "_trr_cmn.pac").c_str());
+        loadResources(archive, *scene);
+        loadTerrain(archive, *scene);
+    }
+
+    for (uint32_t i = 0; i < 100; i++)
+    {
+        char slot[4];
+        sprintf(slot, "%02d", i);
+
+        hl::Archive archive((directoryPath + "/" + stageName + "_trr_s" + slot + ".pac").c_str());
+        loadTerrain(archive, *scene);
+    }
+
+    scene->removeUnusedBitmaps();
     return scene;
 }

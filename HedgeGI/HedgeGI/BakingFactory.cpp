@@ -1,7 +1,7 @@
 ﻿#include "BakingFactory.h"
 #include "Scene.h"
 
-Eigen::Vector3f BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams)
+Eigen::Array3f BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams)
 {
     RTCIntersectContext context{};
     rtcInitIntersectContext(&context);
@@ -19,15 +19,15 @@ Eigen::Vector3f BakingFactory::pathTrace(const RaytracingContext& raytracingCont
     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
-    Eigen::Vector3f throughput(1, 1, 1);
-    Eigen::Vector3f radiance(0, 0, 0);
+    Eigen::Array3f throughput(1, 1, 1);
+    Eigen::Array3f radiance(0, 0, 0);
 
     for (uint32_t i = 0; i < bakeParams.lightBounceCount; i++)
     {
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
         {
-            radiance += bakeParams.skyColor.cwiseProduct(throughput);
+            radiance += throughput * bakeParams.skyColor;
             break;
         }
 
@@ -50,15 +50,15 @@ Eigen::Vector3f BakingFactory::pathTrace(const RaytracingContext& raytracingCont
         const Eigen::Vector3f hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
         const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
 
-        Eigen::Vector4f diffuse { 1, 1, 1, 1 };
+        Eigen::Array4f diffuse { 1, 1, 1, 1 };
         if (mesh.material && mesh.material->diffuse)
-            diffuse = gammaCorrect(mesh.material->diffuse->pickColor(hitUV));
+            diffuse = mesh.material->diffuse->pickColor(hitUV);
 
-        Eigen::Vector4f emission{ 0, 0, 0, 0 };
-        //if (mesh.material && mesh.material->emission)
-        //    emission = mesh.material->emission->pickColor(hitUV);
+        Eigen::Array4f emission{ 0, 0, 0, 0 };
+        if (mesh.material && mesh.material->emission)
+            emission = mesh.material->emission->pickColor(hitUV);
 
-        radiance += throughput.cwiseProduct(emission.head<3>());
+        radiance += throughput * emission.head<3>();
 
         context = {};
         rtcInitIntersectContext(&context);
@@ -75,31 +75,21 @@ Eigen::Vector3f BakingFactory::pathTrace(const RaytracingContext& raytracingCont
         ray.tfar = INFINITY;
         rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
 
-        // My god Eigen is like, super impractical...
-        // I was expecting * operators to work but it wants me to explicitly use cwiseProduct????
-        // Not to mention the assertions don't cause any compiler errors in the IDE so it's very hard to figure out where you messed up...
-        Eigen::Vector3f directLighting = sunLight.color;
-        directLighting *= std::max(0.0f, std::min(1.0f, hitNormal.dot(-sunLight.positionOrDirection)));
-        directLighting = directLighting.cwiseProduct(diffuse.head<3>() / PI);
-        directLighting = directLighting.cwiseProduct(throughput);
-        directLighting *= ray.tfar > 0;
-
-        radiance += directLighting;
+        radiance += throughput * sunLight.color * std::max(0.0f, std::min(1.0f, 
+            hitNormal.dot(-sunLight.positionOrDirection))) * (diffuse.head<3>() / PI) * (ray.tfar > 0);
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
         // This actually seems to mess up in dark areas a lot, need to look into it
-        float probability = std::max(0.05f, diffuse.head<3>().dot(Eigen::Vector3f(0.2126f, 0.7152f, 0.0722f)));
-        if (i > 3)
+        float probability = std::min(0.5f, diffuse.maxCoeff());
+        if (i >= 4)
         {
             if (Random::next() > probability)
                 break;
 
-            diffuse[0] /= probability;
-            diffuse[1] /= probability;
-            diffuse[2] /= probability;
+            diffuse.head<3>() /= probability;
         }
 
-        throughput = throughput.cwiseProduct(diffuse.head<3>());
+        throughput *= diffuse.head<3>();
 
         // Setup next ray
         const Eigen::Vector3f hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
@@ -111,10 +101,7 @@ Eigen::Vector3f BakingFactory::pathTrace(const RaytracingContext& raytracingCont
             hitTangent[1], hitBinormal[1], hitNormal[1],
             hitTangent[2], hitBinormal[2], hitNormal[2];
 
-        Eigen::Affine3f hitTangentToWorld;
-        hitTangentToWorld = hitTangentToWorldMatrix;
-
-        const Eigen::Vector3f hitDirection = (hitTangentToWorld * sampleCosineWeightedHemisphere(
+        const Eigen::Vector3f hitDirection = (hitTangentToWorldMatrix * sampleCosineWeightedHemisphere(
             Random::next() * diffuse[3], Random::next() * diffuse[3])).normalized();
 
         query.ray.dir_x = hitDirection[0];

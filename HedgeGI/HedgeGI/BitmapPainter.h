@@ -18,7 +18,7 @@ public:
     static void paint(const Bitmap& bitmap, const std::vector<TBakePoint>& bakePoints, PaintFlags paintFlags);
 
     template<typename TBakePoint>
-    static std::unique_ptr<Bitmap> create(const std::vector<TBakePoint>& bakePoints, uint16_t size, PaintFlags paintFlags);
+    static std::unique_ptr<Bitmap> createAndPaint(const std::vector<TBakePoint>& bakePoints, uint16_t width, uint16_t height, PaintFlags paintFlags);
 };
 
 template <typename TBakePoint>
@@ -29,9 +29,9 @@ void BitmapPainter::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& b
         if (!bakePoint.isValid())
             return;
 
-        for (uint32_t i = 0; i < TBakePoint::BASIS_COUNT; i++)
+        for (uint32_t i = 0; i < std::min(bitmap.arraySize, TBakePoint::BASIS_COUNT); i++)
         {
-            Eigen::Vector4f color{};
+            Eigen::Array4f color{};
 
             if (paintFlags & PAINT_FLAGS_COLOR)
             {
@@ -54,9 +54,9 @@ void BitmapPainter::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& b
 }
 
 template <typename TBakePoint>
-std::unique_ptr<Bitmap> BitmapPainter::create(const std::vector<TBakePoint>& bakePoints, uint16_t size, const PaintFlags paintFlags)
+std::unique_ptr<Bitmap> BitmapPainter::createAndPaint(const std::vector<TBakePoint>& bakePoints, uint16_t width, uint16_t height, const PaintFlags paintFlags)
 {
-    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(size, size, TBakePoint::BASIS_COUNT);
+    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(width, height, paintFlags != PAINT_FLAGS_SHADOW ? TBakePoint::BASIS_COUNT : 1);
     paint(*bitmap, bakePoints, paintFlags);
     return bitmap;
 }

@@ -2,36 +2,62 @@
 
 #include "Scene.h"
 
-#define DEFINE_BAKE_POINT(basisCount) \
-    static const uint32_t BASIS_COUNT = basisCount; \
-    \
-    static Eigen::Vector3f sampleDirection(float u1, float u2); \
-    \
-    bool isValid() const;\
-    \
-    void initialize(); \
-    void addSample(const Eigen::Vector3f& color, const Eigen::Vector3f& tangentSpaceDirection) = delete; \
-    void finalize(uint32_t sampleCount) = delete; \
-
 template<uint32_t BasisCount>
-class TexelPoint
+struct BakePoint
 {
-public:
+    static const uint32_t BASIS_COUNT = BasisCount;
+
     Eigen::Vector3f position;
     Eigen::Matrix3f tangentToWorldMatrix;
-    uint16_t x{ (uint16_t)-1 }, y{ (uint16_t)-1 };
 
-    std::array<Eigen::Vector3f, BasisCount> colors{};
+    Eigen::Array3f colors[BasisCount];
     float shadow{};
 
-    DEFINE_BAKE_POINT(BasisCount)
+    uint16_t x{ (uint16_t)-1 };
+    uint16_t y{ (uint16_t)-1 };
+
+    static Eigen::Vector3f sampleDirection(float u1, float u2);
+
+    bool isValid() const;
+
+    void begin();
+    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection) = delete;
+    void end(uint32_t sampleCount);
 };
 
-template <typename TBakePoint>
-std::vector<TBakePoint> createTexelPoints(const RaytracingContext& raytracingContext, const Instance& instance, const uint16_t size)
+template <uint32_t BasisCount>
+Eigen::Vector3f BakePoint<BasisCount>::sampleDirection(const float u1, const float u2)
 {
-    std::vector<TBakePoint> texelPoints;
-    texelPoints.resize(size * size);
+    return sampleCosineWeightedHemisphere(u1, u2);
+}
+
+template <uint32_t BasisCount>
+bool BakePoint<BasisCount>::isValid() const
+{
+    return x != (uint16_t)-1 && y != (uint16_t)-1;
+}
+
+template <uint32_t BasisCount>
+void BakePoint<BasisCount>::begin()
+{
+    for (uint32_t i = 0; i < BasisCount; i++)
+        colors[i] = Eigen::Array3f::Zero();
+
+    shadow = 0.0f;
+}
+
+template <uint32_t BasisCount>
+void BakePoint<BasisCount>::end(const uint32_t sampleCount)
+{
+    for (uint32_t i = 0; i < BasisCount; i++)
+        colors[i] /= (float)sampleCount;
+}
+
+template <typename TBakePoint>
+std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingContext, const Instance& instance, const uint16_t size)
+{
+    std::vector<TBakePoint> bakePoints;
+    bakePoints.resize(size * size);
 
     for (auto& mesh : instance.meshes)
     {
@@ -61,6 +87,9 @@ std::vector<TBakePoint> createTexelPoints(const RaytracingContext& raytracingCon
             {
                 for (uint16_t y = yBegin; y <= yEnd; y++)
                 {
+                    if (bakePoints[y * size + x].isValid())
+                        continue;
+
                     const Eigen::Vector3f vPos(x / (float)size, y / (float)size, 0);
                     const Eigen::Vector2f baryUV = getBarycentricCoords(vPos, aVPos, bVPos, cVPos);
 
@@ -81,46 +110,43 @@ std::vector<TBakePoint> createTexelPoints(const RaytracingContext& raytracingCon
                         tangent[1], binormal[1], normal[1],
                         tangent[2], binormal[2], normal[2];
 
-                    texelPoints[y * size + x] = { position, tangentToWorld, x, y, {}, {} };
+                    bakePoints[y * size + x] = { position, tangentToWorld, {}, {}, x, y };
                 }
             }
         }
     }
 
-    return texelPoints;
+    return bakePoints;
 
     // Try fixing the shadow leaks by pushing the points out a little.
     for (uint16_t x = 0; x < size; x++)
     {
         for (uint16_t y = 0; y < size; y++)
         {
-            TBakePoint& basePoint = texelPoints[y * size + x];
+            TBakePoint& basePoint = bakePoints[y * size + x];
             if (!basePoint.isValid())
                 continue;
 
-            const TBakePoint& neighborX = texelPoints[y * size + (x & 1 ? x - 1 : x + 1)];
-            const TBakePoint& neighborY = texelPoints[(y & 1 ? y - 1 : y + 1) * size + x];
+            const TBakePoint& neighborX = bakePoints[y * size + (x & 1 ? x - 1 : x + 1)];
+            const TBakePoint& neighborY = bakePoints[(y & 1 ? y - 1 : y + 1) * size + x];
 
             if (!neighborX.isValid() || !neighborY.isValid())
                 continue;
 
             const float rayDistance = (neighborX.position - basePoint.position).cwiseAbs().cwiseMax(
-                (neighborY.position - basePoint.position).cwiseAbs()).maxCoeff() * std::sqrtf(2.0f) * 0.5f;
+                (neighborY.position - basePoint.position).cwiseAbs()).maxCoeff() * 0.5f;
 
             const Eigen::Vector3f rayDirections[] =
             {
-                Eigen::Vector3f(1, 0, 1),
-                Eigen::Vector3f(-1, 0, 1),
-                Eigen::Vector3f(0, 1, 1),
-                Eigen::Vector3f(0, -1, 1)
+                Eigen::Vector3f(1, 0, 0),
+                Eigen::Vector3f(-1, 0, 0),
+                Eigen::Vector3f(0, 1, 0),
+                Eigen::Vector3f(0, -1, 0)
             };
-
-            Eigen::Affine3f tangentToWorld;
-            tangentToWorld = basePoint.tangentToWorldMatrix;
 
             for (auto& rayDirection : rayDirections)
             {
-                const Eigen::Vector3f& rayDirInWorldSpace = (tangentToWorld * rayDirection).normalized();
+                const Eigen::Vector3f& rayDirInWorldSpace = (basePoint.tangentToWorldMatrix * rayDirection).normalized();
 
                 RTCIntersectContext context{};
                 rtcInitIntersectContext(&context);
@@ -154,32 +180,11 @@ std::vector<TBakePoint> createTexelPoints(const RaytracingContext& raytracingCon
                 if (normal.dot(rayDirInWorldSpace) < 0.0f)
                     continue;
 
-                basePoint.position = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
+                basePoint.position += rayDirInWorldSpace * query.ray.tfar;
                 break;
             }
         }
     }
 
-    return texelPoints;
-}
-
-template <uint32_t BasisCount>
-Eigen::Vector3f TexelPoint<BasisCount>::sampleDirection(const float u1, const float u2)
-{
-    return sampleCosineWeightedHemisphere(u1, u2);
-}
-
-template <uint32_t BasisCount>
-bool TexelPoint<BasisCount>::isValid() const
-{
-    return x != (uint16_t)-1 && y != (uint16_t)-1;
-}
-
-template <uint32_t BasisCount>
-void TexelPoint<BasisCount>::initialize()
-{
-    for (uint32_t i = 0; i < BasisCount; i++)
-        colors[i] = Eigen::Vector3f::Zero();
-
-    shadow = 0.0f;
+    return bakePoints;
 }

@@ -4,7 +4,7 @@
 
 struct BakeParams
 {
-    Eigen::Vector3f skyColor;
+    Eigen::Array3f skyColor;
 
     uint32_t lightBounceCount{};
     uint32_t lightSampleCount{};
@@ -16,7 +16,7 @@ struct BakeParams
 class BakingFactory
 {
 public:
-    static Eigen::Vector3f pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams);
+    static Eigen::Array3f pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams);
 
     template <typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
@@ -35,31 +35,25 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         break;
     }
 
-    Eigen::Affine3f lightTangentToWorld;
-    lightTangentToWorld = sunLight->getTangentToWorldMatrix();
+    const Eigen::Matrix3f lightTangentToWorldMatrix = sunLight->getTangentToWorldMatrix();
 
-    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&raytracingContext, &bakeParams, &sunLight, &lightTangentToWorld](TBakePoint& bakePoint)
+    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&raytracingContext, &bakeParams, &sunLight, &lightTangentToWorldMatrix](TBakePoint& bakePoint)
     {
         if (!bakePoint.isValid())
             return;
 
-        const Eigen::Vector3f position = bakePoint.position;
-
-        Eigen::Affine3f tangentToWorld;
-        tangentToWorld = bakePoint.tangentToWorldMatrix;
-
-        bakePoint.initialize();
+        bakePoint.begin();
 
         // WHY IS THIS SO NOISY
         for (uint32_t i = 0; i < bakeParams.lightSampleCount; i++)
         {
             const Eigen::Vector3f tangentSpaceDirection = TBakePoint::sampleDirection(Random::next(), Random::next()).normalized();
-            const Eigen::Vector3f worldSpaceDirection = (tangentToWorld * tangentSpaceDirection).normalized();
+            const Eigen::Vector3f worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
 
-            bakePoint.addSample(pathTrace(raytracingContext, position, worldSpaceDirection, *sunLight, bakeParams), tangentSpaceDirection);
+            bakePoint.addSample(pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, *sunLight, bakeParams), tangentSpaceDirection);
         }
 
-        bakePoint.finalize(bakeParams.lightSampleCount);
+        bakePoint.end(bakeParams.lightSampleCount);
 
         // Shadows are more noisy when multi-threaded...?
         // Could it be related to the random number generator?
@@ -68,11 +62,11 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         for (uint32_t i = 0; i < bakeParams.shadowSampleCount; i++)
         {
             const Eigen::Vector2f vogelDiskSample = sampleVogelDisk(i, bakeParams.shadowSampleCount, phi);
-            const Eigen::Vector3f direction = (lightTangentToWorld * Eigen::Vector3f(
+            const Eigen::Vector3f direction = (lightTangentToWorldMatrix * Eigen::Vector3f(
                 vogelDiskSample[0] * bakeParams.shadowSearchArea,
                 vogelDiskSample[1] * bakeParams.shadowSearchArea, 1)).normalized();
 
-            Eigen::Vector3f currPosition = position;
+            Eigen::Vector3f position = bakePoint.position;
 
             float shadow = 0;
             do
@@ -84,9 +78,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 query.ray.dir_x = -direction[0];
                 query.ray.dir_y = -direction[1];
                 query.ray.dir_z = -direction[2];
-                query.ray.org_x = currPosition[0];
-                query.ray.org_y = currPosition[1];
-                query.ray.org_z = currPosition[2];
+                query.ray.org_x = position[0];
+                query.ray.org_y = position[1];
+                query.ray.org_z = position[2];
                 query.ray.tnear = 0.001f;
                 query.ray.tfar = INFINITY;
                 query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
@@ -105,8 +99,8 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, { query.hit.v, query.hit.u });
 
                 shadow = std::max(shadow, mesh.material && mesh.material->diffuse ? mesh.material->diffuse->pickColor(hitUV)[3] : 1);
-                currPosition = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
-            } while (shadow < 0.99f);
+                position = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
+            } while (shadow < 1.0f);
 
             bakePoint.shadow += shadow;
         }
