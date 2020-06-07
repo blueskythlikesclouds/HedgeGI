@@ -9,7 +9,7 @@ enum PaintFlags
     PAINT_FLAGS_SQRT = 1 << 2
 };
 
-class BitmapPainter
+class BitmapHelper
 {
 public:
     static std::unique_ptr<Bitmap> dilate(const Bitmap& bitmap);
@@ -22,11 +22,11 @@ public:
 };
 
 template <typename TBakePoint>
-void BitmapPainter::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& bakePoints, const PaintFlags paintFlags)
+void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& bakePoints, const PaintFlags paintFlags)
 {
     std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&bitmap, paintFlags](const TBakePoint& bakePoint)
     {
-        if (!bakePoint.isValid())
+        if (!bakePoint.valid())
             return;
 
         for (uint32_t i = 0; i < std::min(bitmap.arraySize, TBakePoint::BASIS_COUNT); i++)
@@ -54,7 +54,7 @@ void BitmapPainter::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& b
 }
 
 template <typename TBakePoint>
-std::unique_ptr<Bitmap> BitmapPainter::createAndPaint(const std::vector<TBakePoint>& bakePoints, uint16_t width, uint16_t height, const PaintFlags paintFlags)
+std::unique_ptr<Bitmap> BitmapHelper::createAndPaint(const std::vector<TBakePoint>& bakePoints, uint16_t width, uint16_t height, const PaintFlags paintFlags)
 {
     std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(width, height, paintFlags != PAINT_FLAGS_SHADOW ? TBakePoint::BASIS_COUNT : 1);
     paint(*bitmap, bakePoints, paintFlags);

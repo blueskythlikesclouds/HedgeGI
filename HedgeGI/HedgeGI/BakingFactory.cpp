@@ -1,7 +1,7 @@
 ﻿#include "BakingFactory.h"
 #include "Scene.h"
 
-Eigen::Array3f BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams)
+Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams)
 {
     RTCIntersectContext context{};
     rtcInitIntersectContext(&context);
@@ -21,13 +21,14 @@ Eigen::Array3f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
     Eigen::Array3f throughput(1, 1, 1);
     Eigen::Array3f radiance(0, 0, 0);
+    float faceFactor = 1.0f;
 
     for (uint32_t i = 0; i < bakeParams.lightBounceCount; i++)
     {
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
         {
-            radiance += throughput * bakeParams.skyColor;
+            radiance += throughput * bakeParams.environmentColor;
             break;
         }
 
@@ -44,15 +45,21 @@ Eigen::Array3f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
         // Break the loop if we hit a backfacing triangle on opaque mesh
         if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(rayNormal) < 0.0f)
+        {
+            faceFactor = (float)(i != 0);
             break;
+        }
 
         const Eigen::Vector3f hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
         const Eigen::Vector3f hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
         const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
+        const Eigen::Array4f hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
 
         Eigen::Array4f diffuse { 1, 1, 1, 1 };
         if (mesh.material && mesh.material->diffuse)
-            diffuse = mesh.material->diffuse->pickColor(hitUV);
+            diffuse = mesh.material->diffuse->pickColor(hitUV).pow(Eigen::Array4f(2.2f, 2.2f, 2.2f, 1.0f));
+
+        diffuse.head<3>() *= hitColor.head<3>();
 
         Eigen::Array4f emission{ 0, 0, 0, 0 };
         if (mesh.material && mesh.material->emission)
@@ -79,7 +86,6 @@ Eigen::Array3f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             hitNormal.dot(-sunLight.positionOrDirection))) * (diffuse.head<3>() / PI) * (ray.tfar > 0);
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
-        // This actually seems to mess up in dark areas a lot, need to look into it
         float probability = std::min(0.5f, diffuse.maxCoeff());
         if (i >= 4)
         {
@@ -119,5 +125,5 @@ Eigen::Array3f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
         rtcInitIntersectContext(&context);
     }
 
-    return radiance;
+    return { radiance[0], radiance[1], radiance[2], faceFactor };
 }

@@ -1,6 +1,6 @@
 ﻿#include "BakePoint.h"
 #include "BakingFactory.h"
-#include "BitmapPainter.h"
+#include "BitmapHelper.h"
 #include "SGGIBaker.h"
 
 const std::array<Eigen::Vector3f, 4> SG_DIRECTIONS =
@@ -28,7 +28,7 @@ struct SGGIPoint : BakePoint<4>
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 4; i++)
-            colors[i] /= (float)sampleCount;
+            colors[i] *= (2 * PI) / (float)sampleCount;
     }
 };
 
@@ -40,7 +40,7 @@ std::pair<std::unique_ptr<Bitmap>, std::unique_ptr<Bitmap>> SGGIBaker::bake(cons
     
     return
     {
-        BitmapPainter::createAndPaint(bakePoints, size, size, PAINT_FLAGS_COLOR),
-        BitmapPainter::createAndPaint(bakePoints, size, size, PAINT_FLAGS_SHADOW)
+        BitmapHelper::createAndPaint(bakePoints, size, size, PAINT_FLAGS_COLOR),
+        BitmapHelper::createAndPaint(bakePoints, size, size, PAINT_FLAGS_SHADOW)
     };
 }

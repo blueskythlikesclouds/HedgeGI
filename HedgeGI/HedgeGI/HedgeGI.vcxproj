@@ -109,7 +109,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BitmapPainter.cpp" />
+    <ClCompile Include="BitmapHelper.cpp" />
     <ClCompile Include="Direct3D11Device.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="BakingFactory.cpp" />
@@ -137,7 +137,7 @@
   <ItemGroup>
     <ClInclude Include="AxisAlignedBoundingBox.h" />
     <ClInclude Include="BakePoint.h" />
-    <ClInclude Include="BitmapPainter.h" />
+    <ClInclude Include="BitmapHelper.h" />
     <ClInclude Include="Direct3D11Device.h" />
     <ClInclude Include="HHLight.h" />
     <ClInclude Include="Light.h" />

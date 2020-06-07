@@ -1,6 +1,6 @@
-﻿#include "BitmapPainter.h"
+﻿#include "BitmapHelper.h"
 
-std::unique_ptr<Bitmap> BitmapPainter::dilate(const Bitmap& bitmap)
+std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 {
     std::unique_ptr<Bitmap> dilated = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
 

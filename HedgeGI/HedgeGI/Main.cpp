@@ -1,5 +1,5 @@
 #include "BakingFactory.h"
-#include "BitmapPainter.h"
+#include "BitmapHelper.h"
 #include "GIBaker.h"
 #include "Scene.h"
 #include "SceneFactory.h"
@@ -43,26 +43,26 @@ int32_t main(int32_t argc, const char* argv[])
 
     size_t i = 0;
     std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(), [&resolutions, &scene, &i, &scenePair](const auto& instance)
-        {
-            const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? resolutions[instance->name] : 512;
+    {
+        const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(16, resolutions[instance->name]) : 256;
 
-            printf("(%llu/%llu): %s at %dx%d\n", ++i, scene->instances.size(), instance->name.c_str(), resolution, resolution);
+        printf("(%llu/%llu): %s at %dx%d\n", ++i, scene->instances.size(), instance->name.c_str(), resolution, resolution);
 
-            // SGGI Test
-            //const auto bitmaps = SGGIBaker::bake(scenePair, *instance, resolution, { { 0.5f * 10000, 0.5f * 10000, 1.0f * 10000 }, 10, 100, 64, 0.01f });
-            //BitmapPainter::dilate(*bitmaps.first)->save(instance->name + ".dds", DXGI_FORMAT_R32G32B32A32_FLOAT);
-            //BitmapPainter::dilate(*bitmaps.second)->save(instance->name + "_occlusion.dds", DXGI_FORMAT_R32G32B32A32_FLOAT);
+        // SGGI Test
+        //const auto bitmaps = SGGIBaker::bake(scenePair, *instance, resolution, { { 0.5f * 10000, 0.5f * 10000, 1.0f * 10000 }, 10, 100, 64, 0.01f });
+        //BitmapPainter::dilate(*bitmaps.first)->save(instance->name + ".dds", DXGI_FORMAT_R32G32B32A32_FLOAT);
+        //BitmapPainter::dilate(*bitmaps.second)->save(instance->name + "_occlusion.dds", DXGI_FORMAT_R32G32B32A32_FLOAT);
 
-            // GI Test (Generations)
-            const auto bitmaps = GIBaker::bakeSeparate(scenePair, *instance, resolution, { { 88.0f / 255.0f, 148.0f / 255.0f, 214.0f / 255.0f }, 10, 100, 64, 0.01f });
+        // GI Test (Generations)
+        const auto bitmaps = GIBaker::bakeSeparate(scenePair, *instance, resolution, { Eigen::Array3f( 88.0f / 255.0f, 148.0f / 255.0f, 214.0f / 255.0f ).pow(2.2f), 10, 100, 64, 0.01f });
 
-            BitmapPainter::dilate(*bitmaps.first)->save(instance->name + "_lightmap.png");
-            BitmapPainter::dilate(*bitmaps.second)->save(instance->name + "_shadowmap.png");
+        BitmapHelper::dilate(*bitmaps.first)->save(instance->name + "_lightmap.png");
+        BitmapHelper::dilate(*bitmaps.second)->save(instance->name + "_shadowmap.png");
 
-            // GI Test (Lost World)
-            //const auto bitmap = BitmapPainter::dilate(*GIBaker::bakeCombined(scenePair, *instance, resolution, { { 88.0f / 255.0f, 148.0f / 255.0f, 214.0f / 255.0f }, 10, 100, 64, 0.01f }));
-            //bitma(p->save(instance->name + ".dds", DXGI_FORMAT_BC3_UNORM);
-        });
+        // GI Test (Lost World)
+        //const auto bitmap = BitmapPainter::dilate(*GIBaker::bakeCombined(scenePair, *instance, resolution, { { 88.0f / 255.0f, 148.0f / 255.0f, 214.0f / 255.0f }, 10, 100, 64, 0.01f }));
+        //bitma(p->save(instance->name + ".dds", DXGI_FORMAT_BC3_UNORM);
+    });
 
     return 0;
 }

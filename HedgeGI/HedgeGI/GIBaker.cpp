@@ -1,6 +1,6 @@
 ﻿#include "BakePoint.h"
 #include "BakingFactory.h"
-#include "BitmapPainter.h"
+#include "BitmapHelper.h"
 #include "GIBaker.h"
 
 struct GIPoint : BakePoint<1>
@@ -31,13 +31,13 @@ std::pair<std::unique_ptr<Bitmap>, std::unique_ptr<Bitmap>> GIBaker::bakeSeparat
 
     return
     {
-        BitmapPainter::createAndPaint(bakePoints, size, size, (PaintFlags)(PAINT_FLAGS_COLOR | PAINT_FLAGS_SQRT)),
-        BitmapPainter::createAndPaint(bakePoints, size, size, PAINT_FLAGS_SHADOW)
+        BitmapHelper::createAndPaint(bakePoints, size, size, (PaintFlags)(PAINT_FLAGS_COLOR | PAINT_FLAGS_SQRT)),
+        BitmapHelper::createAndPaint(bakePoints, size, size, PAINT_FLAGS_SHADOW)
     };
 }
 
 std::unique_ptr<Bitmap> GIBaker::bakeCombined(const RaytracingContext& context, const Instance& instance, const uint16_t size, const BakeParams& bakeParams)
 {
     const std::vector<GIPoint> bakePoints = bake(context, instance, size, bakeParams);
-    return BitmapPainter::createAndPaint(bakePoints, size, size, (PaintFlags)(PAINT_FLAGS_COLOR | PAINT_FLAGS_SQRT | PAINT_FLAGS_SHADOW));
+    return BitmapHelper::createAndPaint(bakePoints, size, size, (PaintFlags)(PAINT_FLAGS_COLOR | PAINT_FLAGS_SQRT | PAINT_FLAGS_SHADOW));
 }

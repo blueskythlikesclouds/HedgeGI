@@ -4,7 +4,7 @@
 
 struct BakeParams
 {
-    Eigen::Array3f skyColor;
+    Eigen::Array3f environmentColor;
 
     uint32_t lightBounceCount{};
     uint32_t lightSampleCount{};
@@ -16,7 +16,7 @@ struct BakeParams
 class BakingFactory
 {
 public:
-    static Eigen::Array3f pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams);
+    static Eigen::Array4f pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams);
 
     template <typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
@@ -39,21 +39,36 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
     std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&raytracingContext, &bakeParams, &sunLight, &lightTangentToWorldMatrix](TBakePoint& bakePoint)
     {
-        if (!bakePoint.isValid())
+        if (!bakePoint.valid())
             return;
 
         bakePoint.begin();
 
-        // WHY IS THIS SO NOISY
+        float faceFactor = 1.0f;
+
         for (uint32_t i = 0; i < bakeParams.lightSampleCount; i++)
         {
             const Eigen::Vector3f tangentSpaceDirection = TBakePoint::sampleDirection(Random::next(), Random::next()).normalized();
             const Eigen::Vector3f worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
+            const Eigen::Array4f radiance = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, *sunLight, bakeParams);
 
-            bakePoint.addSample(pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, *sunLight, bakeParams), tangentSpaceDirection);
+            faceFactor += radiance[3];
+            bakePoint.addSample(radiance.head<3>(), tangentSpaceDirection);
+        }
+
+        // If most rays point to backfaces, discard the pixel.
+        // This will fix the shadow leaks when dilated.
+        if (faceFactor / (float)bakeParams.lightSampleCount < 0.5f)
+        {
+            bakePoint.discard();
+            return;
         }
 
         bakePoint.end(bakeParams.lightSampleCount);
+
+        // Gamma correct
+        for (size_t i = 0; i < TBakePoint::BASIS_COUNT; i++)
+            bakePoint.colors[i] = bakePoint.colors[i].pow(1.0f / 2.2f);
 
         // Shadows are more noisy when multi-threaded...?
         // Could it be related to the random number generator?

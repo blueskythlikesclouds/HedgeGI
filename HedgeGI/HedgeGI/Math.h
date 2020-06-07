@@ -148,8 +148,3 @@ static Eigen::Vector2f sampleVogelDisk(const size_t index, const size_t sampleCo
 
     return { radius * std::cos(theta), radius * std::sin(theta) };
 }
-
-static Eigen::Vector4f gammaCorrect(const Eigen::Vector4f& color)
-{
-    return { std::pow(color[0], 2.2f), std::pow(color[1], 2.2f), std::pow(color[2], 2.2f), color[3] };
-}

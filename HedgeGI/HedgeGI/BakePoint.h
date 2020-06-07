@@ -18,7 +18,8 @@ struct BakePoint
 
     static Eigen::Vector3f sampleDirection(float u1, float u2);
 
-    bool isValid() const;
+    bool valid() const;
+    void discard();
 
     void begin();
     void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection) = delete;
@@ -32,9 +33,16 @@ Eigen::Vector3f BakePoint<BasisCount>::sampleDirection(const float u1, const flo
 }
 
 template <uint32_t BasisCount>
-bool BakePoint<BasisCount>::isValid() const
+bool BakePoint<BasisCount>::valid() const
 {
     return x != (uint16_t)-1 && y != (uint16_t)-1;
+}
+
+template <uint32_t BasisCount>
+void BakePoint<BasisCount>::discard()
+{
+    x = (uint16_t)-1;
+    y = (uint16_t)-1;
 }
 
 template <uint32_t BasisCount>
@@ -87,9 +95,6 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
             {
                 for (uint16_t y = yBegin; y <= yEnd; y++)
                 {
-                    if (bakePoints[y * size + x].isValid())
-                        continue;
-
                     const Eigen::Vector3f vPos(x / (float)size, y / (float)size, 0);
                     const Eigen::Vector2f baryUV = getBarycentricCoords(vPos, aVPos, bVPos, cVPos);
 
@@ -112,76 +117,6 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
 
                     bakePoints[y * size + x] = { position, tangentToWorld, {}, {}, x, y };
                 }
-            }
-        }
-    }
-
-    return bakePoints;
-
-    // Try fixing the shadow leaks by pushing the points out a little.
-    for (uint16_t x = 0; x < size; x++)
-    {
-        for (uint16_t y = 0; y < size; y++)
-        {
-            TBakePoint& basePoint = bakePoints[y * size + x];
-            if (!basePoint.isValid())
-                continue;
-
-            const TBakePoint& neighborX = bakePoints[y * size + (x & 1 ? x - 1 : x + 1)];
-            const TBakePoint& neighborY = bakePoints[(y & 1 ? y - 1 : y + 1) * size + x];
-
-            if (!neighborX.isValid() || !neighborY.isValid())
-                continue;
-
-            const float rayDistance = (neighborX.position - basePoint.position).cwiseAbs().cwiseMax(
-                (neighborY.position - basePoint.position).cwiseAbs()).maxCoeff() * 0.5f;
-
-            const Eigen::Vector3f rayDirections[] =
-            {
-                Eigen::Vector3f(1, 0, 0),
-                Eigen::Vector3f(-1, 0, 0),
-                Eigen::Vector3f(0, 1, 0),
-                Eigen::Vector3f(0, -1, 0)
-            };
-
-            for (auto& rayDirection : rayDirections)
-            {
-                const Eigen::Vector3f& rayDirInWorldSpace = (basePoint.tangentToWorldMatrix * rayDirection).normalized();
-
-                RTCIntersectContext context{};
-                rtcInitIntersectContext(&context);
-
-                RTCRayHit query{};
-                query.ray.dir_x = rayDirInWorldSpace[0];
-                query.ray.dir_y = rayDirInWorldSpace[1];
-                query.ray.dir_z = rayDirInWorldSpace[2];
-                query.ray.org_x = basePoint.position[0];
-                query.ray.org_y = basePoint.position[1];
-                query.ray.org_z = basePoint.position[2];
-                query.ray.tnear = 0.0001f;
-                query.ray.tfar = rayDistance;
-                query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-                rtcIntersect1(raytracingContext.rtcScene, &context, &query);
-
-                if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
-                    continue;
-
-                const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
-                const Triangle& triangle = mesh.triangles[query.hit.primID];
-                const Vertex& a = mesh.vertices[triangle.a];
-                const Vertex& b = mesh.vertices[triangle.b];
-                const Vertex& c = mesh.vertices[triangle.c];
-
-                const Eigen::Vector3f normal = (c.position - a.position).cross(
-                    b.position - a.position).normalized();
-
-                if (normal.dot(rayDirInWorldSpace) < 0.0f)
-                    continue;
-
-                basePoint.position += rayDirInWorldSpace * query.ray.tfar;
-                break;
             }
         }
     }

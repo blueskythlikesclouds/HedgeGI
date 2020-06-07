@@ -11,7 +11,7 @@ struct Vertex
     Eigen::Vector3f binormal;
     Eigen::Vector2f uv;
     Eigen::Vector2f vPos;
-    Eigen::Vector4f color;
+    Eigen::Array4f color;
 
     Eigen::Matrix3f getTangentToWorldMatrix() const;
 };
