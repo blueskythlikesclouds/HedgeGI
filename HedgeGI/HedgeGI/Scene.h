@@ -19,6 +19,8 @@ struct RaytracingContext
 class Scene
 {
 public:
+    AxisAlignedBoundingBox aabb;
+
     std::vector<std::unique_ptr<const Bitmap>> bitmaps;
     std::vector<std::unique_ptr<const Material>> materials;
     std::vector<std::unique_ptr<const Mesh>> meshes;

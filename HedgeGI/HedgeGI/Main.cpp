@@ -42,7 +42,7 @@ int32_t main(int32_t argc, const char* argv[])
     const auto scenePair = scene->createRaytracingContext();
 
     size_t i = 0;
-    std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(), [&resolutions, &scene, &i, &scenePair](const auto& instance)
+    for (auto& instance : scene->instances)
     {
         const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(16, resolutions[instance->name]) : 256;
 
@@ -56,13 +56,13 @@ int32_t main(int32_t argc, const char* argv[])
         // GI Test (Generations)
         const auto bitmaps = GIBaker::bakeSeparate(scenePair, *instance, resolution, { Eigen::Array3f( 88.0f / 255.0f, 148.0f / 255.0f, 214.0f / 255.0f ).pow(2.2f), 10, 100, 64, 0.01f });
 
-        BitmapHelper::dilate(*bitmaps.first)->save(instance->name + "_lightmap.png");
-        BitmapHelper::dilate(*bitmaps.second)->save(instance->name + "_shadowmap.png");
+        BitmapHelper::dilate(*BitmapHelper::optimizeSeams(*bitmaps.first, *instance))->save(instance->name + "_lightmap.png");
+        BitmapHelper::dilate(*BitmapHelper::optimizeSeams(*bitmaps.second, *instance))->save(instance->name + "_shadowmap.png");
 
         // GI Test (Lost World)
         //const auto bitmap = BitmapPainter::dilate(*GIBaker::bakeCombined(scenePair, *instance, resolution, { { 88.0f / 255.0f, 148.0f / 255.0f, 214.0f / 255.0f }, 10, 100, 64, 0.01f }));
         //bitma(p->save(instance->name + ".dds", DXGI_FORMAT_BC3_UNORM);
-    });
+    }
 
     return 0;
 }

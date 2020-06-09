@@ -1,4 +1,73 @@
 ﻿#include "BitmapHelper.h"
+#include "Instance.h"
+#include "Mesh.h"
+
+#define SEAMOPTIMIZER_IMPLEMENTATION
+#include <seamoptimizer/seamoptimizer.h>
+
+namespace std
+{
+    template <>
+    struct hash<Eigen::Vector3i>
+    {
+        size_t operator()(const Eigen::Vector3i& matrix) const
+        {
+            size_t seed = 0;
+            for (size_t i = 0; i < matrix.size(); ++i) 
+                seed ^= std::hash<int>()(*(matrix.data() + i)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+            return seed;
+        }
+    };
+}
+
+so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instance, const float cosNormalThreshold)
+{
+    so_seam_t* seams = nullptr;
+
+    std::unordered_map<Eigen::Vector3i, std::vector<std::pair<const Mesh*, const Triangle*>>> triangleMap;
+
+    for (auto& mesh : instance.meshes)
+    {
+        for (size_t i = 0; i < mesh->triangleCount; i++)
+        {
+            const Triangle& t1 = mesh->triangles[i];
+            const Vertex& a1 = mesh->vertices[t1.a];
+            const Vertex& b1 = mesh->vertices[t1.b];
+            const Vertex& c1 = mesh->vertices[t1.c];
+
+            const Eigen::Vector3i key = a1.position.cast<int>();
+
+            auto t2 = triangleMap.find(key);
+            if (t2 == triangleMap.end())
+            {
+                triangleMap[key].emplace_back(mesh, &t1);
+                continue;
+            }
+
+            so_vec3 p1[] = { *(so_vec3*)&a1.position, *(so_vec3*)&b1.position, *(so_vec3*)&c1.position };
+
+            for (auto& t3 : t2->second)
+            {
+                const Vertex& a2 = t3.first->vertices[t3.second->a];
+                const Vertex& b2 = t3.first->vertices[t3.second->b];
+                const Vertex& c2 = t3.first->vertices[t3.second->c];
+
+                so_vec3 p2[] = { *(so_vec3*)&a2.position, *(so_vec3*)&b2.position, *(so_vec3*)&c2.position };
+
+                if ((b1.position - b2.position).norm() < 0.001f && so_should_optimize(p1, p2, cosNormalThreshold))
+                    so_seams_add_seam(&seams, *(so_vec2*)&a1.vPos, *(so_vec2*)&b1.vPos, *(so_vec2*)&a2.vPos, *(so_vec2*)&b2.vPos, (float*)bitmap.data.get(), bitmap.width, bitmap.height, 4);
+
+                else if ((b1.position - c2.position).norm() < 0.001f && so_should_optimize(p1, p2, cosNormalThreshold))
+                    so_seams_add_seam(&seams, *(so_vec2*)&a1.vPos, *(so_vec2*)&b1.vPos, *(so_vec2*)&a2.vPos, *(so_vec2*)&c2.vPos, (float*)bitmap.data.get(), bitmap.width, bitmap.height, 4);
+            }
+
+            t2->second.emplace_back(mesh, &t1);
+        }
+    }
+
+    return seams;
+}
 
 std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 {
@@ -45,4 +114,19 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
     });
 
     return dilated;
+}
+
+std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const Instance& instance)
+{
+    std::unique_ptr<Bitmap> optimized = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
+    memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Eigen::Vector4f));
+
+    so_seam_t* seams = findSeams(*optimized, instance, 0.0f);
+
+    for (so_seam_t* seam = seams; seam; seam = so_seam_next(seam))
+        so_seam_optimize(seam, (float*)optimized->data.get(), bitmap.width, bitmap.height, 4, 0.5f);
+
+    so_seams_free(seams);
+
+    return optimized;
 }

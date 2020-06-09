@@ -2,6 +2,9 @@
 
 #include "Bitmap.h"
 
+class Instance;
+struct so_seam_t;
+
 enum PaintFlags
 {
     PAINT_FLAGS_COLOR = 1 << 0,
@@ -11,8 +14,12 @@ enum PaintFlags
 
 class BitmapHelper
 {
+    static so_seam_t* findSeams(const Bitmap& bitmap, const Instance& instance, float cosNormalThreshold);
+
 public:
     static std::unique_ptr<Bitmap> dilate(const Bitmap& bitmap);
+
+    static std::unique_ptr<Bitmap> optimizeSeams(const Bitmap& bitmap, const Instance& instance);
 
     template <typename TBakePoint>
     static void paint(const Bitmap& bitmap, const std::vector<TBakePoint>& bakePoints, PaintFlags paintFlags);

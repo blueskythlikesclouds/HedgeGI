@@ -6,6 +6,8 @@ class Scene;
 class Instance
 {
 public:
+    AxisAlignedBoundingBox aabb;
+
     std::string name;
     std::vector<const Mesh*> meshes;
 

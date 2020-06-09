@@ -34,6 +34,8 @@ enum MeshType
 class Mesh
 {
 public:
+    AxisAlignedBoundingBox aabb;
+
     MeshType type{};
     uint32_t vertexCount{};
     uint32_t triangleCount{};

@@ -22,6 +22,9 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+// seamoptimizer
+#include <seamoptimizer/seamoptimizer.h>
+
 // std
 #include <algorithm>
 #include <cstdint>

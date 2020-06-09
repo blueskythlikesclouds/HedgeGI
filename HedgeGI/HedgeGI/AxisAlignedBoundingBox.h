@@ -60,6 +60,11 @@ struct AxisAlignedBoundingBox
         return half;
     }
 
+    AxisAlignedBoundingBox merge(const AxisAlignedBoundingBox& right) const
+    {
+        return { begin.cwiseMin(right.begin), end.cwiseMax(right.end) };
+    }
+
     float getSize(const int32_t i) const
     {
         return end[i] - begin[i];
@@ -67,7 +72,7 @@ struct AxisAlignedBoundingBox
 
     float getSizeMax() const
     {
-        return std::max(end[0] - begin[0], std::max(end[1] - begin[1], end[2] - begin[2]));
+        return (end - begin).maxCoeff();
     }
 
     float getRadius() const
@@ -77,11 +82,7 @@ struct AxisAlignedBoundingBox
 
     void addPoint(const Eigen::Vector3f& point)
     {
-        begin[0] = std::min(begin[0], point[0]);
-        begin[1] = std::min(begin[1], point[1]);
-        begin[2] = std::min(begin[2], point[2]);
-        end[0] = std::max(end[0], point[0]);
-        end[1] = std::max(end[1], point[1]);
-        end[2] = std::max(end[2], point[2]);
+        begin = begin.cwiseMin(point);
+        end = end.cwiseMax(point);
     }
 };
