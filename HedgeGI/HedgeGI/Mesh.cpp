@@ -63,6 +63,7 @@ void Mesh::generateTangents() const
 
 void Mesh::read(const FileStream& file, const Scene& scene)
 {
+    type = (MeshType)file.read<uint32_t>();
     vertexCount = file.read<uint32_t>();
     triangleCount = file.read<uint32_t>();
 
@@ -79,6 +80,7 @@ void Mesh::read(const FileStream& file, const Scene& scene)
 
 void Mesh::write(const FileStream& file, const Scene& scene) const
 {
+    file.write((uint32_t)type);
     file.write(vertexCount);
     file.write(triangleCount);
     file.write(vertices.get(), vertexCount);

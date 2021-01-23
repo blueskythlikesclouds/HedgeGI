@@ -25,7 +25,12 @@ so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instanc
 {
     so_seam_t* seams = nullptr;
 
+    uint32_t triangleCount = 0;
+    for (auto& mesh : instance.meshes)
+        triangleCount += mesh->triangleCount;
+
     std::unordered_map<Eigen::Vector3i, std::vector<std::pair<const Mesh*, const Triangle*>>> triangleMap;
+    triangleMap.reserve(triangleCount);
 
     for (auto& mesh : instance.meshes)
     {
@@ -41,7 +46,12 @@ so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instanc
             auto t2 = triangleMap.find(key);
             if (t2 == triangleMap.end())
             {
-                triangleMap[key].emplace_back(mesh, &t1);
+                std::vector<std::pair<const Mesh*, const Triangle*>> triangles
+                    { std::make_pair(mesh, &t1) };
+
+                triangles.reserve(4);
+
+                triangleMap[key] = std::move(triangles);
                 continue;
             }
 

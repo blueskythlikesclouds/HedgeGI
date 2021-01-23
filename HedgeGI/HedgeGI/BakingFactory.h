@@ -10,7 +10,13 @@ struct BakeParams
     uint32_t lightSampleCount{};
 
     uint32_t shadowSampleCount{};
-    float shadowSearchArea{};
+    float shadowSearchRadius{};
+
+    float diffuseStrength{};
+    float lightStrength{};
+    uint16_t defaultResolution{};
+
+    void load(const std::string& filePath);
 };
 
 class BakingFactory
@@ -66,10 +72,6 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
         bakePoint.end(bakeParams.lightSampleCount);
 
-        // Gamma correct
-        for (size_t i = 0; i < TBakePoint::BASIS_COUNT; i++)
-            bakePoint.colors[i] = bakePoint.colors[i].pow(1.0f / 2.2f);
-
         // Shadows are more noisy when multi-threaded...?
         // Could it be related to the random number generator?
         const float phi = 2 * PI * Random::next();
@@ -78,8 +80,8 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         {
             const Eigen::Vector2f vogelDiskSample = sampleVogelDisk(i, bakeParams.shadowSampleCount, phi);
             const Eigen::Vector3f direction = (lightTangentToWorldMatrix * Eigen::Vector3f(
-                vogelDiskSample[0] * bakeParams.shadowSearchArea,
-                vogelDiskSample[1] * bakeParams.shadowSearchArea, 1)).normalized();
+                vogelDiskSample[0] * bakeParams.shadowSearchRadius,
+                vogelDiskSample[1] * bakeParams.shadowSearchRadius, 1)).normalized();
 
             Eigen::Vector3f position = bakePoint.position;
 

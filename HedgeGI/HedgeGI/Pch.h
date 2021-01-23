@@ -35,6 +35,9 @@
 #include <unordered_set>
 #include <vector>
 
+// Other
+#include <INIReader.h>
+
 #undef min
 #undef max
 

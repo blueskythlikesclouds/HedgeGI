@@ -8,6 +8,9 @@
 
 int32_t main(int32_t argc, const char* argv[])
 {
+    BakeParams bakeParams{};
+    bakeParams.load(getDirectoryPath(argv[0]) + "/HedgeGI.ini");
+
     Eigen::initParallel();
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
@@ -39,12 +42,12 @@ int32_t main(int32_t argc, const char* argv[])
     }
 
     //const auto scene = SceneFactory::createFromGenerations("D:\\Steam\\steamapps\\common\\Sonic Generations\\mods\\Water Palace\\disk\\bb\\Packed\\ghz200");
-    const auto scenePair = scene->createRaytracingContext();
+    const auto raytracingContext = scene->createRaytracingContext();
 
     size_t i = 0;
     for (auto& instance : scene->instances)
     {
-        const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(16, resolutions[instance->name]) : 256;
+        const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
 
         printf("(%llu/%llu): %s at %dx%d\n", ++i, scene->instances.size(), instance->name.c_str(), resolution, resolution);
 
@@ -54,10 +57,10 @@ int32_t main(int32_t argc, const char* argv[])
         //BitmapPainter::dilate(*bitmaps.second)->save(instance->name + "_occlusion.dds", DXGI_FORMAT_R32G32B32A32_FLOAT);
 
         // GI Test (Generations)
-        const auto bitmaps = GIBaker::bakeSeparate(scenePair, *instance, resolution, { Eigen::Array3f( 88.0f / 255.0f, 148.0f / 255.0f, 214.0f / 255.0f ).pow(2.2f), 10, 100, 64, 0.01f });
+        const auto bitmaps = GIBaker::bakeSeparate(raytracingContext, *instance, resolution, bakeParams);
 
-        BitmapHelper::dilate(*BitmapHelper::optimizeSeams(*bitmaps.first, *instance))->save(instance->name + "_lightmap.png");
-        BitmapHelper::dilate(*BitmapHelper::optimizeSeams(*bitmaps.second, *instance))->save(instance->name + "_shadowmap.png");
+        BitmapHelper::dilate(*bitmaps.first)->save(instance->name + "_lightmap.png");
+        BitmapHelper::dilate(*bitmaps.second)->save(instance->name + "_shadowmap.png");
 
         // GI Test (Lost World)
         //const auto bitmap = BitmapPainter::dilate(*GIBaker::bakeCombined(scenePair, *instance, resolution, { { 88.0f / 255.0f, 148.0f / 255.0f, 214.0f / 255.0f }, 10, 100, 64, 0.01f }));

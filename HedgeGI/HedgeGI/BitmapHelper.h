@@ -9,7 +9,8 @@ enum PaintFlags
 {
     PAINT_FLAGS_COLOR = 1 << 0,
     PAINT_FLAGS_SHADOW = 1 << 1,
-    PAINT_FLAGS_SQRT = 1 << 2
+    PAINT_FLAGS_SRGB = 1 << 2,
+    PAINT_FLAGS_SQRT = 1 << 3
 };
 
 class BitmapHelper
@@ -43,7 +44,12 @@ void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& ba
             if (paintFlags & PAINT_FLAGS_COLOR)
             {
                 for (size_t j = 0; j < 3; j++)
-                    color[j] = paintFlags & PAINT_FLAGS_SQRT ? sqrtf(bakePoint.colors[i][j]) : bakePoint.colors[i][j];
+                {
+                    color[j] = bakePoint.colors[i][j];
+
+                    if (paintFlags & PAINT_FLAGS_SRGB) color[j] = pow(color[j], 1.0f / 2.2f);
+                    if (paintFlags & PAINT_FLAGS_SQRT) color[j] = sqrt(color[j]);
+                }
 
                 color[3] = paintFlags & PAINT_FLAGS_SHADOW ? bakePoint.shadow : 1.0f;
             }
