@@ -12,6 +12,11 @@ struct BakeParams
     uint32_t shadowSampleCount{};
     float shadowSearchRadius{};
 
+    uint32_t aoSampleCount {};
+    float aoFadeConstant {};
+    float aoFadeLinear {};
+    float aoFadeQuadratic {};
+
     float diffuseStrength{};
     float lightStrength{};
     uint16_t defaultResolution{};
@@ -21,6 +26,8 @@ struct BakeParams
 
 class BakingFactory
 {
+    static std::mutex mutex;
+
 public:
     static Eigen::Array4f pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams);
 
@@ -31,6 +38,8 @@ public:
 template <typename TBakePoint>
 void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams)
 {
+    std::unique_lock<std::mutex> lock(mutex);
+
     const Light* sunLight = nullptr;
     for (auto& light : raytracingContext.scene->lights)
     {
@@ -71,6 +80,59 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         }
 
         bakePoint.end(bakeParams.lightSampleCount);
+
+
+        // Ambient occlusion
+        float ambientOcclusion = 0.0f;
+
+        for (uint32_t i = 0; i < bakeParams.aoSampleCount; i++)
+        {
+            const Eigen::Vector3f tangentSpaceDirection = TBakePoint::sampleDirection(Random::next(), Random::next()).normalized();
+            const Eigen::Vector3f worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
+
+            RTCIntersectContext context {};
+            rtcInitIntersectContext(&context);
+
+            RTCRayHit query {};
+            query.ray.dir_x = worldSpaceDirection[0];
+            query.ray.dir_y = worldSpaceDirection[1];
+            query.ray.dir_z = worldSpaceDirection[2];
+            query.ray.org_x = bakePoint.position[0];
+            query.ray.org_y = bakePoint.position[1];
+            query.ray.org_z = bakePoint.position[2];
+            query.ray.tnear = 0.001f;
+            query.ray.tfar = INFINITY;
+            query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+            query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+            rtcIntersect1(raytracingContext.rtcScene, &context, &query);
+
+            if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+                continue;
+
+            const Eigen::Vector2f baryUV { query.hit.v, query.hit.u };
+
+            const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
+            const Triangle& triangle = mesh.triangles[query.hit.primID];
+            const Vertex& a = mesh.vertices[triangle.a];
+            const Vertex& b = mesh.vertices[triangle.b];
+            const Vertex& c = mesh.vertices[triangle.c];
+
+            const Eigen::Vector3f triNormal = (c.position - a.position).cross(b.position - a.position).normalized();
+
+            if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(worldSpaceDirection) < 0.0f)
+                continue;
+
+            if (mesh.type == MESH_TYPE_PUNCH && mesh.material && mesh.material->diffuse && mesh.material->diffuse->pickColor(barycentricLerp(a.uv, b.uv, c.uv, baryUV)).w() < 0.5f)
+                continue;
+
+            ambientOcclusion += 1.0f / (bakeParams.aoFadeConstant + bakeParams.aoFadeLinear * query.ray.tfar + bakeParams.aoFadeQuadratic * query.ray.tfar * query.ray.tfar);
+        }
+
+        ambientOcclusion = 1.0f - ambientOcclusion / bakeParams.aoSampleCount;
+
+        for (size_t i = 0; i < TBakePoint::BASIS_COUNT; i++)
+            bakePoint.colors[i] *= ambientOcclusion;
 
         // Shadows are more noisy when multi-threaded...?
         // Could it be related to the random number generator?

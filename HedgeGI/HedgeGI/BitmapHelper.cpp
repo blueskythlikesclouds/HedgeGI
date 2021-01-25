@@ -1,4 +1,5 @@
 ﻿#include "BitmapHelper.h"
+#include "DenoiserDevice.h"
 #include "Instance.h"
 #include "Mesh.h"
 
@@ -79,6 +80,10 @@ so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instanc
     return seams;
 }
 
+std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap)
+{
+    return DenoiserDevice::denoise(bitmap);
+}
 std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 {
     std::unique_ptr<Bitmap> dilated = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
@@ -139,4 +144,29 @@ std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const 
     so_seams_free(seams);
 
     return optimized;
+}
+
+std::unique_ptr<Bitmap> BitmapHelper::encodeReady(const Bitmap& bitmap, const EncodeReadyFlags encodeReadyFlags)
+{
+    std::unique_ptr<Bitmap> encoded = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
+
+    for (size_t i = 0; i < bitmap.arraySize; i++)
+    {
+        for (size_t x = 0; x < bitmap.width; x++)
+        {
+            for (size_t y = 0; y < bitmap.height; y++)
+            {
+                const size_t index = bitmap.getColorIndex(x, y, i);
+
+                Eigen::Array4f color = bitmap.data[bitmap.getColorIndex(x, y, i)];
+
+                if (encodeReadyFlags & ENCODE_READY_FLAGS_SRGB) color.head<3>() = color.head<3>().pow(1.0f / 2.2f);
+                if (encodeReadyFlags & ENCODE_READY_FLAGS_SQRT) color.head<3>() = color.head<3>().sqrt();
+
+                encoded->data[index] = color;
+            }
+        }
+    }
+
+    return encoded;
 }

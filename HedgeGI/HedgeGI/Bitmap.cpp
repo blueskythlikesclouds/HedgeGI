@@ -9,6 +9,17 @@ Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t array
         data[i] = Eigen::Vector4f::Zero();
 }
 
+float* Bitmap::getColors(const size_t index) const
+{
+    return data[width * height * index].data();
+}
+
+size_t Bitmap::getColorIndex(const size_t x, const size_t y, const size_t arrayIndex) const
+{
+    const size_t dataSize = width * height;
+    return dataSize * arrayIndex + width * y + x;
+}
+
 void Bitmap::getPixelCoords(const Eigen::Vector2f& uv, uint32_t& x, uint32_t& y) const
 {
     const Eigen::Vector2f clamped = clampUV(uv);
@@ -78,7 +89,7 @@ void Bitmap::save(const std::string& filePath) const
     WCHAR wideCharFilePath[MAX_PATH];
     MultiByteToWideChar(CP_UTF8, NULL, filePath.c_str(), -1, wideCharFilePath, MAX_PATH);
 
-    SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_FORCE_LINEAR, GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
+    SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_FORCE_SRGB, GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
 }
 
 void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format) const
@@ -111,4 +122,9 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format) const
     MultiByteToWideChar(CP_UTF8, NULL, filePath.c_str(), -1, wideCharFilePath, MAX_PATH);
 
     SaveToDDSFile(scratchImage.GetImages(), scratchImage.GetImageCount(), scratchImage.GetMetadata(), DirectX::DDS_FLAGS_NONE, wideCharFilePath);
+}
+
+cv::Mat Bitmap::toMat(const size_t index) const
+{
+    return cv::Mat(cv::Size(width, height), CV_32FC4, &data[width * height * index]);
 }

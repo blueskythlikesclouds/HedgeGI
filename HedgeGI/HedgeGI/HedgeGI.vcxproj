@@ -61,14 +61,14 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\DirectXTex;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\HedgeLib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\DirectXTex;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>embree3.lib;tbb.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;..\..\Dependencies\opencv\build\x64\vc15\lib;$(CUDA_PATH)\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cuda.lib;cudart.lib;embree3.lib;tbb.lib;opencv_world451d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -82,7 +82,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\DirectXTex;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\HedgeLib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\DirectXTex;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <StringPooling>true</StringPooling>
@@ -97,8 +97,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>embree3.lib;tbb.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;..\..\Dependencies\opencv\build\x64\vc15\lib;$(CUDA_PATH)\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cuda.lib;cudart.lib;embree3.lib;tbb.lib;opencv_world451.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -111,7 +111,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BitmapHelper.cpp" />
-    <ClCompile Include="Direct3D11Device.cpp" />
+    <ClCompile Include="DenoiserDevice.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="BakingFactory.cpp" />
     <ClCompile Include="GIBaker.cpp" />
@@ -139,7 +139,7 @@
     <ClInclude Include="AxisAlignedBoundingBox.h" />
     <ClInclude Include="BakePoint.h" />
     <ClInclude Include="BitmapHelper.h" />
-    <ClInclude Include="Direct3D11Device.h" />
+    <ClInclude Include="DenoiserDevice.h" />
     <ClInclude Include="HHLight.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="BakingFactory.h" />

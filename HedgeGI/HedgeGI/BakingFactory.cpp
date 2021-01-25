@@ -18,10 +18,17 @@ void BakeParams::load(const std::string& filePath)
     shadowSampleCount = reader.GetInteger("Baker", "ShadowSampleCount", 64);
     shadowSearchRadius = reader.GetFloat("Baker", "ShadowSearchRadius", 0.01f);
 
+    aoSampleCount = reader.GetInteger("Baker", "AoSampleCount", 64);
+    aoFadeConstant = reader.GetFloat("Baker", "AoFadeConstant", 1.0f);
+    aoFadeLinear = reader.GetFloat("Baker", "AoFadeLinear", 0.01f);
+    aoFadeQuadratic = reader.GetFloat("Baker", "AoFadeQuadratic", 0.01f);
+
     diffuseStrength = reader.GetFloat("Baker", "DiffuseStrength", 1.0f);
     lightStrength = reader.GetFloat("Baker", "LightStrength", 1.0f);
     defaultResolution = reader.GetInteger("Baker", "DefaultResolution", 256);
 }
+
+std::mutex BakingFactory::mutex;
 
 Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams)
 {

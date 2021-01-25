@@ -35,6 +35,10 @@
 #include <unordered_set>
 #include <vector>
 
+// opencv
+#include <opencv2/imgproc.hpp>
+#include <opencv2/photo.hpp>
+
 // Other
 #include <INIReader.h>
 

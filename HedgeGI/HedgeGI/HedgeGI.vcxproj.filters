@@ -48,11 +48,11 @@
     <ClCompile Include="SHLightField.cpp">
       <Filter>HedgehogEngine\LightField</Filter>
     </ClCompile>
-    <ClCompile Include="Direct3D11Device.cpp">
-      <Filter>Devices</Filter>
-    </ClCompile>
     <ClCompile Include="BitmapHelper.cpp">
       <Filter>Bitmap</Filter>
+    </ClCompile>
+    <ClCompile Include="DenoiserDevice.cpp">
+      <Filter>Devices</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -126,11 +126,11 @@
     <ClInclude Include="SHLightField.h">
       <Filter>HedgehogEngine\LightField</Filter>
     </ClInclude>
-    <ClInclude Include="Direct3D11Device.h">
-      <Filter>Devices</Filter>
-    </ClInclude>
     <ClInclude Include="BitmapHelper.h">
       <Filter>Bitmap</Filter>
+    </ClInclude>
+    <ClInclude Include="DenoiserDevice.h">
+      <Filter>Devices</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

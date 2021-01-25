@@ -9,8 +9,12 @@ enum PaintFlags
 {
     PAINT_FLAGS_COLOR = 1 << 0,
     PAINT_FLAGS_SHADOW = 1 << 1,
-    PAINT_FLAGS_SRGB = 1 << 2,
-    PAINT_FLAGS_SQRT = 1 << 3
+};
+
+enum EncodeReadyFlags
+{
+    ENCODE_READY_FLAGS_SRGB = 1 << 0,
+    ENCODE_READY_FLAGS_SQRT = 1 << 1,
 };
 
 class BitmapHelper
@@ -18,6 +22,8 @@ class BitmapHelper
     static so_seam_t* findSeams(const Bitmap& bitmap, const Instance& instance, float cosNormalThreshold);
 
 public:
+    static std::unique_ptr<Bitmap> denoise(const Bitmap& bitmap);
+
     static std::unique_ptr<Bitmap> dilate(const Bitmap& bitmap);
 
     static std::unique_ptr<Bitmap> optimizeSeams(const Bitmap& bitmap, const Instance& instance);
@@ -27,15 +33,22 @@ public:
 
     template<typename TBakePoint>
     static std::unique_ptr<Bitmap> createAndPaint(const std::vector<TBakePoint>& bakePoints, uint16_t width, uint16_t height, PaintFlags paintFlags);
+
+    static std::unique_ptr<Bitmap> encodeReady(const Bitmap& bitmap, EncodeReadyFlags encodeReadyFlags);
 };
 
 template <typename TBakePoint>
 void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& bakePoints, const PaintFlags paintFlags)
 {
-    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&bitmap, paintFlags](const TBakePoint& bakePoint)
+    const size_t dataSize = bitmap.width * bitmap.height * bitmap.arraySize;
+    const std::unique_ptr<uint8_t[]> counts = std::make_unique<uint8_t[]>(dataSize);
+
+    memset(&counts[0], 0, dataSize * sizeof(counts[0]));
+
+    for (auto& bakePoint : bakePoints)
     {
         if (!bakePoint.valid())
-            return;
+            continue;
 
         for (uint32_t i = 0; i < std::min(bitmap.arraySize, TBakePoint::BASIS_COUNT); i++)
         {
@@ -44,12 +57,7 @@ void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& ba
             if (paintFlags & PAINT_FLAGS_COLOR)
             {
                 for (size_t j = 0; j < 3; j++)
-                {
                     color[j] = bakePoint.colors[i][j];
-
-                    if (paintFlags & PAINT_FLAGS_SRGB) color[j] = pow(color[j], 1.0f / 2.2f);
-                    if (paintFlags & PAINT_FLAGS_SQRT) color[j] = sqrt(color[j]);
-                }
 
                 color[3] = paintFlags & PAINT_FLAGS_SHADOW ? bakePoint.shadow : 1.0f;
             }
@@ -61,9 +69,10 @@ void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& ba
                 color[3] = 1.0f;
             }
 
-            bitmap.putColor(color, bakePoint.x, bakePoint.y, i);
+            const size_t index = bitmap.getColorIndex(bakePoint.x, bakePoint.y, i);
+            bitmap.data[index] = (bitmap.data[index] * counts[index] + color) / ++counts[index];
         }
-    });
+    }
 }
 
 template <typename TBakePoint>

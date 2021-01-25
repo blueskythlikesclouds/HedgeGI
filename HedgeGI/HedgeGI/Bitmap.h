@@ -12,6 +12,9 @@ public:
     Bitmap();
     Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1);
 
+    float* getColors(size_t index) const;
+    size_t getColorIndex(size_t x, size_t y, size_t arrayIndex = 0) const;
+
     void getPixelCoords(const Eigen::Vector2f& uv, uint32_t& x, uint32_t& y) const;
 
     Eigen::Array4f pickColor(const Eigen::Vector2f& uv, uint32_t arrayIndex = 0) const;
@@ -25,4 +28,6 @@ public:
 
     void save(const std::string& filePath) const;
     void save(const std::string& filePath, DXGI_FORMAT format) const;
+
+    cv::Mat toMat(size_t index) const;
 };
