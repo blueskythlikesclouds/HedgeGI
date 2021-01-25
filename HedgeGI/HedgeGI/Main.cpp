@@ -48,16 +48,13 @@ int32_t main(int32_t argc, const char* argv[])
     {
         const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
 
-        const size_t currentIndex = InterlockedIncrement(&i);
-        printf("(%llu/%llu): Baking %s at %dx%d\n", currentIndex, scene->instances.size(), instance->name.c_str(), resolution, resolution);
-
         // GI Test (Generations)
         const auto bitmaps = GIBaker::bakeSeparate(raytracingContext, *instance, resolution, bakeParams);
 
         BitmapHelper::encodeReady(*BitmapHelper::optimizeSeams(*BitmapHelper::denoise(*BitmapHelper::dilate(*bitmaps.first)), *instance), (EncodeReadyFlags)(ENCODE_READY_FLAGS_SRGB | ENCODE_READY_FLAGS_SQRT))->save(instance->name + "_lightmap.png");
-        BitmapHelper::dilate(*bitmaps.second)->save(instance->name + "_shadowmap.png");
+        BitmapHelper::optimizeSeams(*BitmapHelper::dilate(*bitmaps.second), *instance)->save(instance->name + "_shadowmap.png");
 
-        printf("(%llu/%llu): Saved %s\n", currentIndex, scene->instances.size(), instance->name.c_str());
+        printf("(%llu/%llu): Saved %s (%dx%d)\n", InterlockedIncrement(&i), scene->instances.size(), instance->name.c_str(), resolution, resolution);
     });
 
     printf("Completed!\n");

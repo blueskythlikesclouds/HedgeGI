@@ -477,8 +477,8 @@ static void so_seams_add_seam(so_seam_t **seams, so_vec2 a0, so_vec2 a1, so_vec2
 		float t = i * step;
 		so_vec2 a = so_add2(a0, so_scale2(ad, t));
 		so_vec2 b = so_add2(b0, so_scale2(bd, t));
-		int16_t ax = (int16_t)roundf(a.x), ay = (int16_t)roundf(a.y);
-		int16_t bx = (int16_t)roundf(b.x), by = (int16_t)roundf(b.y);
+		int16_t ax = (int16_t)so_min16i(so_max16i(0, roundf(a.x)), w - 1), ay = (int16_t)so_min16i(so_max16i(0, roundf(a.y)), h - 1);
+		int16_t bx = (int16_t)so_min16i(so_max16i(0, roundf(b.x)), w - 1), by = (int16_t)so_min16i(so_max16i(0, roundf(b.y)), h - 1);
 		float au = a.x - ax, av = a.y - ay, nau = 1.0f - au, nav = 1.0f - av;
 		float bu = b.x - bx, bv = b.y - by, nbu = 1.0f - bu, nbv = 1.0f - bv;
 

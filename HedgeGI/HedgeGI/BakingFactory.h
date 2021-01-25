@@ -81,7 +81,6 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
         bakePoint.end(bakeParams.lightSampleCount);
 
-
         // Ambient occlusion
         float ambientOcclusion = 0.0f;
 
@@ -118,15 +117,18 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
             const Vertex& b = mesh.vertices[triangle.b];
             const Vertex& c = mesh.vertices[triangle.c];
 
-            const Eigen::Vector3f triNormal = (c.position - a.position).cross(b.position - a.position).normalized();
+            const Eigen::Vector3f triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
 
-            if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(worldSpaceDirection) < 0.0f)
+            if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(worldSpaceDirection) >= 0.0f)
                 continue;
 
-            if (mesh.type == MESH_TYPE_PUNCH && mesh.material && mesh.material->diffuse && mesh.material->diffuse->pickColor(barycentricLerp(a.uv, b.uv, c.uv, baryUV)).w() < 0.5f)
+            float alpha = mesh.type != MESH_TYPE_OPAQUE && mesh.material && mesh.material->diffuse ? 
+                mesh.material->diffuse->pickColor(barycentricLerp(a.uv, b.uv, c.uv, baryUV)).w() : 1.0f;
+
+            if (mesh.type == MESH_TYPE_PUNCH && alpha < 0.5f)
                 continue;
 
-            ambientOcclusion += 1.0f / (bakeParams.aoFadeConstant + bakeParams.aoFadeLinear * query.ray.tfar + bakeParams.aoFadeQuadratic * query.ray.tfar * query.ray.tfar);
+            ambientOcclusion += 1.0f / (bakeParams.aoFadeConstant + bakeParams.aoFadeLinear * query.ray.tfar + bakeParams.aoFadeQuadratic * query.ray.tfar * query.ray.tfar) * alpha;
         }
 
         ambientOcclusion = 1.0f - ambientOcclusion / bakeParams.aoSampleCount;
@@ -145,7 +147,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 vogelDiskSample[0] * bakeParams.shadowSearchRadius,
                 vogelDiskSample[1] * bakeParams.shadowSearchRadius, 1)).normalized();
 
-            Eigen::Vector3f position = bakePoint.position;
+            Eigen::Vector3f position = bakePoint.smoothPosition;
 
             float shadow = 0;
             do

@@ -8,6 +8,7 @@ struct BakePoint
     static const uint32_t BASIS_COUNT = BasisCount;
 
     Eigen::Vector3f position;
+    Eigen::Vector3f smoothPosition;
     Eigen::Matrix3f tangentToWorldMatrix;
 
     Eigen::Array3f colors[BasisCount];
@@ -104,28 +105,9 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                         1 - baryUV[0] - baryUV[1] > 1)
                         continue;
 
-                    Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
-                    Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
-
-                    RTCIntersectContext context {};
-                    rtcInitIntersectContext(&context);
-
-                    RTCRay ray {};
-                    ray.dir_x = normal[0];
-                    ray.dir_y = normal[1];
-                    ray.dir_z = normal[2];
-                    ray.org_x = position[0];
-                    ray.org_y = position[1];
-                    ray.org_z = position[2];
-                    ray.tnear = 0.001f;
-                    ray.tfar = normal.norm();
-                    rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
-
-                    if (ray.tfar > 0)
-                        position += normal;
-
-                    normal.normalize();
-
+                    const Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
+                    const Eigen::Vector3f smoothPosition = getSmoothPosition(a, b, c, baryUV);
+                    const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
                     const Eigen::Vector3f tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
                     const Eigen::Vector3f binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
 
@@ -135,7 +117,7 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                         tangent[1], binormal[1], normal[1],
                         tangent[2], binormal[2], normal[2];
 
-                    bakePoints[y * size + x] = { position, tangentToWorld, {}, {}, x, y };
+                    bakePoints[y * size + x] = { position, smoothPosition, tangentToWorld, {}, {}, x, y };
                 }
             }
         }

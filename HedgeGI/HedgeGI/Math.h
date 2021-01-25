@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Mesh.h"
+
 #define PI 3.14159265358979323846264338327950288f
 
 static Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
@@ -147,4 +149,19 @@ static Eigen::Vector2f sampleVogelDisk(const size_t index, const size_t sampleCo
     const float theta = index * GOLDEN_ANGLE + phi;
 
     return { radius * std::cos(theta), radius * std::sin(theta) };
+}
+
+// https://gist.github.com/pixnblox/5e64b0724c186313bc7b6ce096b08820
+
+static Eigen::Vector3f getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex& c, const Eigen::Vector2f& baryUV)
+{
+    const Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
+    const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
+
+    const Eigen::Vector3f vecProj0 = position - (position - a.position).dot(a.normal) * a.normal;
+    const Eigen::Vector3f vecProj1 = position - (position - b.position).dot(b.normal) * b.normal;
+    const Eigen::Vector3f vecProj2 = position - (position - c.position).dot(c.normal) * c.normal;
+
+    const Eigen::Vector3f smoothPosition = barycentricLerp(vecProj0, vecProj1, vecProj2, baryUV);
+    return (smoothPosition - position).dot(normal) > 0.0f ? smoothPosition : position;
 }

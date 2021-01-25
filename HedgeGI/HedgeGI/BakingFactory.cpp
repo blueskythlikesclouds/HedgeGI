@@ -95,11 +95,11 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             }
         }
 
-        const Eigen::Vector3f triNormal = (c.position - a.position).cross(b.position - a.position).normalized();
+        const Eigen::Vector3f triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
         const Eigen::Vector3f rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
 
         // Break the loop if we hit a backfacing triangle on an opaque mesh.
-        if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(rayNormal) < 0.0f)
+        if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(rayNormal) >= 0.0f)
         {
             faceFactor = (float)(i != 0);
             break;

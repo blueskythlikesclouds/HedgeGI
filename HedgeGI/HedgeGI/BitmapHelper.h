@@ -19,6 +19,8 @@ enum EncodeReadyFlags
 
 class BitmapHelper
 {
+    static std::mutex mutex;
+
     static so_seam_t* findSeams(const Bitmap& bitmap, const Instance& instance, float cosNormalThreshold);
 
 public:
