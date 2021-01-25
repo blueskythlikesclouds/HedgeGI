@@ -23,36 +23,6 @@ namespace std
     };
 }
 
-struct SeamIterator
-{
-    using iterator_category = std::forward_iterator_tag;
-    using difference_type = std::ptrdiff_t;
-    using value_type = so_seam_t;
-    using pointer = value_type*;
-    using reference = value_type&;
-
-    so_seam_t* seam;
-
-    reference operator*() const { return *seam; }
-    pointer operator->() { return seam; }
-
-    SeamIterator& operator++() { seam = seam->next; return *this; }
-    SeamIterator operator++(int) { SeamIterator tmp = *this; ++(*this); return tmp; }
-
-    friend bool operator== (const SeamIterator& a, const SeamIterator& b) { return a.seam == b.seam; };
-    friend bool operator!= (const SeamIterator& a, const SeamIterator& b) { return a.seam != b.seam; };
-
-    SeamIterator() : seam(nullptr)
-    {
-    }
-
-    SeamIterator(so_seam_t* seam) : seam(seam)
-    {
-    }
-};
-
-std::mutex BitmapHelper::mutex;
-
 so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instance, const float cosNormalThreshold)
 {
     so_seam_t* seams = nullptr;
@@ -169,14 +139,9 @@ std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const 
     memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Eigen::Vector4f));
 
     so_seam_t* seams = findSeams(*optimized, instance, 0.9f);
-    {
-        std::unique_lock<std::mutex> lock(mutex);
 
-        std::for_each(std::execution::par_unseq, SeamIterator(seams), SeamIterator(), [&optimized, &bitmap](so_seam_t& seam)
-        {
-            so_seam_optimize(&seam, (float*)optimized->data.get(), bitmap.width, bitmap.height, 4, 0.5f);
-        });
-    }
+    for (so_seam_t* seam = seams; seam; seam = seam->next)
+        so_seam_optimize(seam, (float*)optimized->data.get(), bitmap.width, bitmap.height, 4, 0.5f);
 
     so_seams_free(seams);
 
