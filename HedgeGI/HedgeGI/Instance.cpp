@@ -1,6 +1,14 @@
 ﻿#include "Instance.h"
 #include "Scene.h"
 
+void Instance::buildAABB()
+{
+    aabb.setEmpty();
+
+    for (auto& mesh : meshes)
+        aabb.extend(mesh->aabb);
+}
+
 void Instance::read(const FileStream& file, const Scene& scene)
 {
     name = file.readString();
@@ -14,6 +22,8 @@ void Instance::read(const FileStream& file, const Scene& scene)
         if (index != (uint32_t)-1)
             meshes.push_back(scene.meshes[index].get());
     }
+
+    aabb = file.read<Eigen::AlignedBox3f>();
 }
 
 void Instance::write(const FileStream& file, const Scene& scene) const
@@ -36,4 +46,6 @@ void Instance::write(const FileStream& file, const Scene& scene) const
 
         file.write((uint32_t)index);
     }
+
+    file.write(aabb);
 }

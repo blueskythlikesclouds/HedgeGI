@@ -3,9 +3,9 @@
 #include "BitmapHelper.h"
 #include "GIBaker.h"
 
-struct GIPoint : BakePoint<1>
+struct GIPoint : BakePoint<1, BAKE_POINT_FLAGS_ALL>
 {
-    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection)
+    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
     {
         colors[0] += color;
     }

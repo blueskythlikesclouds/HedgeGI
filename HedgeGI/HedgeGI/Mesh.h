@@ -34,17 +34,16 @@ enum MeshType
 class Mesh
 {
 public:
-    AxisAlignedBoundingBox aabb;
-
     MeshType type{};
     uint32_t vertexCount{};
     uint32_t triangleCount{};
     std::unique_ptr<Vertex[]> vertices;
     std::unique_ptr<Triangle[]> triangles;
     const Material* material{};
+    Eigen::AlignedBox3f aabb;
 
+    void buildAABB();
     RTCGeometry createRTCGeometry() const;
-
     void generateTangents() const;
 
     void read(const FileStream& file, const Scene& scene);

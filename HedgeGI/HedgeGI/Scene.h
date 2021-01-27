@@ -19,13 +19,14 @@ struct RaytracingContext
 class Scene
 {
 public:
-    AxisAlignedBoundingBox aabb;
-
     std::vector<std::unique_ptr<const Bitmap>> bitmaps;
     std::vector<std::unique_ptr<const Material>> materials;
     std::vector<std::unique_ptr<const Mesh>> meshes;
     std::vector<std::unique_ptr<const Instance>> instances;
     std::vector<std::unique_ptr<const Light>> lights;
+    Eigen::AlignedBox3f aabb;
+
+    void buildAABB();
 
     RTCScene createRTCScene() const;
     RaytracingContext createRaytracingContext() const;

@@ -99,9 +99,6 @@
     <ClInclude Include="SHLightFieldBaker.h">
       <Filter>Baker\Subclasses</Filter>
     </ClInclude>
-    <ClInclude Include="AxisAlignedBoundingBox.h">
-      <Filter>Other</Filter>
-    </ClInclude>
     <ClInclude Include="FileStream.h">
       <Filter>Other</Filter>
     </ClInclude>

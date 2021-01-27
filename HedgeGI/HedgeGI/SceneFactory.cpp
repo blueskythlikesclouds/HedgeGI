@@ -223,6 +223,8 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
     }
 
     newMesh->generateTangents();
+    newMesh->buildAABB();
+
     return newMesh;
 }
 
@@ -279,6 +281,7 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::HHTerrainInstanceInfo
         }
     }
 
+    newInstance->buildAABB();
     return newInstance;
 }
 
@@ -400,6 +403,8 @@ void SceneFactory::loadTerrain(const hl::Archive& archive, Scene& scene)
 
         scene.instances.push_back(createInstance(nullptr, model, scene));
     }
+
+    scene.buildAABB();
 }
 
 std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& directoryPath)
@@ -446,6 +451,9 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
         hl::Archive tgArchive("temp.ar");
         loadTerrain(tgArchive, *scene);
     }
+
+    std::system("del temp.cab");
+    std::system("del temp.ar");
 
     scene->removeUnusedBitmaps();
     return scene;

@@ -39,6 +39,9 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/photo.hpp>
 
+// parallel_hashmap
+#include <phmap.h>
+
 // Other
 #include <INIReader.h>
 
@@ -46,7 +49,6 @@
 #undef max
 
 // HedgeGI
-#include "AxisAlignedBoundingBox.h"
 #include "FileStream.h"
 #include "HHLight.h"
 #include "HHPackedFileInfo.h"

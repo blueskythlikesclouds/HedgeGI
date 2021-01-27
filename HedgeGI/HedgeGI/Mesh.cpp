@@ -12,6 +12,14 @@ Eigen::Matrix3f Vertex::getTangentToWorldMatrix() const
     return tangentToWorld;
 }
 
+void Mesh::buildAABB()
+{
+    aabb.setEmpty();
+
+    for (size_t i = 0; i < vertexCount; i++)
+        aabb.extend(vertices[i].position);
+}
+
 RTCGeometry Mesh::createRTCGeometry() const
 {
     const RTCGeometry rtcGeometry = rtcNewGeometry(RaytracingDevice::get(), RTC_GEOMETRY_TYPE_TRIANGLE);
@@ -76,6 +84,8 @@ void Mesh::read(const FileStream& file, const Scene& scene)
     const uint32_t index = file.read<uint32_t>();
     if (index != (uint32_t)-1)
         material = scene.materials[index].get();
+
+    aabb = file.read<Eigen::AlignedBox3f>();
 }
 
 void Mesh::write(const FileStream& file, const Scene& scene) const
@@ -97,4 +107,5 @@ void Mesh::write(const FileStream& file, const Scene& scene) const
     }
 
     file.write(index);
+    file.write(aabb);
 }

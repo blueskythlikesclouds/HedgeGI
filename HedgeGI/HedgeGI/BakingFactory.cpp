@@ -136,7 +136,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             hitNormal.dot(-sunLight.positionOrDirection))) * (diffuse.head<3>() / PI) * (ray.tfar > 0);
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
-        float probability = std::min(0.5f, diffuse.maxCoeff());
+        float probability = diffuse.head<3>().cwiseProduct(Eigen::Array3f(0.2126f, 0.7152f, 0.0722f)).sum();
         if (i >= 4)
         {
             if (Random::next() > probability)

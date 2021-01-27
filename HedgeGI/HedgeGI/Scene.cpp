@@ -5,6 +5,14 @@ RaytracingContext::~RaytracingContext()
     rtcReleaseScene(rtcScene);
 }
 
+void Scene::buildAABB()
+{
+    aabb.setEmpty();
+
+    for (auto& mesh : meshes)
+        aabb.extend(mesh->aabb);
+}
+
 RTCScene Scene::createRTCScene() const
 {
     const RTCScene rtcScene = rtcNewScene(RaytracingDevice::get());
@@ -96,6 +104,8 @@ void Scene::read(const FileStream& file)
         light->read(file);
         lights.push_back(std::move(light));
     }
+
+    aabb = file.read<Eigen::AlignedBox3f>();
 }
 
 void Scene::write(const FileStream& file) const
@@ -120,6 +130,8 @@ void Scene::write(const FileStream& file) const
 
     for (auto& light : lights)
         light->write(file);
+
+    file.write(aabb);
 }
 
 bool Scene::load(const std::string& filePath)

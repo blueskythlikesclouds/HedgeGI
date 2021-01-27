@@ -7,22 +7,6 @@
 #define SO_APPROX_RSQRT
 #include <seamoptimizer/seamoptimizer.h>
 
-namespace std
-{
-    template <>
-    struct hash<Eigen::Vector3i>
-    {
-        size_t operator()(const Eigen::Vector3i& matrix) const
-        {
-            size_t seed = 0;
-            for (size_t i = 0; i < matrix.size(); ++i) 
-                seed ^= std::hash<int>()(*(matrix.data() + i)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-
-            return seed;
-        }
-    };
-}
-
 so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instance, const float cosNormalThreshold)
 {
     so_seam_t* seams = nullptr;
@@ -31,7 +15,7 @@ so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instanc
     for (auto& mesh : instance.meshes)
         triangleCount += mesh->triangleCount;
 
-    std::unordered_map<Eigen::Vector3i, std::vector<std::pair<const Mesh*, const Triangle*>>> triangleMap;
+    phmap::parallel_flat_hash_map<Eigen::Vector3i, std::vector<std::pair<const Mesh*, const Triangle*>>> triangleMap;
     triangleMap.reserve(triangleCount);
 
     for (auto& mesh : instance.meshes)

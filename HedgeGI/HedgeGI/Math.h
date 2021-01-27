@@ -4,6 +4,22 @@
 
 #define PI 3.14159265358979323846264338327950288f
 
+namespace std
+{
+    template <>
+    struct hash<Eigen::Vector3i>
+    {
+        size_t operator()(const Eigen::Vector3i& matrix) const
+        {
+            size_t seed = 0;
+            for (size_t i = 0; i < matrix.size(); ++i)
+                seed ^= std::hash<int>()(*(matrix.data() + i)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+            return seed;
+        }
+    };
+}
+
 static Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
 {
     const Eigen::Vector3f v0 = c - a;
@@ -128,6 +144,17 @@ static Eigen::Vector3f sampleDirectionHemisphere(const float u1, const float u2)
     return { x, y, z };
 }
 
+static Eigen::Vector3f sampleDirectionSphere(const float u1, const float u2)
+{
+    float z = u1 * 2.0f - 1.0f;
+    float r = sqrt(std::max(0.0f, 1.0f - z * z));
+    float phi = 2 * PI * u2;
+    float x = r * cos(phi);
+    float y = r * sin(phi);
+
+    return { x, y, z };
+}
+
 const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
 
 static Eigen::Vector3f sampleSphere(const size_t index, const size_t sampleCount)
@@ -164,4 +191,54 @@ static Eigen::Vector3f getSmoothPosition(const Vertex& a, const Vertex& b, const
 
     const Eigen::Vector3f smoothPosition = barycentricLerp(vecProj0, vecProj1, vecProj2, baryUV);
     return (smoothPosition - position).dot(normal) > 0.0f ? smoothPosition : position;
+}
+
+static float saturate(const float value)
+{
+    return std::min(1.0f, std::max(0.0f, value));
+}
+
+static Eigen::Vector3f getAabbCorner(const Eigen::AlignedBox3f& aabb, const size_t index)
+{
+    switch (index)
+    {
+    case 0: return Eigen::Vector3f(aabb.min().x(), aabb.min().y(), aabb.min().z());
+    case 1: return Eigen::Vector3f(aabb.min().x(), aabb.min().y(), aabb.max().z());
+    case 2: return Eigen::Vector3f(aabb.min().x(), aabb.max().y(), aabb.min().z());
+    case 3: return Eigen::Vector3f(aabb.min().x(), aabb.max().y(), aabb.max().z());
+    case 4: return Eigen::Vector3f(aabb.max().x(), aabb.min().y(), aabb.min().z());
+    case 5: return Eigen::Vector3f(aabb.max().x(), aabb.min().y(), aabb.max().z());
+    case 6: return Eigen::Vector3f(aabb.max().x(), aabb.max().y(), aabb.min().z());
+    case 7: return Eigen::Vector3f(aabb.max().x(), aabb.max().y(), aabb.max().z());
+
+    default:
+        return Eigen::Vector3f();
+    }
+}
+
+static Eigen::AlignedBox3f getAabbHalf(const Eigen::AlignedBox3f& aabb, const size_t axis, const size_t side)
+{
+    Eigen::AlignedBox3f result = aabb;
+
+    switch (axis)
+    {
+    case 0:
+        if (side == 0) result.max().x() = result.center().x();
+        else if (side == 1) result.min().x() = result.center().x();
+        break;
+    case 1:
+        if (side == 0) result.max().y() = result.center().y();
+        else if (side == 1) result.min().y() = result.center().y();
+        break;
+    case 2:
+        if (side == 0) result.max().z() = result.center().z();
+        else if (side == 1) result.min().z() = result.center().z();
+        break;
+    default:
+        result.min() = Eigen::Vector3f();
+        result.max() = Eigen::Vector3f();
+        break;
+    }
+
+    return result;
 }

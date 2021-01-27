@@ -5,15 +5,15 @@
 
 const std::array<Eigen::Vector3f, 4> SG_DIRECTIONS =
 {
-    Eigen::Vector3f(0.0f, 0.57735002f, 1.0f).normalized(),
-    Eigen::Vector3f(0.0f, 0.57735002f, -1.0f).normalized(),
-    Eigen::Vector3f(1.0f, 0.57735002f, 0.0f).normalized(),
-    Eigen::Vector3f(-1.0f, 0.57735002f, 0.0f).normalized()
+    Eigen::Vector3f(0.0f, 0.57735002f, 1.0f),
+    Eigen::Vector3f(0.0f, 0.57735002f, -1.0f),
+    Eigen::Vector3f(1.0f, 0.57735002f, 0.0f),
+    Eigen::Vector3f(-1.0f, 0.57735002f, 0.0f)
 };
 
-struct SGGIPoint : BakePoint<4>
+struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
 {
-    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection)
+    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
     {
         for (size_t i = 0; i < 4; i++)
         {

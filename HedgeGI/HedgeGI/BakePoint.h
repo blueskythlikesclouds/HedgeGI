@@ -2,10 +2,22 @@
 
 #include "Scene.h"
 
-template<uint32_t BasisCount>
+enum BakePointFlags : size_t
+{
+    BAKE_POINT_FLAGS_DISCARD_BACKFACE = 1 << 0,
+    BAKE_POINT_FLAGS_AO = 1 << 1,
+    BAKE_POINT_FLAGS_SHADOW = 1 << 2,
+    BAKE_POINT_FLAGS_SOFT_SHADOW = 1 << 3,
+
+    BAKE_POINT_FLAGS_NONE = 0,
+    BAKE_POINT_FLAGS_ALL = ~0
+};
+
+template<uint32_t BasisCount, size_t Flags>
 struct BakePoint
 {
-    static const uint32_t BASIS_COUNT = BasisCount;
+    static constexpr uint32_t BASIS_COUNT = BasisCount;
+    static constexpr size_t FLAGS = Flags;
 
     Eigen::Vector3f position;
     Eigen::Vector3f smoothPosition;
@@ -17,37 +29,37 @@ struct BakePoint
     uint16_t x{ (uint16_t)-1 };
     uint16_t y{ (uint16_t)-1 };
 
-    static Eigen::Vector3f sampleDirection(float u1, float u2);
+    static Eigen::Vector3f sampleDirection(size_t index, size_t sampleCount, float u1, float u2);
 
     bool valid() const;
     void discard();
 
     void begin();
-    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection) = delete;
+    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection) = delete;
     void end(uint32_t sampleCount);
 };
 
-template <uint32_t BasisCount>
-Eigen::Vector3f BakePoint<BasisCount>::sampleDirection(const float u1, const float u2)
+template <uint32_t BasisCount, size_t Flags>
+Eigen::Vector3f BakePoint<BasisCount, Flags>::sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
 {
     return sampleCosineWeightedHemisphere(u1, u2);
 }
 
-template <uint32_t BasisCount>
-bool BakePoint<BasisCount>::valid() const
+template <uint32_t BasisCount, size_t Flags>
+bool BakePoint<BasisCount, Flags>::valid() const
 {
     return x != (uint16_t)-1 && y != (uint16_t)-1;
 }
 
-template <uint32_t BasisCount>
-void BakePoint<BasisCount>::discard()
+template <uint32_t BasisCount, size_t Flags>
+void BakePoint<BasisCount, Flags>::discard()
 {
     x = (uint16_t)-1;
     y = (uint16_t)-1;
 }
 
-template <uint32_t BasisCount>
-void BakePoint<BasisCount>::begin()
+template <uint32_t BasisCount, size_t Flags>
+void BakePoint<BasisCount, Flags>::begin()
 {
     for (uint32_t i = 0; i < BasisCount; i++)
         colors[i] = Eigen::Array3f::Zero();
@@ -55,8 +67,8 @@ void BakePoint<BasisCount>::begin()
     shadow = 0.0f;
 }
 
-template <uint32_t BasisCount>
-void BakePoint<BasisCount>::end(const uint32_t sampleCount)
+template <uint32_t BasisCount, size_t Flags>
+void BakePoint<BasisCount, Flags>::end(const uint32_t sampleCount)
 {
     for (uint32_t i = 0; i < BasisCount; i++)
         colors[i] /= (float)sampleCount;
