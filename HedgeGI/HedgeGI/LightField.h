@@ -22,23 +22,16 @@ enum LightFieldCellType : uint32_t
 struct LightFieldCell
 {
     LightFieldCellType type;
-    const LightFieldCell* left;
-    const LightFieldCell* right;
-    const LightFieldProbe* probes[8];
+    uint32_t index;
 };
 
 class LightField
 {
 public:
     Eigen::AlignedBox3f aabb;
-    std::vector<std::unique_ptr<LightFieldCell>> cells;
-    std::vector<std::unique_ptr<LightFieldProbe>> probes;
-
-    LightFieldCell* createCell();
-    LightFieldProbe* createProbe();
-
-    size_t getIndex(const LightFieldCell* cell) const;
-    size_t getIndex(const LightFieldProbe* probe) const;
+    std::vector<LightFieldCell> cells;
+    std::vector<LightFieldProbe> probes;
+    std::vector<uint32_t> indices;
 
     void optimizeProbes();
 
