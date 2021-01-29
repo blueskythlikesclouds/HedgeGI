@@ -1,4 +1,7 @@
 ﻿#include "Bitmap.h"
+#include "D3D11Device.h"
+
+std::mutex Bitmap::mutex;
 
 void Bitmap::transformToLightMap(Eigen::Array4f* color)
 {
@@ -112,8 +115,18 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transfo
 
         if (DirectX::IsCompressed(format))
         {
-            Compress(images.GetImages(), images.GetImageCount(), images.GetMetadata(), 
-                format, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
+            if (format >= DXGI_FORMAT_BC6H_TYPELESS && format <= DXGI_FORMAT_BC7_UNORM_SRGB && D3D11Device::get() != nullptr)
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+
+                Compress(D3D11Device::get(), images.GetImages(), images.GetImageCount(), images.GetMetadata(),
+                    format, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
+            }
+            else
+            {
+                Compress(images.GetImages(), images.GetImageCount(), images.GetMetadata(),
+                    format, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
+            }
         }
         else
         {

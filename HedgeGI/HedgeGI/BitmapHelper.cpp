@@ -122,7 +122,7 @@ std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const 
     std::unique_ptr<Bitmap> optimized = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
     memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Eigen::Vector4f));
 
-    so_seam_t* seams = findSeams(*optimized, instance, 0.0001f);
+    so_seam_t* seams = findSeams(*optimized, instance, 0.5f);
 
     for (so_seam_t* seam = seams; seam; seam = seam->next)
         so_seam_optimize(seam, (float*)optimized->data.get(), bitmap.width, bitmap.height, 4, 0.5f);

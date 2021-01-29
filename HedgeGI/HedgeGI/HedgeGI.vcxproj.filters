@@ -54,6 +54,9 @@
     <ClCompile Include="DenoiserDevice.cpp">
       <Filter>Devices</Filter>
     </ClCompile>
+    <ClCompile Include="D3D11Device.cpp">
+      <Filter>Devices</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -127,6 +130,9 @@
       <Filter>Bitmap</Filter>
     </ClInclude>
     <ClInclude Include="DenoiserDevice.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D11Device.h">
       <Filter>Devices</Filter>
     </ClInclude>
   </ItemGroup>

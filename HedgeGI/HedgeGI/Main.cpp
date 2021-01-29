@@ -9,6 +9,22 @@
 
 #include "LightFieldBaker.h"
 
+enum Game
+{
+    GAME_UNKNOWN,
+    GAME_GENERATIONS,
+    GAME_LOST_WORLD,
+    GAME_FORCES
+};
+
+const char* const GAME_NAMES[] =
+{
+    "Unknown",
+    "Sonic Generations",
+    "Sonic Lost World",
+    "Sonic Forces"
+};
+
 int32_t main(int32_t argc, const char* argv[])
 {
     BakeParams bakeParams{};
@@ -22,16 +38,43 @@ int32_t main(int32_t argc, const char* argv[])
     const std::string path = argv[1];
     const std::string outputPath = std::string(argv[1]) + "-HedgeGI/";
 
-    const bool isGenerations = std::filesystem::exists(path + "/Stage.pfd");
+    Game game = GAME_UNKNOWN;
+
+    if (std::filesystem::exists(path + "/Stage.pfd"))
+        game = GAME_GENERATIONS;
+
+    else
+    {
+        const FileStream fileStream((path + "/" + getFileName(path) + "_trr_cmn.pac").c_str(), "rb");
+        if (fileStream.isOpen())
+        {
+            fileStream.seek(4, SEEK_SET);
+            const char version = fileStream.read<char>();
+
+            game = version == '3' ? GAME_FORCES : version == '2' ? GAME_LOST_WORLD : GAME_UNKNOWN;
+        }
+    }
+
+    if (game == GAME_UNKNOWN)
+    {
+        printf("Failed to detect the game.\n");
+        return -1;
+    }
+
+    printf("Detected game: %s\n", GAME_NAMES[game]);
 
     if (std::filesystem::exists(path + ".scene"))
     {
+        printf("Found existing scene file, loading...\n");
+
         scene = std::make_unique<Scene>();
         scene->load(path + ".scene");
     }
     else
     {
-        scene = isGenerations ? SceneFactory::createFromGenerations(path) : SceneFactory::createFromLostWorldOrForces(path);
+        printf("Creating scene file...\n");
+
+        scene = game == GAME_GENERATIONS ? SceneFactory::createFromGenerations(path) : SceneFactory::createFromLostWorldOrForces(path);
         scene->save(path + ".scene");
     }
 
@@ -56,7 +99,7 @@ int32_t main(int32_t argc, const char* argv[])
 
         size_t i = 0;
         std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(),
-            [&i, &resolutions, &bakeParams, &raytracingContext, &isGenerations, &outputPath](const std::unique_ptr<const Instance>& instance)
+            [&i, &resolutions, &bakeParams, &raytracingContext, &game, &outputPath](const std::unique_ptr<const Instance>& instance)
         {
             const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
 
@@ -73,17 +116,26 @@ int32_t main(int32_t argc, const char* argv[])
             // Combine
             auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
 
-            // Make ready for encoding
-            combined = BitmapHelper::makeEncodeReady(*combined, (EncodeReadyFlags)(ENCODE_READY_FLAGS_SRGB | ENCODE_READY_FLAGS_SQRT));
+            // Optimize seams
+            combined = BitmapHelper::optimizeSeams(*combined, *instance);
 
-            if (isGenerations)
+            // Make ready for encoding
+            if (game != GAME_FORCES)
+                combined = BitmapHelper::makeEncodeReady(*combined, (EncodeReadyFlags)(ENCODE_READY_FLAGS_SRGB | ENCODE_READY_FLAGS_SQRT));
+
+            if (game == GAME_GENERATIONS)
             {
                 combined->save(outputPath + instance->name + "_lightmap.png", Bitmap::transformToLightMap);
                 combined->save(outputPath + instance->name + "_shadowmap.png", Bitmap::transformToShadowMap);
             }
-            else
+            else if (game == GAME_LOST_WORLD)
             {
                 combined->save(outputPath + instance->name + ".dds", DXGI_FORMAT_BC3_UNORM);
+            }
+            else if (game == GAME_FORCES)
+            {
+                combined->save(outputPath + instance->name + ".dds", SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
+                combined->save(outputPath + instance->name + "_occlusion.dds", SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
             }
            
             printf("(%llu/%llu): Saved %s (%dx%d)\n", InterlockedIncrement(&i), raytracingContext.scene->instances.size(), instance->name.c_str(), resolution, resolution);

@@ -17,7 +17,7 @@ OptixDenoiser DenoiserDevice::denoiser;
 
 std::unique_ptr<Bitmap> DenoiserDevice::denoise(const Bitmap& bitmap)
 {
-    std::unique_lock<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(mutex);
 
     if (!initialized)
     {

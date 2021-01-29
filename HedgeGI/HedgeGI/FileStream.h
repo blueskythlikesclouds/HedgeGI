@@ -15,6 +15,11 @@ public:
         fclose(file);
     }
 
+    bool isOpen() const
+    {
+        return file != nullptr;
+    }
+
     long getPosition() const
     {
         return ftell(file);

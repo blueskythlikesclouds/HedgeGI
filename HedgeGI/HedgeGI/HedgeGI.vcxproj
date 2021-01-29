@@ -68,7 +68,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;..\..\Dependencies\opencv\build\x64\vc15\lib;$(CUDA_PATH)\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart.lib;embree3.lib;tbb.lib;opencv_world451d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;opencv_world451d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -99,7 +99,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;..\..\Dependencies\opencv\build\x64\vc15\lib;$(CUDA_PATH)\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart.lib;embree3.lib;tbb.lib;opencv_world451.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;opencv_world451.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -112,6 +112,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BitmapHelper.cpp" />
+    <ClCompile Include="D3D11Device.cpp" />
     <ClCompile Include="DenoiserDevice.cpp" />
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="BakingFactory.cpp" />
@@ -139,6 +140,7 @@
   <ItemGroup>
     <ClInclude Include="BakePoint.h" />
     <ClInclude Include="BitmapHelper.h" />
+    <ClInclude Include="D3D11Device.h" />
     <ClInclude Include="DenoiserDevice.h" />
     <ClInclude Include="HHLight.h" />
     <ClInclude Include="Light.h" />

@@ -2,6 +2,8 @@
 
 class Bitmap
 {
+    static std::mutex mutex;
+
 public:
     std::string name;
     uint32_t width{};
