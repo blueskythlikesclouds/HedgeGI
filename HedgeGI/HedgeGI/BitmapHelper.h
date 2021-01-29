@@ -34,7 +34,9 @@ public:
     template<typename TBakePoint>
     static std::unique_ptr<Bitmap> createAndPaint(const std::vector<TBakePoint>& bakePoints, uint16_t width, uint16_t height, PaintFlags paintFlags);
 
-    static std::unique_ptr<Bitmap> encodeReady(const Bitmap& bitmap, EncodeReadyFlags encodeReadyFlags);
+    static std::unique_ptr<Bitmap> makeEncodeReady(const Bitmap& bitmap, EncodeReadyFlags encodeReadyFlags);
+
+    static std::unique_ptr<Bitmap> combine(const Bitmap& lightMap, const Bitmap& shadowMap);
 };
 
 template <typename TBakePoint>

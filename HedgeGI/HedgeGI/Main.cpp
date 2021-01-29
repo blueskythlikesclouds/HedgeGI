@@ -20,6 +20,9 @@ int32_t main(int32_t argc, const char* argv[])
     std::unique_ptr<Scene> scene;
 
     const std::string path = argv[1];
+    const std::string outputPath = std::string(argv[1]) + "-HedgeGI/";
+
+    const bool isGenerations = std::filesystem::exists(path + "/Stage.pfd");
 
     if (std::filesystem::exists(path + ".scene"))
     {
@@ -28,14 +31,16 @@ int32_t main(int32_t argc, const char* argv[])
     }
     else
     {
-        scene = SceneFactory::createFromGenerations(path);
+        scene = isGenerations ? SceneFactory::createFromGenerations(path) : SceneFactory::createFromLostWorldOrForces(path);
         scene->save(path + ".scene");
     }
+
+    std::filesystem::create_directory(outputPath);
 
     const auto raytracingContext = scene->createRaytracingContext();
 
     // GI Test
-    if (false)
+    if (true)
     {
         phmap::parallel_flat_hash_map<std::string, uint16_t> resolutions;
         std::ifstream stream(path + ".txt");
@@ -50,18 +55,39 @@ int32_t main(int32_t argc, const char* argv[])
         }
 
         size_t i = 0;
-        std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(), [&i, &resolutions, &bakeParams, &scene, &raytracingContext](const std::unique_ptr<const Instance>& instance)
+        std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(),
+            [&i, &resolutions, &bakeParams, &raytracingContext, &isGenerations, &outputPath](const std::unique_ptr<const Instance>& instance)
+        {
+            const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
+
+            // GI Test
+            auto pair = GIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
+
+            // Dilate
+            pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
+            pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
+
+            // Denoise
+            pair.lightMap = BitmapHelper::denoise(*pair.lightMap);
+
+            // Combine
+            auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
+
+            // Make ready for encoding
+            combined = BitmapHelper::makeEncodeReady(*combined, (EncodeReadyFlags)(ENCODE_READY_FLAGS_SRGB | ENCODE_READY_FLAGS_SQRT));
+
+            if (isGenerations)
             {
-                const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
-
-                // GI Test (Generations)
-                const auto bitmaps = GIBaker::bakeSeparate(raytracingContext, *instance, resolution, bakeParams);
-
-                BitmapHelper::encodeReady(*BitmapHelper::optimizeSeams(*BitmapHelper::denoise(*BitmapHelper::dilate(*bitmaps.first)), *instance), (EncodeReadyFlags)(ENCODE_READY_FLAGS_SRGB | ENCODE_READY_FLAGS_SQRT))->save(instance->name + "_lightmap.png");
-                BitmapHelper::optimizeSeams(*BitmapHelper::dilate(*bitmaps.second), *instance)->save(instance->name + "_shadowmap.png");
-
-                printf("(%llu/%llu): Saved %s (%dx%d)\n", InterlockedIncrement(&i), scene->instances.size(), instance->name.c_str(), resolution, resolution);
-            });
+                combined->save(outputPath + instance->name + "_lightmap.png", Bitmap::transformToLightMap);
+                combined->save(outputPath + instance->name + "_shadowmap.png", Bitmap::transformToShadowMap);
+            }
+            else
+            {
+                combined->save(outputPath + instance->name + ".dds", DXGI_FORMAT_BC3_UNORM);
+            }
+           
+            printf("(%llu/%llu): Saved %s (%dx%d)\n", InterlockedIncrement(&i), raytracingContext.scene->instances.size(), instance->name.c_str(), resolution, resolution);
+        });
     }
     // Light Field Test
     else

@@ -122,7 +122,7 @@ std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const 
     std::unique_ptr<Bitmap> optimized = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
     memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Eigen::Vector4f));
 
-    so_seam_t* seams = findSeams(*optimized, instance, 0.9f);
+    so_seam_t* seams = findSeams(*optimized, instance, 0.0001f);
 
     for (so_seam_t* seam = seams; seam; seam = seam->next)
         so_seam_optimize(seam, (float*)optimized->data.get(), bitmap.width, bitmap.height, 4, 0.5f);
@@ -132,7 +132,7 @@ std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const 
     return optimized;
 }
 
-std::unique_ptr<Bitmap> BitmapHelper::encodeReady(const Bitmap& bitmap, const EncodeReadyFlags encodeReadyFlags)
+std::unique_ptr<Bitmap> BitmapHelper::makeEncodeReady(const Bitmap& bitmap, const EncodeReadyFlags encodeReadyFlags)
 {
     std::unique_ptr<Bitmap> encoded = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
 
@@ -144,7 +144,7 @@ std::unique_ptr<Bitmap> BitmapHelper::encodeReady(const Bitmap& bitmap, const En
             {
                 const size_t index = bitmap.getColorIndex(x, y, i);
 
-                Eigen::Array4f color = bitmap.data[bitmap.getColorIndex(x, y, i)];
+                Eigen::Array4f color = bitmap.data[index];
 
                 if (encodeReadyFlags & ENCODE_READY_FLAGS_SRGB) color.head<3>() = color.head<3>().pow(1.0f / 2.2f);
                 if (encodeReadyFlags & ENCODE_READY_FLAGS_SQRT) color.head<3>() = color.head<3>().sqrt();
@@ -155,4 +155,29 @@ std::unique_ptr<Bitmap> BitmapHelper::encodeReady(const Bitmap& bitmap, const En
     }
 
     return encoded;
+}
+
+std::unique_ptr<Bitmap> BitmapHelper::combine(const Bitmap& lightMap, const Bitmap& shadowMap)
+{
+    assert(lightMap.width == shadowMap.width && lightMap.height == shadowMap.height);
+
+    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(lightMap.width, lightMap.height, lightMap.arraySize);
+
+    for (size_t i = 0; i < bitmap->arraySize; i++)
+    {
+        for (size_t x = 0; x < bitmap->width; x++)
+        {
+            for (size_t y = 0; y < bitmap->height; y++)
+            {
+                const size_t index = bitmap->getColorIndex(x, y, i);
+
+                Eigen::Array4f color = lightMap.data[index];
+                color.w() = shadowMap.data[index].head<3>().sum() / 3.0f;
+
+                bitmap->data[index] = color;
+            }
+        }
+    }
+
+    return bitmap;
 }

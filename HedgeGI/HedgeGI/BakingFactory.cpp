@@ -25,7 +25,7 @@ void BakeParams::load(const std::string& filePath)
 
     diffuseStrength = reader.GetFloat("Baker", "DiffuseStrength", 1.0f);
     lightStrength = reader.GetFloat("Baker", "LightStrength", 1.0f);
-    defaultResolution = reader.GetInteger("Baker", "DefaultResolution", 256);
+    defaultResolution = (uint16_t)reader.GetInteger("Baker", "DefaultResolution", 256);
 }
 
 std::mutex BakingFactory::mutex;

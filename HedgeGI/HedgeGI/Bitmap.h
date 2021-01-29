@@ -9,6 +9,11 @@ public:
     uint32_t arraySize{};
     std::unique_ptr<Eigen::Array4f[]> data;
 
+    typedef void Transformer(Eigen::Array4f* color);
+
+    static void transformToLightMap(Eigen::Array4f* color);
+    static void transformToShadowMap(Eigen::Array4f* color);
+
     Bitmap();
     Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1);
 
@@ -26,8 +31,9 @@ public:
     void read(const FileStream& file);
     void write(const FileStream& file) const;
 
-    void save(const std::string& filePath) const;
-    void save(const std::string& filePath, DXGI_FORMAT format) const;
+    void save(const std::string& filePath, Transformer* transformer = nullptr) const;
+    void save(const std::string& filePath, DXGI_FORMAT format, Transformer* transformer = nullptr) const;
 
     cv::Mat toMat(size_t index) const;
+    DirectX::ScratchImage toScratchImage(Transformer* transformer = nullptr) const;
 };

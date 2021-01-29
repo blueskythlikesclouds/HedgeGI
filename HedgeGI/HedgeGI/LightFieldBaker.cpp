@@ -116,7 +116,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
         rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
 
-        for (size_t i = 0; i < 3; i++)
+        for (int32_t i = 0; i < 3; i++)
         {
             const int32_t delta = abs(userData.intersectionCounts[i][0] - userData.intersectionCounts[i][1]);
 

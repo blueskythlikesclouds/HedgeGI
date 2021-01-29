@@ -1,5 +1,16 @@
 ﻿#include "Bitmap.h"
 
+void Bitmap::transformToLightMap(Eigen::Array4f* color)
+{
+    color->w() = 1.0f;
+}
+
+void Bitmap::transformToShadowMap(Eigen::Array4f* color)
+{
+    color->head<3>() = color->w();
+    color->w() = 1.0f;
+}
+
 Bitmap::Bitmap() = default;
 
 Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize)
@@ -72,17 +83,13 @@ void Bitmap::write(const FileStream& file) const
     file.write(data.get(), width * height * arraySize);
 }
 
-void Bitmap::save(const std::string& filePath) const
+void Bitmap::save(const std::string& filePath, Transformer* const transformer) const
 {
     DirectX::ScratchImage scratchImage;
     {
-        DirectX::ScratchImage victimScratchImage;
-        victimScratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+        const DirectX::ScratchImage images = toScratchImage(transformer);
 
-        for (uint32_t i = 0; i < arraySize; i++)
-            memcpy(victimScratchImage.GetImage(0, i, 0)->pixels, &data[width * height * i], width * height * sizeof(Eigen::Vector4f));
-
-        Convert(victimScratchImage.GetImages(), victimScratchImage.GetImageCount(), victimScratchImage.GetMetadata(), 
+        Convert(images.GetImages(), images.GetImageCount(), images.GetMetadata(), 
             DXGI_FORMAT_R16G16B16A16_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
     }
 
@@ -92,28 +99,25 @@ void Bitmap::save(const std::string& filePath) const
     SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_FORCE_SRGB, GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
 }
 
-void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format) const
+void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transformer* const transformer) const
 {
     DirectX::ScratchImage scratchImage;
+
+    if (format == DXGI_FORMAT_R32G32B32A32_FLOAT)
+        scratchImage = toScratchImage(transformer);
+
+    else
     {
-        DirectX::ScratchImage victimScratchImage;
-        victimScratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+        const DirectX::ScratchImage images = toScratchImage(transformer);
 
-        for (uint32_t i = 0; i < arraySize; i++)
-            memcpy(victimScratchImage.GetImage(0, i, 0)->pixels, &data[width * height * i], width * height * sizeof(Eigen::Vector4f));
-
-        if (format == DXGI_FORMAT_R32G32B32A32_FLOAT)
+        if (DirectX::IsCompressed(format))
         {
-            std::swap(scratchImage, victimScratchImage);
-        }
-        else if (DirectX::IsCompressed(format))
-        {
-            Compress(victimScratchImage.GetImages(), victimScratchImage.GetImageCount(), victimScratchImage.GetMetadata(), 
-                format, DirectX::TEX_COMPRESS_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
+            Compress(images.GetImages(), images.GetImageCount(), images.GetMetadata(), 
+                format, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
         }
         else
         {
-            Convert(victimScratchImage.GetImages(), victimScratchImage.GetImageCount(), victimScratchImage.GetMetadata(), 
+            Convert(images.GetImages(), images.GetImageCount(), images.GetMetadata(), 
                 format, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT,scratchImage);
         }
     }
@@ -127,4 +131,28 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format) const
 cv::Mat Bitmap::toMat(const size_t index) const
 {
     return cv::Mat(cv::Size(width, height), CV_32FC4, &data[width * height * index]);
+}
+
+DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) const
+{
+    DirectX::ScratchImage scratchImage;
+    scratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+
+    for (size_t i = 0; i < arraySize; i++)
+    {
+        Eigen::Array4f* const pixels = (Eigen::Array4f*)scratchImage.GetImage(0, i, 0)->pixels;
+
+        memcpy(pixels, &data[i * width * height], sizeof(Eigen::Array4f) * width * height);
+
+        if (transformer != nullptr)
+        {
+            for (size_t x = 0; x < width; x++)
+            {
+                for (size_t y = 0; y < height; y++)
+                    transformer(&pixels[getColorIndex(x, y, 0)]);
+            }
+        }
+    }
+
+    return scratchImage;
 }

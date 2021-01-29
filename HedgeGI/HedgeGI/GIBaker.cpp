@@ -16,28 +16,15 @@ struct GIPoint : BakePoint<1, BAKE_POINT_FLAGS_ALL>
     }
 };
 
-std::vector<GIPoint> GIBaker::bake(const RaytracingContext& context, const Instance& instance, const uint16_t size, const BakeParams& bakeParams)
+GIPair GIBaker::bake(const RaytracingContext& context, const Instance& instance, const uint16_t size, const BakeParams& bakeParams)
 {
     std::vector<GIPoint> bakePoints = createBakePoints<GIPoint>(context, instance, size);
 
     BakingFactory::bake(context, bakePoints, bakeParams);
-
-    return bakePoints;
-}
-
-std::pair<std::unique_ptr<Bitmap>, std::unique_ptr<Bitmap>> GIBaker::bakeSeparate(const RaytracingContext& context, const Instance& instance, const uint16_t size, const BakeParams& bakeParams)
-{
-    const std::vector<GIPoint> bakePoints = bake(context, instance, size, bakeParams);
 
     return
     {
         BitmapHelper::createAndPaint(bakePoints, size, size, PAINT_FLAGS_COLOR),
         BitmapHelper::createAndPaint(bakePoints, size, size, PAINT_FLAGS_SHADOW)
     };
-}
-
-std::unique_ptr<Bitmap> GIBaker::bakeCombined(const RaytracingContext& context, const Instance& instance, const uint16_t size, const BakeParams& bakeParams)
-{
-    const std::vector<GIPoint> bakePoints = bake(context, instance, size, bakeParams);
-    return BitmapHelper::createAndPaint(bakePoints, size, size, (PaintFlags)(PAINT_FLAGS_COLOR | PAINT_FLAGS_SHADOW));
 }
