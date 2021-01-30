@@ -1,6 +1,5 @@
 ﻿#include "SceneFactory.h"
 #include "Bitmap.h"
-#include "HHPackedFileInfo.h"
 #include "Instance.h"
 #include "Material.h"
 #include "Scene.h"
@@ -18,18 +17,20 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     if (DirectX::IsCompressed(metadata.format))
     {
         std::unique_ptr<DirectX::ScratchImage> newScratchImage = std::make_unique<DirectX::ScratchImage>();
-        Decompress(*scratchImage->GetImage(0, 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, *newScratchImage);
+        Decompress(*scratchImage->GetImage(std::min<size_t>(2, metadata.mipLevels - 1), 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, *newScratchImage); // Try getting the second mip (we don't need much quality from textures)
         scratchImage.swap(newScratchImage);
     }
     else if (metadata.format != DXGI_FORMAT_R32G32B32A32_FLOAT)
     {
         std::unique_ptr<DirectX::ScratchImage> newScratchImage = std::make_unique<DirectX::ScratchImage>();
-        Convert(*scratchImage->GetImage(0, 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, *newScratchImage);
+        Convert(*scratchImage->GetImage(std::min<size_t>(2, metadata.mipLevels - 1), 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, *newScratchImage);
         scratchImage.swap(newScratchImage);
     }
 
     if (!scratchImage->GetImages())
         return nullptr;
+
+    metadata = scratchImage->GetMetadata();
 
     std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>();
     bitmap->width = (uint32_t)metadata.width;
@@ -43,24 +44,30 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     return bitmap;
 }
 
-std::unique_ptr<Material> SceneFactory::createMaterial(hl::HHMaterialV3* material, const Scene& scene)
+std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material, const Scene& scene)
 {
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
-    for (size_t i = 0; i < material->TextureCount; i++)
+    HL_OFF32(HlHHTextureV1)* textures = (HL_OFF32(HlHHTextureV1)*)hlOff32Get(&material->texturesOffset);
+
+    for (size_t i = 0; i < material->textureCount; i++)
     {
-        hl::HHTexture* unit = material->Textures.Get()[i].Get();
-        if (strcmp(unit->Type.Get(), "diffuse") != 0 &&
-            strcmp(unit->Type.Get(), "displacement") != 0)
+        HlHHTextureV1* texture = (HlHHTextureV1*)hlOff32Get(&textures[i]);
+        const char* type = (const char*)hlOff32Get(&texture->typeOffset);
+
+        if (strcmp(type, "diffuse") != 0 &&
+            strcmp(type, "displacement") != 0)
             continue;
+
+        const char* fileName = (const char*)hlOff32Get(&texture->fileNameOffset);
 
         bool found = false;
         for (auto& bitmap : scene.bitmaps)
         {
-            if (strcmp(unit->TextureName.Get(), bitmap->name.c_str()) != 0)
+            if (strcmp(fileName, bitmap->name.c_str()) != 0)
                 continue;
 
-            if (strcmp(unit->Type.Get(), "diffuse") == 0)
+            if (strcmp(type, "diffuse") == 0)
                 newMaterial->diffuse = bitmap.get();
             else
                 newMaterial->emission = bitmap.get();
@@ -76,44 +83,47 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::HHMaterialV3* materia
     return newMaterial;
 }
 
-std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Affine3f& transformation,
+std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Eigen::Affine3f& transformation,
                                                const Scene& scene)
 {
     std::unique_ptr<Mesh> newMesh = std::make_unique<Mesh>();
 
-    newMesh->vertexCount = mesh->VertexCount;
-    newMesh->vertices = std::make_unique<Vertex[]>(mesh->VertexCount);
+    newMesh->vertexCount = mesh->vertexCount;
+    newMesh->vertices = std::make_unique<Vertex[]>(mesh->vertexCount);
 
-    for (size_t i = 0; i < mesh->VertexCount; i++)
+    HlU8* vertices = (HlU8*)hlOff32Get(&mesh->verticesOffset);
+
+    for (size_t i = 0; i < mesh->vertexCount; i++)
     {
-        hl::HHVertexElement* element = mesh->VertexElements;
-        while (element->Format != hl::HHVERTEX_FORMAT_LAST_ENTRY)
+        HlHHVertexElement* element = (HlHHVertexElement*)hlOff32Get(&mesh->vertexElementsOffset);
+
+        while (element->format != HL_HH_VERTEX_FORMAT_LAST_ENTRY)
         {
             Vertex& vertex = newMesh->vertices[i];
 
             float* destination = nullptr;
             size_t size = 0;
 
-            switch (element->Type)
+            switch (element->type)
             {
-            case hl::HHVERTEX_TYPE_POSITION:
+            case HL_HH_VERTEX_TYPE_POSITION:
                 destination = vertex.position.data();
                 size = vertex.position.size();
                 break;
 
-            case hl::HHVERTEX_TYPE_NORMAL:
+            case HL_HH_VERTEX_TYPE_NORMAL:
                 destination = vertex.normal.data();
                 size = vertex.normal.size();
                 break;
 
-            case hl::HHVERTEX_TYPE_UV:
-                if (element->Index == 0)
+            case HL_HH_VERTEX_TYPE_TEXCOORD:
+                if (element->index == 0)
                 {
                     destination = vertex.uv.data();
                     size = vertex.uv.size();
                 }
 
-                else if (element->Index == 1)
+                else if (element->index == 1)
                 {
                     destination = vertex.vPos.data();
                     size = vertex.vPos.size();
@@ -121,7 +131,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
 
                 break;
 
-            case hl::HHVERTEX_TYPE_COLOR:
+            case HL_HH_VERTEX_TYPE_COLOR:
                 destination = vertex.color.data();
                 size = vertex.color.size();
                 break;
@@ -133,17 +143,17 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
                 continue;
             }
 
-            uint8_t* source = mesh->Vertices + i * mesh->VertexSize + element->Offset;
+            HlU8* source = vertices + i * mesh->vertexSize + element->offset;
 
-            switch (element->Format)
+            switch (element->format)
             {
-            case hl::HHVERTEX_FORMAT_VECTOR2:
+            case HL_HH_VERTEX_FORMAT_VECTOR2:
                 size = std::min<size_t>(size, 2);
 
-            case hl::HHVERTEX_FORMAT_VECTOR3:
+            case HL_HH_VERTEX_FORMAT_VECTOR3:
                 size = std::min<size_t>(size, 3);
 
-            case hl::HHVERTEX_FORMAT_VECTOR4:
+            case HL_HH_VERTEX_FORMAT_VECTOR4:
                 size = std::min<size_t>(size, 4);
 
                 for (size_t j = 0; j < size; j++)
@@ -151,7 +161,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
 
                 break;
 
-            case hl::HHVERTEX_FORMAT_VECTOR4_BYTE:
+            case HL_HH_VERTEX_FORMAT_VECTOR4_BYTE:
                 size = std::min<size_t>(size, 4);
 
                 for (size_t j = 0; j < size; j++)
@@ -176,21 +186,22 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
     }
 
     std::vector<Triangle> triangles;
-    triangles.reserve(mesh->Faces.Count);
+    triangles.reserve(mesh->faceCount);
 
     size_t i = 0;
+    HlU16* faces = (HlU16*)hlOff32Get(&mesh->facesOffset);
 
-    uint16_t a = mesh->Faces[i++];
-    uint16_t b = mesh->Faces[i++];
+    HlU16 a = faces[i++];
+    HlU16 b = faces[i++];
     int32_t direction = -1;
 
-    while (i < mesh->Faces.Count)
+    while (i < mesh->faceCount)
     {
-        const uint16_t c = mesh->Faces[i++];
-        if (c == (uint16_t)-1)
+        const HlU16 c = faces[i++];
+        if (c == (HlU16)-1)
         {
-            a = mesh->Faces[i++];
-            b = mesh->Faces[i++];
+            a = faces[i++];
+            b = faces[i++];
             direction = -1;
         }
         else
@@ -213,9 +224,11 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
     newMesh->triangles = std::make_unique<Triangle[]>(triangles.size());
     std::copy(triangles.begin(), triangles.end(), newMesh->triangles.get());
 
+    const char* materialName = (const char*)hlOff32Get(&mesh->materialNameOffset);
+
     for (auto& material : scene.materials)
     {
-        if (strcmp(material->name.c_str(), mesh->MaterialName.Get()) != 0)
+        if (strcmp(material->name.c_str(), materialName) != 0)
             continue;
 
         newMesh->material = material.get();
@@ -228,22 +241,25 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::HHMesh* mesh, const Eigen::Af
     return newMesh;
 }
 
-std::unique_ptr<Instance> SceneFactory::createInstance(hl::HHTerrainInstanceInfoV0* instance, hl::HHTerrainModel* model,
+std::unique_ptr<Instance> SceneFactory::createInstance(HlHHTerrainInstanceInfoV0* instance, HlHHTerrainModelV5* model,
                                                        Scene& scene)
 {
     std::unique_ptr<Instance> newInstance = std::make_unique<Instance>();
 
-    newInstance->name = instance ? instance->Filename.Get() : model->Name.Get();
+    newInstance->name = (const char*)(instance ?
+        hlOff32Get(&instance->instanceInfoNameOffset) : hlOff32Get(&model->nameOffset));
+
+    HlMatrix4x4* matrix = (HlMatrix4x4*)hlOff32Get(&instance->matrixOffset);
 
     Eigen::Matrix4f transformationMatrix;
 
-    if (instance)
+    if (instance != nullptr)
     {
         transformationMatrix <<
-            instance->Matrix->M11, instance->Matrix->M12, instance->Matrix->M13, instance->Matrix->M14,
-            instance->Matrix->M21, instance->Matrix->M22, instance->Matrix->M23, instance->Matrix->M24,
-            instance->Matrix->M31, instance->Matrix->M32, instance->Matrix->M33, instance->Matrix->M34,
-            instance->Matrix->M41, instance->Matrix->M42, instance->Matrix->M43, instance->Matrix->M44;
+            matrix->m11, matrix->m12, matrix->m13, matrix->m14,
+            matrix->m21, matrix->m22, matrix->m23, matrix->m24,
+            matrix->m31, matrix->m32, matrix->m33, matrix->m34,
+            matrix->m41, matrix->m42, matrix->m43, matrix->m44;
     }
     else
     {
@@ -253,7 +269,7 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::HHTerrainInstanceInfo
     Eigen::Affine3f transformationAffine;
     transformationAffine = transformationMatrix;
 
-    auto addMesh = [&transformationAffine, &scene, &newInstance](hl::HHMesh* srcMesh, const MeshType type)
+    auto addMesh = [&transformationAffine, &scene, &newInstance](HlHHMesh* srcMesh, const MeshType type)
     {
         std::unique_ptr<Mesh> mesh = createMesh(srcMesh, transformationAffine, scene);
         mesh->type = type;
@@ -263,21 +279,37 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::HHTerrainInstanceInfo
         scene.meshes.push_back(std::move(mesh));
     };
 
-    for (size_t i = 0; i < model->MeshGroups.Count; i++)
+    // me when hlOff32Get
+
+    HL_OFF32(HlHHMeshGroup)* meshGroups = (HL_OFF32(HlHHMeshGroup)*)hlOff32Get(&model->meshGroupsOffset);
+
+    for (size_t i = 0; i < model->meshGroupCount; i++)
     {
-        for (size_t j = 0; j < model->MeshGroups[i]->Solid.Count; j++)
-            addMesh(model->MeshGroups[i]->Solid[j], MESH_TYPE_OPAQUE);
+        HlHHMeshGroup* meshGroup = (HlHHMeshGroup*)hlOff32Get(&meshGroups[i]);
 
-        for (size_t j = 0; j < model->MeshGroups[i]->Transparent.Count; j++)
-            addMesh(model->MeshGroups[i]->Transparent[j], MESH_TYPE_TRANSPARENT);
+        HL_OFF32(HlHHMesh)* solidMeshes = (HL_OFF32(HlHHMesh)*)hlOff32Get(&meshGroup->solid.meshesOffset);
+        HL_OFF32(HlHHMesh)* transparentMeshes = (HL_OFF32(HlHHMesh)*)hlOff32Get(&meshGroup->transparent.meshesOffset);
+        HL_OFF32(HlHHMesh)* punchMeshes = (HL_OFF32(HlHHMesh)*)hlOff32Get(&meshGroup->punch.meshesOffset);
 
-        for (size_t j = 0; j < model->MeshGroups[i]->Boolean.Count; j++)
-            addMesh(model->MeshGroups[i]->Boolean[j], MESH_TYPE_PUNCH);
+        for (size_t j = 0; j < meshGroup->solid.meshCount; j++)
+            addMesh((HlHHMesh*)hlOff32Get(&solidMeshes[j]), MESH_TYPE_OPAQUE);
 
-        for (size_t j = 0; j < model->MeshGroups[i]->Special.Count; j++)
+        for (size_t j = 0; j < meshGroup->transparent.meshCount; j++)
+            addMesh((HlHHMesh*)hlOff32Get(&transparentMeshes[j]), MESH_TYPE_TRANSPARENT);
+
+        for (size_t j = 0; j < meshGroup->punch.meshCount; j++)
+            addMesh((HlHHMesh*)hlOff32Get(&punchMeshes[j]), MESH_TYPE_PUNCH);
+
+        HL_OFF32(HlU32)* specialMeshGroupCounts = (HL_OFF32(HlU32)*)hlOff32Get(&meshGroup->special.meshCounts);
+        HL_OFF32(HL_OFF32(HlHHMesh))* specialMeshGroupOffsets = (HL_OFF32(HL_OFF32(HlHHMesh))*)hlOff32Get(&meshGroup->special.meshesOffset);
+
+        for (size_t j = 0; j < meshGroup->special.count; j++)
         {
-            for (size_t k = 0; k < *model->MeshGroups[i]->Special.MeshCounts[j].Get(); k++)
-                addMesh(model->MeshGroups[i]->Special.Meshes[j][k].Get(), MESH_TYPE_SPECIAL);
+            HlU32* specialMeshGroupCount = (HlU32*)hlOff32Get(&specialMeshGroupCounts[j]);
+            HL_OFF32(HlHHMesh)* specialMeshGroupOffset = (HL_OFF32(HlHHMesh)*)hlOff32Get(&specialMeshGroupOffsets[j]);
+
+            for (size_t k = 0; k < *specialMeshGroupCount; k++)
+                addMesh((HlHHMesh*)hlOff32Get(&specialMeshGroupOffset[k]), MESH_TYPE_SPECIAL);
         }
     }
 
@@ -285,17 +317,17 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::HHTerrainInstanceInfo
     return newInstance;
 }
 
-std::unique_ptr<Light> SceneFactory::createLight(hl::HHLight* light)
+std::unique_ptr<Light> SceneFactory::createLight(HlHHLightV1* light)
 {
     std::unique_ptr<Light> newLight = std::make_unique<Light>();
 
-    newLight->type = (LightType)light->Type;
-    newLight->positionOrDirection[0] = light->Position.X;
-    newLight->positionOrDirection[1] = light->Position.Y;
-    newLight->positionOrDirection[2] = light->Position.Z;
-    newLight->color[0] = light->Color.X;
-    newLight->color[1] = light->Color.Y;
-    newLight->color[2] = light->Color.Z;
+    newLight->type = (LightType)light->type;
+    newLight->positionOrDirection[0] = light->position.x;
+    newLight->positionOrDirection[1] = light->position.y;
+    newLight->positionOrDirection[2] = light->position.z;
+    newLight->color[0] = light->color.x;
+    newLight->color[1] = light->color.y;
+    newLight->color[2] = light->color.z;
 
     if (newLight->type != LIGHT_TYPE_POINT)
     {
@@ -303,92 +335,111 @@ std::unique_ptr<Light> SceneFactory::createLight(hl::HHLight* light)
         return newLight;
     }
 
-    newLight->innerRange = light->InnerRange;
-    newLight->outerRange = light->OuterRange;
+    newLight->innerRange = light->innerRange;
+    newLight->outerRange = light->outerRange;
 
     return newLight;
 }
 
-void SceneFactory::loadResources(const hl::Archive& archive, Scene& scene)
+void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
 {
-    for (auto& file : archive.Files)
+    for (size_t i = 0; i < archive->entries.count; i++)
     {
-        if (!strstr(file.Path.get(), ".dds"))
+        HlArchiveEntry* entry = &archive->entries.data[i];
+
+        if (!hlNStrStr(entry->path, HL_NTEXT(".dds")))
             continue;
 
-        std::unique_ptr<Bitmap> bitmap = createBitmap(file.Data.get(), file.Size);
+        std::unique_ptr<Bitmap> bitmap = createBitmap((uint8_t*)entry->data, entry->size);
         if (!bitmap)
             continue;
 
-        bitmap->name = getFileNameWithoutExtension(file.Path.get());
+        char name[MAX_PATH];
+        hlStrConvNativeToUTF8NoAlloc(entry->path, name, 0, MAX_PATH);
+        bitmap->name = getFileNameWithoutExtension(name);
 
         scene.bitmaps.push_back(std::move(bitmap));
     }
 
-    for (auto& file : archive.Files)
+    for (size_t i = 0; i < archive->entries.count; i++)
     {
-        if (!strstr(file.Path.get(), ".material"))
+        HlArchiveEntry* entry = &archive->entries.data[i];
+
+        if (!hlNStrStr(entry->path, HL_NTEXT(".material")))
             continue;
 
-        hl::DHHFixData(file.Data.get());
+        hlHHFix((void*)entry->data);
 
-        hl::HHMaterialV3* material = hl::DHHGetData<hl::HHMaterialV3>(file.Data.get());
-        material->EndianSwapRecursive(true);
+        HlHHMaterialV3* material = (HlHHMaterialV3*)hlHHGetData((void*)entry->data, nullptr);
+        hlHHMaterialV3Fix(material);
 
         std::unique_ptr<Material> newMaterial = createMaterial(material, scene);
-        newMaterial->name = getFileNameWithoutExtension(file.Path.get());
+
+        char name[MAX_PATH];
+        hlStrConvNativeToUTF8NoAlloc(entry->path, name, 0, MAX_PATH);
+        newMaterial->name = getFileNameWithoutExtension(name);
 
         scene.materials.push_back(std::move(newMaterial));
     }
 
-    for (auto& file : archive.Files)
+    for (size_t i = 0; i < archive->entries.count; i++)
     {
-        if (!strstr(file.Path.get(), ".light") || strstr(file.Path.get(), ".light-list"))
+        HlArchiveEntry* entry = &archive->entries.data[i];
+
+        if (!hlNStrStr(entry->path, HL_NTEXT(".light")) || hlNStrStr(entry->path, HL_NTEXT(".light-list")))
             continue;
 
-        hl::DHHFixData(file.Data.get());
+        hlHHFix((void*)entry->data);
 
-        hl::HHLight* light = hl::DHHGetData<hl::HHLight>(file.Data.get());
-        light->EndianSwap();
+        HlHHLightV1* light = (HlHHLightV1*)hlHHGetData((void*)entry->data, nullptr);
+        hlHHLightV1Fix(light);
 
         scene.lights.push_back(std::move(createLight(light)));
     }
 }
 
-void SceneFactory::loadTerrain(const hl::Archive& archive, Scene& scene)
+void SceneFactory::loadTerrain(HlArchive* archive, Scene& scene)
 {
-    std::vector<hl::HHTerrainModel*> models;
+    std::vector<HlHHTerrainModelV5*> models;
 
-    for (auto& file : archive.Files)
+    for (size_t i = 0; i < archive->entries.count; i++)
     {
-        if (!strstr(file.Path.get(), ".terrain-model"))
+        HlArchiveEntry* entry = &archive->entries.data[i];
+
+        if (!hlNStrStr(entry->path, HL_NTEXT(".terrain-model")))
             continue;
 
-        hl::DHHFixData(file.Data.get());
+        hlHHFix((void*)entry->data);
 
-        hl::HHTerrainModel* model = hl::DHHGetData<hl::HHTerrainModel>(file.Data.get());
-        model->EndianSwapRecursive(true);
-        model->Flags = false;
-
+        HlHHTerrainModelV5* model = (HlHHTerrainModelV5*)hlHHGetData((void*)entry->data, nullptr);
+        hlHHTerrainModelV5Fix(model);
+        
+        model->flags = false;
         models.push_back(model);
     }
 
-    for (auto& file : archive.Files)
+    for (size_t i = 0; i < archive->entries.count; i++)
     {
-        if (!strstr(file.Path.get(), ".terrain-instanceinfo"))
+        HlArchiveEntry* entry = &archive->entries.data[i];
+
+        if (!hlNStrStr(entry->path, HL_NTEXT(".terrain-instanceinfo")))
             continue;
 
-        hl::DHHFixData(file.Data.get());
+        hlHHFix((void*)entry->data);
 
-        hl::HHTerrainInstanceInfoV0* instance = hl::DHHGetData<hl::HHTerrainInstanceInfoV0>(file.Data.get());
-        instance->EndianSwapRecursive(true);
+        HlHHTerrainInstanceInfoV0* instance = (HlHHTerrainInstanceInfoV0*)hlHHGetData((void*)entry->data, nullptr);
+        hlHHTerrainInstanceInfoV0Fix(instance);
+
+        const char* instanceModelName = (const char*)hlOff32Get(&instance->modelNameOffset);
 
         for (auto& model : models)
         {
-            if (strcmp(model->Name.Get(), instance->ModelName.Get()) != 0)
+            const char* modelName = (const char*)hlOff32Get(&model->nameOffset);
+
+            if (strcmp(modelName, instanceModelName) != 0)
                 continue;
 
-            model->Flags = true;
+            model->flags = true;
 
             scene.instances.push_back(createInstance(instance, model, scene));
             break;
@@ -398,7 +449,7 @@ void SceneFactory::loadTerrain(const hl::Archive& archive, Scene& scene)
     // Load models that aren't bound to any instances
     for (auto& model : models)
     {
-        if (model->Flags)
+        if (model->flags)
             continue;
 
         scene.instances.push_back(createInstance(nullptr, model, scene));
@@ -411,46 +462,69 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
 {
     std::unique_ptr<Scene> scene = std::make_unique<Scene>();
 
-    hl::Archive resArchive((directoryPath + "/" + getFileNameWithoutExtension(directoryPath) + ".ar.00").c_str());
+    HlNChar filePath[MAX_PATH];
+    hlStrConvUTF8ToNativeNoAlloc((directoryPath + "/" + getFileNameWithoutExtension(directoryPath) + ".ar.00").c_str(), filePath, 0, MAX_PATH);
+
+    HlArchive* resArchive = nullptr;
+    hlHHArchiveLoad(filePath, true, nullptr, &resArchive);
 
     loadResources(resArchive, *scene);
 
-    hl::HHPackedFileInfo* pfi = nullptr;
-    for (auto& file : resArchive.Files)
+    HlHHPackedFileIndexV0* pfi = nullptr;
+
+    for (size_t i = 0; i < resArchive->entries.count; i++)
     {
-        if (strcmp(file.Path.get(), "Stage.pfi") != 0)
+        HlArchiveEntry* entry = &resArchive->entries.data[i];
+
+        if (!hlNStrsEqual(entry->path, HL_NTEXT("Stage.pfi")))
             continue;
 
-        hl::DHHFixData(file.Data.get());
+        hlHHFix((void*)entry->data);
 
-        pfi = hl::DHHGetData<hl::HHPackedFileInfo>(file.Data.get());
-        pfi->EndianSwapRecursive(true);
+        pfi = (HlHHPackedFileIndexV0*)hlHHGetData((void*)entry->data, nullptr);
+        hlHHPackedFileIndexV0Swap(pfi, false);
     }
 
     if (!pfi)
+    {
+        hlArchiveFree(resArchive);
         return nullptr;
+    }
 
     const FileStream pfdFile((directoryPath + "/Stage.pfd").c_str(), "rb");
-    for (size_t i = 0; i < pfi->Entries.Count; i++)
+
+    HL_OFF32(HlHHPackedFileEntry)* entries = (HL_OFF32(HlHHPackedFileEntry)*)hlOff32Get(&pfi->entriesOffset);
+
+    for (size_t i = 0; i < pfi->entryCount; i++)
     {
-        hl::HHPackedFileInfoEntry* entry = pfi->Entries[i].Get();
-        if (!strstr(entry->FileName.Get(), "tg-"))
+        HlHHPackedFileEntry* entry = (HlHHPackedFileEntry*)hlOff32Get(&entries[i]);
+        hlHHPackedFileEntrySwap(entry, false);
+
+        const char* fileName = (const char*)hlOff32Get(&entry->nameOffset);
+
+        if (!strstr(fileName, "tg-"))
             continue;
 
-        std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(entry->Length);
-        pfdFile.seek(entry->Position, SEEK_SET);
-        pfdFile.read(data.get(), entry->Length);
+        std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(entry->dataSize);
+        pfdFile.seek(entry->dataPos, SEEK_SET);
+        pfdFile.read(data.get(), entry->dataSize);
 
         {
             const FileStream tgFile("temp.cab", "wb");
-            tgFile.write(data.get(), entry->Length);
+            tgFile.write(data.get(), entry->dataSize);
         }
 
-        std::system("expand temp.cab temp.ar");
+        std::system("expand temp.cab temp.ar > nul");
 
-        hl::Archive tgArchive("temp.ar");
+        HlArchive* tgArchive = nullptr;
+        hlHHArchiveLoad(HL_NTEXT("temp.ar"), false, nullptr, &tgArchive);
+
         loadTerrain(tgArchive, *scene);
+
+        hlArchiveFree(tgArchive);
     }
+
+    hlArchiveFree(resArchive);
 
     std::system("del temp.cab");
     std::system("del temp.ar");
@@ -465,9 +539,16 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
 
     const std::string stageName = getFileNameWithoutExtension(directoryPath);
     {
-        hl::Archive archive((directoryPath + "/" + stageName + "_trr_cmn.pac").c_str());
+        HlNChar filePath[MAX_PATH];
+        hlStrConvUTF8ToNativeNoAlloc((directoryPath + "/" + stageName + "_trr_cmn.pac").c_str(), filePath, 0, MAX_PATH);
+
+        HlArchive* archive = nullptr;
+        hlPACxLoad(filePath, 0, true, nullptr, &archive);
+
         loadResources(archive, *scene);
         loadTerrain(archive, *scene);
+
+        hlArchiveFree(archive);
     }
 
     for (uint32_t i = 0; i < 100; i++)
@@ -475,8 +556,18 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
         char slot[4];
         sprintf(slot, "%02d", i);
 
-        hl::Archive archive((directoryPath + "/" + stageName + "_trr_s" + slot + ".pac").c_str());
+        HlNChar filePath[MAX_PATH];
+        hlStrConvUTF8ToNativeNoAlloc((directoryPath + "/" + stageName + "_trr_s" + slot + ".pac").c_str(), filePath, 0, MAX_PATH);
+
+        if (!hlPathExists(filePath))
+            continue;
+
+        HlArchive* archive = nullptr;
+        hlPACxLoad(filePath, 0, true, nullptr, &archive);
+
         loadTerrain(archive, *scene);
+
+        hlArchiveFree(archive);
     }
 
     scene->removeUnusedBitmaps();

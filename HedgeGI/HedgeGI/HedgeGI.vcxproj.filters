@@ -72,17 +72,11 @@
     <ClInclude Include="Instance.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="HHPackedFileInfo.h">
-      <Filter>HedgehogEngine</Filter>
-    </ClInclude>
     <ClInclude Include="SceneFactory.h">
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Light.h">
       <Filter>Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="HHLight.h">
-      <Filter>HedgehogEngine</Filter>
     </ClInclude>
     <ClInclude Include="RaytracingDevice.h">
       <Filter>Devices</Filter>
@@ -134,6 +128,9 @@
     </ClInclude>
     <ClInclude Include="D3D11Device.h">
       <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="hl_hh_light.h">
+      <Filter>HedgehogEngine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

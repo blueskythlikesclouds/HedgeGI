@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HedgeLib", "..\Dependencies
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTex", "..\Dependencies\DirectXTex\DirectXTex\DirectXTex_Desktop_2019.vcxproj", "{371B9FA9-4C90-4AC6-A123-ACED756D6C77}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cglm", "..\Dependencies\HedgeLib\depends\cglm\cglm.vcxproj", "{881D957C-7454-960D-1D41-7C100957120F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,6 +29,10 @@ Global
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Debug|x64.Build.0 = Debug|x64
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Release|x64.ActiveCfg = Release|x64
 		{371B9FA9-4C90-4AC6-A123-ACED756D6C77}.Release|x64.Build.0 = Release|x64
+		{881D957C-7454-960D-1D41-7C100957120F}.Debug|x64.ActiveCfg = Debug|x64
+		{881D957C-7454-960D-1D41-7C100957120F}.Debug|x64.Build.0 = Debug|x64
+		{881D957C-7454-960D-1D41-7C100957120F}.Release|x64.ActiveCfg = Release|x64
+		{881D957C-7454-960D-1D41-7C100957120F}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

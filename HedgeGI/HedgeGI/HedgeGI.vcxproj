@@ -106,6 +106,9 @@
     <ProjectReference Include="..\..\Dependencies\DirectXTex\DirectXTex\DirectXTex_Desktop_2019.vcxproj">
       <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\Dependencies\HedgeLib\depends\cglm\cglm.vcxproj">
+      <Project>{881d957c-7454-960d-1d41-7c100957120f}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\Dependencies\HedgeLib\HedgeLib\HedgeLib.vcxproj">
       <Project>{b98fb53d-a55c-1049-ce75-fef0baa145d7}</Project>
     </ProjectReference>
@@ -142,7 +145,7 @@
     <ClInclude Include="BitmapHelper.h" />
     <ClInclude Include="D3D11Device.h" />
     <ClInclude Include="DenoiserDevice.h" />
-    <ClInclude Include="HHLight.h" />
+    <ClInclude Include="hl_hh_light.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="BakingFactory.h" />
     <ClInclude Include="LightField.h" />
@@ -150,7 +153,6 @@
     <ClInclude Include="SceneFactory.h" />
     <ClInclude Include="FileStream.h" />
     <ClInclude Include="GIBaker.h" />
-    <ClInclude Include="HHPackedFileInfo.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="LightFieldBaker.h" />
     <ClInclude Include="Math.h" />

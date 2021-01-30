@@ -12,7 +12,8 @@ public:
 
     ~FileStream()
     {
-        fclose(file);
+        if (file != nullptr)
+            fclose(file);
     }
 
     bool isOpen() const

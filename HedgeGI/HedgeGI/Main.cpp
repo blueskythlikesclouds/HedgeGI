@@ -65,10 +65,12 @@ int32_t main(int32_t argc, const char* argv[])
 
     if (std::filesystem::exists(path + ".scene"))
     {
-        printf("Found existing scene file, loading...\n");
+        printf("Found scene file, loading...\n");
 
         scene = std::make_unique<Scene>();
         scene->load(path + ".scene");
+
+        printf("Successfully loaded scene file.\n");
     }
     else
     {
@@ -76,6 +78,8 @@ int32_t main(int32_t argc, const char* argv[])
 
         scene = game == GAME_GENERATIONS ? SceneFactory::createFromGenerations(path) : SceneFactory::createFromLostWorldOrForces(path);
         scene->save(path + ".scene");
+
+        printf("Successfully created scene file.\n");
     }
 
     std::filesystem::create_directory(outputPath);

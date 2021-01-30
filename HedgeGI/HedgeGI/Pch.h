@@ -7,16 +7,21 @@
 #include <rtcore.h>
 
 // HedgeLib
-#include <HedgeLib/Archives/Archive.h>
-#include <HedgeLib/Geometry/HHMesh.h>
-#include <HedgeLib/Geometry/HHModel.h>
-#include <HedgeLib/Geometry/HHTerrainInstanceInfo.h>
-#include <HedgeLib/HedgeLib.h>
-#include <HedgeLib/IO/File.h>
-#include <HedgeLib/IO/HedgehogEngine.h>
-#include <HedgeLib/IO/Path.h>
-#include <HedgeLib/Materials/HHMaterial.h>
-#include <HedgeLib/Textures/HHTexture.h>
+#include <hedgelib/hl_internal.h>
+#include <hedgelib/hl_math.h>
+#include <hedgelib/hl_endian.h>
+#include <hedgelib/hl_text.h>
+#include <hedgelib/io/hl_hh.h>
+#include <hedgelib/io/hl_path.h>
+#include <hedgelib/archives/hl_archive.h>
+#include <hedgelib/archives/hl_hh_archive.h>
+#include <hedgelib/archives/hl_pacx.h>
+#include <hedgelib/models/hl_hh_model.h>
+#include <hedgelib/materials/hl_hh_material.h>
+#include <hedgelib/textures/hl_hh_texture.h>
+#include <hedgelib/terrain/hl_hh_terrain_instance_info.h>
+
+#include "hl_hh_light.h"
 
 // Eigen
 #include <Eigen/Core>
@@ -50,8 +55,6 @@
 
 // HedgeGI
 #include "FileStream.h"
-#include "HHLight.h"
-#include "HHPackedFileInfo.h"
 #include "Math.h"
 #include "Path.h"
 #include "Random.h"

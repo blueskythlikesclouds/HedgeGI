@@ -32,7 +32,7 @@ struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
     }
 };
 
-std::pair<std::unique_ptr<Bitmap>, std::unique_ptr<Bitmap>> SGGIBaker::bake(const RaytracingContext& context, const Instance& instance, const uint16_t size, const BakeParams& bakeParams)
+GIPair SGGIBaker::bake(const RaytracingContext& context, const Instance& instance, const uint16_t size, const BakeParams& bakeParams)
 {
     std::vector<SGGIPoint> bakePoints = createBakePoints<SGGIPoint>(context, instance, size);
     
