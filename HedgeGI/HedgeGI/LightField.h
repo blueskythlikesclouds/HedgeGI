@@ -35,6 +35,6 @@ public:
 
     void optimizeProbes();
 
-    void write(hl::File& file, hl::OffsetTable& offsetTable) const;
+    void write(HlStream* stream, HlOffTable* offTable) const;
     void save(const std::string& filePath) const;
 };

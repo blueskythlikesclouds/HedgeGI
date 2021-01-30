@@ -11,8 +11,10 @@
 #include <hedgelib/hl_math.h>
 #include <hedgelib/hl_endian.h>
 #include <hedgelib/hl_text.h>
+#include <hedgelib/io/hl_file.h>
 #include <hedgelib/io/hl_hh.h>
 #include <hedgelib/io/hl_path.h>
+#include <hedgelib/io/hl_stream.h>
 #include <hedgelib/archives/hl_archive.h>
 #include <hedgelib/archives/hl_hh_archive.h>
 #include <hedgelib/archives/hl_pacx.h>

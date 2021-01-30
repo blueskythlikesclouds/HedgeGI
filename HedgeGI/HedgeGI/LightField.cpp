@@ -33,77 +33,100 @@ namespace std
 
 void LightField::optimizeProbes()
 {
+    phmap::parallel_flat_hash_map<LightFieldProbe, uint32_t> map;
+
+    for (auto& probe : probes)
+    {
+        if (map.find(probe) != map.end())
+            continue;
+
+        map[probe] = (uint32_t)map.size();
+    }
+
+    std::vector<LightFieldProbe> newProbes;
+    newProbes.resize(map.size());
+
+    for (auto& pair : map)
+        newProbes[pair.second] = pair.first;
+
+    for (size_t i = 0; i < indices.size(); i++)
+        indices[i] = map[probes[indices[i]]];
+
+    std::swap(probes, newProbes);
 }
 
-void LightField::write(hl::File& file, hl::OffsetTable& offsetTable) const
+void LightField::write(HlStream* stream, HlOffTable* offTable) const
 {
-    // HedgeLib for some reason needs variables to be non-const for endian
-    // swapping to work, so we have to do this.
+    struct LightFieldHeader
+    {
+        float aabb[6];
+        HlU32 cellCount;
+        HL_OFF32(LightFieldCell) cellsOffset;
+        HlU32 probeCount;
+        HL_OFF32(LightFieldProbe) probesOffset;
+        HlU32 indexCount;
+        HL_OFF32(HlU32) indicesOffset;
+    } header;
 
-    float minX = aabb.min().x();
-    float maxX = aabb.max().x();
-    float minY = aabb.min().y();
-    float maxY = aabb.max().y();
-    float minZ = aabb.min().z();
-    float maxZ = aabb.max().z();
+    HL_LIST_PUSH(*offTable, sizeof(HlHHStandardHeader) + offsetof(LightFieldHeader, cellsOffset));
+    HL_LIST_PUSH(*offTable, sizeof(HlHHStandardHeader) + offsetof(LightFieldHeader, probesOffset));
+    HL_LIST_PUSH(*offTable, sizeof(HlHHStandardHeader) + offsetof(LightFieldHeader, indicesOffset));
 
-    file.Write(minX);
-    file.Write(maxX);
-    file.Write(minY);
-    file.Write(maxY);
-    file.Write(minZ);
-    file.Write(maxZ);
+    for (size_t i = 0; i < 3; i++)
+    {
+        header.aabb[i * 2 + 0] = hlSwapFloat(aabb.min()[i]);
+        header.aabb[i * 2 + 1] = hlSwapFloat(aabb.max()[i]);
+    }
 
-    uint32_t cellCount = (uint32_t)cells.size();
-    uint32_t probeCount = (uint32_t)probes.size();
-    uint32_t indexCount = (uint32_t)indices.size();
-     
-    const size_t tableOffset = file.Tell();
+    const size_t cellsOffset = sizeof(LightFieldHeader);
+    const size_t probesOffset = cellsOffset + sizeof(LightFieldCell) * cells.size();
+    const size_t indicesOffset = probesOffset + sizeof(LightFieldProbe) * probes.size();
 
-    file.Write(cellCount);
-    file.WriteNulls(4);
-    file.Write(probeCount);
-    file.WriteNulls(4);
-    file.Write(indexCount);
-    file.WriteNulls(4);
-
-    // Cells
-    file.FixOffset32(tableOffset + 4, file.Tell(), offsetTable);
+    header.cellCount = hlSwapU32((HlU32)cells.size());
+    header.cellsOffset = hlSwapU32((HlU32)cellsOffset);
+    header.probeCount = hlSwapU32((HlU32)probes.size());
+    header.probesOffset = hlSwapU32((HlU32)probesOffset);
+    header.indexCount = hlSwapU32((HlU32)indices.size());
+    header.indicesOffset = hlSwapU32((HlU32)indicesOffset);
+    
+    hlStreamWrite(stream, sizeof(LightFieldHeader), &header, nullptr);
 
     for (auto& cell : cells)
     {
-        uint32_t type = (uint32_t)cell.type;
-        uint32_t index = cell.index;
+        HlU32 type = hlSwapU32((HlU32)cell.type);
+        HlU32 index = hlSwapU32((HlU32)cell.index);
 
-        file.Write(type);
-        file.Write(index);
+        hlStreamWrite(stream, sizeof(HlU32), &type, nullptr);
+        hlStreamWrite(stream, sizeof(HlU32), &index, nullptr);
     }
-
-    // Probes
-    file.FixOffset32(tableOffset + 12, file.Tell(), offsetTable);
 
     for (auto& probe : probes)
-        file.WriteBytes(&probe, sizeof(LightFieldProbe));
+        hlStreamWrite(stream, sizeof(LightFieldProbe), &probe, nullptr);
 
-    // Indices
-    file.FixOffset32(tableOffset + 20, file.Tell(), offsetTable);
-
-    for (auto& i : indices)
+    for (auto& index : indices)
     {
-        uint32_t index = i;
-        file.Write(index);
+        HlU32 value = hlSwapU32(index);
+        hlStreamWrite(stream, sizeof(HlU32), &value, nullptr);
     }
-
-    file.Align();
 }
 
 void LightField::save(const std::string& filePath) const
 {
-    hl::File file(filePath.c_str(), hl::FileMode::WriteBinary, true);
-    hl::OffsetTable offsetTable;
-    hl::HHStartWriteStandard(file, 1);
+    HlOffTable offTable;
+    HL_LIST_INIT(offTable);
+
+    HlNChar nFilePath[MAX_PATH];
+    hlStrConvUTF8ToNativeNoAlloc(filePath.c_str(), nFilePath, 0, MAX_PATH);
+
+    HlFileStream* stream;
+    hlFileStreamOpen(nFilePath, HL_FILE_MODE_WRITE, &stream);
+
+    hlHHStandardStartWrite(stream, 1);
     {
-        write(file, offsetTable);
+        write(stream, &offTable);
     }
-    hl::HHFinishWriteStandard(file, 0, offsetTable, true);
+    hlHHStandardFinishWrite(0, true, &offTable, stream);
+
+    HL_LIST_FREE(offTable);
+    hlFileStreamClose(stream);
 }
