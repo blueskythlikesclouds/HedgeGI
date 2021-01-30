@@ -4,21 +4,19 @@
 
 #define PI 3.14159265358979323846264338327950288f
 
-namespace std
+template<typename T>
+struct EigenHash
 {
-    template <>
-    struct hash<Eigen::Vector3i>
+    size_t operator()(const T& matrix) const
     {
-        size_t operator()(const Eigen::Vector3i& matrix) const
-        {
-            size_t seed = 0;
-            for (size_t i = 0; i < matrix.size(); ++i)
-                seed ^= std::hash<int>()(*(matrix.data() + i)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        size_t seed = 0;
 
-            return seed;
-        }
-    };
-}
+        for (size_t i = 0; i < (size_t)matrix.size(); i++)
+            seed ^= std::hash<typename T::Scalar>()(*(matrix.data() + i)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        
+        return seed;
+    }
+};
 
 static Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
 {
@@ -57,6 +55,8 @@ static Eigen::Vector2f clampUV(const Eigen::Vector2f& uv)
 
     return value;
 }
+
+// https://github.com/TheRealMJP/BakingLab/blob/master/SampleFramework11/v1.02/Shaders/Sampling.hlsl
 
 static Eigen::Vector2f squareToConcentricDiskMapping(const float x, const float y)
 {
@@ -198,6 +198,8 @@ static float saturate(const float value)
     return std::min(1.0f, std::max(0.0f, value));
 }
 
+// https://github.com/DarioSamo/libgens-sonicglvl/blob/master/src/LibGens/MathGens.cpp
+
 static Eigen::Vector3f getAabbCorner(const Eigen::AlignedBox3f& aabb, const size_t index)
 {
     switch (index)
@@ -241,4 +243,59 @@ static Eigen::AlignedBox3f getAabbHalf(const Eigen::AlignedBox3f& aabb, const si
     }
 
     return result;
+}
+
+template<typename T>
+static float dot(const T& a, const T& b)
+{
+    return a.dot(b);
+}
+
+// https://github.com/embree/embree/blob/master/tutorials/common/math/closest_point.h
+
+static Eigen::Vector3f closestPointTriangle(const Eigen::Vector3f& p, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
+{
+    const Eigen::Vector3f ab = b - a;
+    const Eigen::Vector3f ac = c - a;
+    const Eigen::Vector3f ap = p - a;
+
+    const float d1 = dot(ab, ap);
+    const float d2 = dot(ac, ap);
+    if (d1 <= 0.f && d2 <= 0.f) return a;
+
+    const Eigen::Vector3f bp = p - b;
+    const float d3 = dot(ab, bp);
+    const float d4 = dot(ac, bp);
+    if (d3 >= 0.f && d4 <= d3) return b;
+
+    const Eigen::Vector3f cp = p - c;
+    const float d5 = dot(ab, cp);
+    const float d6 = dot(ac, cp);
+    if (d6 >= 0.f && d5 <= d6) return c;
+
+    const float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.f && d1 >= 0.f && d3 <= 0.f)
+    {
+        const float v = d1 / (d1 - d3);
+        return a + v * ab;
+    }
+
+    const float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.f && d2 >= 0.f && d6 <= 0.f)
+    {
+        const float v = d2 / (d2 - d6);
+        return a + v * ac;
+    }
+
+    const float va = d3 * d6 - d5 * d4;
+    if (va <= 0.f && (d4 - d3) >= 0.f && (d5 - d6) >= 0.f)
+    {
+        const float v = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return b + v * (c - b);
+    }
+
+    const float denom = 1.f / (va + vb + vc);
+    const float v = vb * denom;
+    const float w = vc * denom;
+    return a + v * ab + w * ac;
 }

@@ -84,11 +84,11 @@ bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
         }
     }
 
-    return true;
+    return false;
 }
 
 void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytracingContext, LightField& lightField, size_t cellIndex, const Eigen::AlignedBox3f& aabb,
-    std::vector<LightFieldPoint>& bakePoints, phmap::parallel_flat_hash_map<Eigen::Vector3i, uint32_t> probes)
+    std::vector<LightFieldPoint>& bakePoints, phmap::parallel_flat_hash_map<Eigen::Vector3f, uint32_t, EigenHash<Eigen::Vector3f>> probes)
 {
     int32_t currentAxis = -1;
     int32_t currentDelta = 0;
@@ -136,11 +136,10 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
         for (size_t i = 0; i < 8; i++)
         {
             const Eigen::Vector3f position = getAabbCorner(aabb, i);
-            const Eigen::Vector3i iPosition = { (int32_t)round(position.x()), (int32_t)round(position.y()), (int32_t)round(position.z()) };
 
             uint32_t index;
 
-            auto pair = probes.find(iPosition);
+            auto pair = probes.find(position);
 
             if (pair == probes.end())
             {
@@ -155,7 +154,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
                 bakePoint.y = (index >> 16) & 0xFFFF;
 
                 bakePoints.push_back(std::move(bakePoint));
-                probes[iPosition] = index;
+                probes[position] = index;
             }
             else
             {
@@ -188,7 +187,7 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
     printf("Generating bake points...\n");
 
     std::vector<LightFieldPoint> bakePoints;
-    phmap::parallel_flat_hash_map<Eigen::Vector3i, uint32_t> probes;
+    phmap::parallel_flat_hash_map<Eigen::Vector3f, uint32_t, EigenHash<Eigen::Vector3f>> probes;
 
     createBakePointsRecursively(raytracingContext, *lightField, 0, raytracingContext.scene->aabb, bakePoints, probes);
 

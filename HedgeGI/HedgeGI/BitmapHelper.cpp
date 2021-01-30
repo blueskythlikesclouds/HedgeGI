@@ -5,7 +5,16 @@
 
 #define SEAMOPTIMIZER_IMPLEMENTATION
 #define SO_APPROX_RSQRT
+
+#pragma warning(push)
+
+#pragma warning(disable : 4018)
+#pragma warning(disable : 4244)
+#pragma warning(disable : 4267)
+
 #include <seamoptimizer/seamoptimizer.h>
+
+#pragma warning(pop)
 
 so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instance, const float cosNormalThreshold)
 {
@@ -15,7 +24,7 @@ so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instanc
     for (auto& mesh : instance.meshes)
         triangleCount += mesh->triangleCount;
 
-    phmap::parallel_flat_hash_map<Eigen::Vector3i, std::vector<std::pair<const Mesh*, const Triangle*>>> triangleMap;
+    phmap::parallel_flat_hash_map<Eigen::Vector3i, std::vector<std::pair<const Mesh*, const Triangle*>>, EigenHash<Eigen::Vector3i>> triangleMap;
     triangleMap.reserve(triangleCount);
 
     for (auto& mesh : instance.meshes)

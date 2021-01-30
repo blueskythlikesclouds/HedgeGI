@@ -1,3 +1,6 @@
+#include <xmmintrin.h>
+#include <pmmintrin.h>
+
 #include "BakingFactory.h"
 #include "BitmapHelper.h"
 #include "GIBaker.h"
@@ -27,6 +30,9 @@ const char* const GAME_NAMES[] =
 
 int32_t main(int32_t argc, const char* argv[])
 {
+    _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
+    _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
+
     BakeParams bakeParams{};
     bakeParams.load(getDirectoryPath(argv[0]) + "/HedgeGI.ini");
 
