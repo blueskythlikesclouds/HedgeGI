@@ -3,7 +3,7 @@
 #include "BakingFactory.h"
 #include "LightField.h"
 
-const float MIN_AREA_SIZE = 5.0f;
+const float MIN_AREA_SIZE = 3.0f;
 
 const Eigen::Vector3f LIGHT_FIELD_DIRECTIONS[8] =
 {
@@ -56,8 +56,8 @@ struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
 struct PointQueryFuncUserData
 {
     const Scene* scene{};
-    std::array<std::array<Eigen::AlignedBox3f, 2>, 3> aabbs{};
-    std::array<std::array<int32_t, 2>, 3> intersectionCounts{};
+    const Eigen::AlignedBox3f aabb;
+    phmap::parallel_flat_hash_set<const Material*> materials;
 };
 
 bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
@@ -75,14 +75,8 @@ bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
     aabb.extend(b.position);
     aabb.extend(c.position);
 
-    for (size_t i = 0; i < userData->aabbs.size(); i++)
-    {
-        for (size_t j = 0; j < userData->aabbs[i].size(); j++)
-        {
-            if (aabb.intersects(userData->aabbs[i][j]))
-                userData->intersectionCounts[i][j]++;
-        }
-    }
+    if (userData->aabb.intersects(aabb))
+        userData->materials.insert(mesh.material);
 
     return false;
 }
@@ -90,10 +84,9 @@ bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
 void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytracingContext, LightField& lightField, size_t cellIndex, const Eigen::AlignedBox3f& aabb,
     std::vector<LightFieldPoint>& bakePoints, phmap::parallel_flat_hash_map<Eigen::Vector3f, uint32_t, EigenHash<Eigen::Vector3f>>& probes)
 {
-    int32_t currentAxis = -1;
-    int32_t currentDelta = 0;
+    int32_t axisIndex = -1;
 
-    if (aabb.volume() > MIN_AREA_SIZE)
+    if (aabb.sizes().maxCoeff(&axisIndex) > MIN_AREA_SIZE)
     {
         const Eigen::Array3f center = aabb.center();
 
@@ -106,29 +99,18 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
         query.z = center.z();
         query.radius = aabb.sizes().maxCoeff() * sqrtf(2.0f) / 2.0f;
 
-        PointQueryFuncUserData userData = { raytracingContext.scene };
-
-        for (size_t i = 0; i < userData.aabbs.size(); i++)
-        {
-            for (size_t j = 0; j < userData.aabbs[i].size(); j++)
-                userData.aabbs[i][j] = getAabbHalf(aabb, i, j);
-        }
-
+        PointQueryFuncUserData userData = { raytracingContext.scene, aabb };
         rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
 
-        for (int32_t i = 0; i < 3; i++)
-        {
-            const int32_t delta = abs(userData.intersectionCounts[i][0] - userData.intersectionCounts[i][1]);
-
-            if (delta <= currentDelta)
-                continue;
-
-            currentAxis = i;
-            currentDelta = delta;
-        }
+        if (userData.materials.size() <= 1)
+            axisIndex = -1;
+    }
+    else
+    {
+        axisIndex = -1;
     }
 
-    if (currentAxis == -1)
+    if (axisIndex == -1)
     {
         lightField.cells[cellIndex].type = LIGHT_FIELD_CELL_TYPE_PROBE;
         lightField.cells[cellIndex].index = (uint32_t)lightField.indices.size();
@@ -168,14 +150,14 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
     {
         const size_t index = lightField.cells.size();
 
-        lightField.cells[cellIndex].type = (LightFieldCellType)currentAxis;
+        lightField.cells[cellIndex].type = (LightFieldCellType)axisIndex;
         lightField.cells[cellIndex].index = (uint32_t)index;
 
         lightField.cells.emplace_back();
         lightField.cells.emplace_back();
 
-        createBakePointsRecursively(raytracingContext, lightField, index, getAabbHalf(aabb, currentAxis, 0), bakePoints, probes);
-        createBakePointsRecursively(raytracingContext, lightField, index + 1, getAabbHalf(aabb, currentAxis, 1), bakePoints, probes);
+        createBakePointsRecursively(raytracingContext, lightField, index, getAabbHalf(aabb, axisIndex, 0), bakePoints, probes);
+        createBakePointsRecursively(raytracingContext, lightField, index + 1, getAabbHalf(aabb, axisIndex, 1), bakePoints, probes);
     }
 }
 
