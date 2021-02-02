@@ -22,6 +22,7 @@ void BakeParams::load(const std::string& filePath)
     aoFadeConstant = reader.GetFloat("Baker", "AoFadeConstant", 1.0f);
     aoFadeLinear = reader.GetFloat("Baker", "AoFadeLinear", 0.01f);
     aoFadeQuadratic = reader.GetFloat("Baker", "AoFadeQuadratic", 0.01f);
+    aoStrength = reader.GetFloat("Baker", "AoStrength", 1.0f);
 
     diffuseStrength = reader.GetFloat("Baker", "DiffuseStrength", 1.0f);
     lightStrength = reader.GetFloat("Baker", "LightStrength", 1.0f);

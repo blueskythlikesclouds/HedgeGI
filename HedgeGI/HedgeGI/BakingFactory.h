@@ -17,6 +17,7 @@ struct BakeParams
     float aoFadeConstant {};
     float aoFadeLinear {};
     float aoFadeQuadratic {};
+    float aoStrength {};
 
     float diffuseStrength{};
     float lightStrength{};
@@ -137,7 +138,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 ambientOcclusion += 1.0f / (bakeParams.aoFadeConstant + bakeParams.aoFadeLinear * query.ray.tfar + bakeParams.aoFadeQuadratic * query.ray.tfar * query.ray.tfar) * alpha;
             }
 
-            ambientOcclusion = 1.0f - ambientOcclusion / bakeParams.aoSampleCount;
+            ambientOcclusion = saturate(1.0f - ambientOcclusion / bakeParams.aoSampleCount * bakeParams.aoStrength);
 
             for (size_t i = 0; i < TBakePoint::BASIS_COUNT; i++)
                 bakePoint.colors[i] *= ambientOcclusion;
