@@ -74,62 +74,97 @@ void BakePoint<BasisCount, Flags>::end(const uint32_t sampleCount)
         colors[i] /= (float)sampleCount;
 }
 
+// Thanks Mr F
+static const Eigen::Vector2f BAKE_POINT_OFFSETS[] =
+{
+    {-2, -2},
+    {2, -2},
+    {-2, 2},
+    {2, 2},
+    {-1, -2},
+    {1, -2},
+    {-2, -1},
+    {2, -1},
+    {-2, 1},
+    {2, 1},
+    {-1, 2},
+    {1, 2},
+    {-2, 0},
+    {2, 0},
+    {0, -2},
+    {0, 2},
+    {-1, -1},
+    {1, -1},
+    {-1, 0},
+    {1, 0},
+    {-1, 1},
+    {1, 1},
+    {0, -1},
+    {0, 1},
+    {0, 0}
+};
+
 template <typename TBakePoint>
 std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingContext, const Instance& instance, const uint16_t size)
 {
+    const float factor = 0.5f * (1.0f / (float)size);
+
     std::vector<TBakePoint> bakePoints;
     bakePoints.resize(size * size);
 
-    for (auto& mesh : instance.meshes)
+    for (auto& offset : BAKE_POINT_OFFSETS)
     {
-        for (uint32_t i = 0; i < mesh->triangleCount; i++)
+        for (auto& mesh : instance.meshes)
         {
-            const Triangle& triangle = mesh->triangles[i];
-            const Vertex& a = mesh->vertices[triangle.a];
-            const Vertex& b = mesh->vertices[triangle.b];
-            const Vertex& c = mesh->vertices[triangle.c];
-
-            Eigen::Vector3f aVPos(a.vPos[0], a.vPos[1], 0);
-            Eigen::Vector3f bVPos(b.vPos[0], b.vPos[1], 0);
-            Eigen::Vector3f cVPos(c.vPos[0], c.vPos[1], 0);
-
-            const float xMin = std::min(a.vPos[0], std::min(b.vPos[0], c.vPos[0]));
-            const float xMax = std::max(a.vPos[0], std::max(b.vPos[0], c.vPos[0]));
-            const float yMin = std::min(a.vPos[1], std::min(b.vPos[1], c.vPos[1]));
-            const float yMax = std::max(a.vPos[1], std::max(b.vPos[1], c.vPos[1]));
-
-            const uint16_t xBegin = std::max(0, (uint16_t)std::roundf((float)size * xMin) - 1);
-            const uint16_t xEnd = std::min(size - 1, (uint16_t)std::roundf((float)size * xMax) + 1);
-
-            const uint16_t yBegin = std::max(0, (uint16_t)std::roundf((float)size * yMin) - 1);
-            const uint16_t yEnd = std::min(size - 1, (uint16_t)std::roundf((float)size * yMax) + 1);
-
-            for (uint16_t x = xBegin; x <= xEnd; x++)
+            for (uint32_t i = 0; i < mesh->triangleCount; i++)
             {
-                for (uint16_t y = yBegin; y <= yEnd; y++)
+                const Triangle& triangle = mesh->triangles[i];
+                const Vertex& a = mesh->vertices[triangle.a];
+                const Vertex& b = mesh->vertices[triangle.b];
+                const Vertex& c = mesh->vertices[triangle.c];
+
+                Eigen::Vector3f aVPos(a.vPos[0] + offset.x() * factor, a.vPos[1] + offset.y() * factor, 0);
+                Eigen::Vector3f bVPos(b.vPos[0] + offset.x() * factor, b.vPos[1] + offset.y() * factor, 0);
+                Eigen::Vector3f cVPos(c.vPos[0] + offset.x() * factor, c.vPos[1] + offset.y() * factor, 0);
+
+                const float xMin = std::min(a.vPos[0], std::min(b.vPos[0], c.vPos[0]));
+                const float xMax = std::max(a.vPos[0], std::max(b.vPos[0], c.vPos[0]));
+                const float yMin = std::min(a.vPos[1], std::min(b.vPos[1], c.vPos[1]));
+                const float yMax = std::max(a.vPos[1], std::max(b.vPos[1], c.vPos[1]));
+
+                const uint16_t xBegin = std::max(0, (uint16_t)std::roundf((float)size * xMin) - 1);
+                const uint16_t xEnd = std::min(size - 1, (uint16_t)std::roundf((float)size * xMax) + 1);
+
+                const uint16_t yBegin = std::max(0, (uint16_t)std::roundf((float)size * yMin) - 1);
+                const uint16_t yEnd = std::min(size - 1, (uint16_t)std::roundf((float)size * yMax) + 1);
+
+                for (uint16_t x = xBegin; x <= xEnd; x++)
                 {
-                    const Eigen::Vector3f vPos(x / (float)size, y / (float)size, 0);
-                    const Eigen::Vector2f baryUV = getBarycentricCoords(vPos, aVPos, bVPos, cVPos);
+                    for (uint16_t y = yBegin; y <= yEnd; y++)
+                    {
+                        const Eigen::Vector3f vPos(x / (float)size, y / (float)size, 0);
+                        const Eigen::Vector2f baryUV = getBarycentricCoords(vPos, aVPos, bVPos, cVPos);
 
-                    if (baryUV[0] < 0 || baryUV[0] > 1 ||
-                        baryUV[1] < 0 || baryUV[1] > 1 ||
-                        1 - baryUV[0] - baryUV[1] < 0 ||
-                        1 - baryUV[0] - baryUV[1] > 1)
-                        continue;
+                        if (baryUV[0] < 0 || baryUV[0] > 1 ||
+                            baryUV[1] < 0 || baryUV[1] > 1 ||
+                            1 - baryUV[0] - baryUV[1] < 0 ||
+                            1 - baryUV[0] - baryUV[1] > 1)
+                            continue;
 
-                    const Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
-                    const Eigen::Vector3f smoothPosition = getSmoothPosition(a, b, c, baryUV);
-                    const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
-                    const Eigen::Vector3f tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
-                    const Eigen::Vector3f binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
+                        const Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
+                        const Eigen::Vector3f smoothPosition = getSmoothPosition(a, b, c, baryUV);
+                        const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
+                        const Eigen::Vector3f tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
+                        const Eigen::Vector3f binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
 
-                    Eigen::Matrix3f tangentToWorld;
-                    tangentToWorld <<
-                        tangent[0], binormal[0], normal[0],
-                        tangent[1], binormal[1], normal[1],
-                        tangent[2], binormal[2], normal[2];
+                        Eigen::Matrix3f tangentToWorld;
+                        tangentToWorld <<
+                            tangent[0], binormal[0], normal[0],
+                            tangent[1], binormal[1], normal[1],
+                            tangent[2], binormal[2], normal[2];
 
-                    bakePoints[y * size + x] = { position, smoothPosition, tangentToWorld, {}, {}, x, y };
+                        bakePoints[y * size + x] = { position, smoothPosition, tangentToWorld, {}, {}, x, y };
+                    }
                 }
             }
         }
