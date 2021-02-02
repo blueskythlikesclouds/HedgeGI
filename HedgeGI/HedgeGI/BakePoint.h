@@ -163,7 +163,7 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                             tangent[1], binormal[1], normal[1],
                             tangent[2], binormal[2], normal[2];
 
-                        bakePoints[y * size + x] = { position, smoothPosition, tangentToWorld, {}, {}, x, y };
+                        bakePoints[y * size + x] = { position + position * 0.0000002f, smoothPosition + smoothPosition * 0.0000002f, tangentToWorld, {}, {}, x, y };
                     }
                 }
             }
