@@ -30,6 +30,13 @@ const char* const GAME_NAMES[] =
 
 int32_t main(int32_t argc, const char* argv[])
 {
+    if (argc < 2)
+    {
+        printf("Insufficient amount of arguments given.\n");
+        getchar();
+        return -1;
+    }
+
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
@@ -64,6 +71,7 @@ int32_t main(int32_t argc, const char* argv[])
     if (game == GAME_UNKNOWN)
     {
         printf("Failed to detect the game.\n");
+        getchar();
         return -1;
     }
 
@@ -93,7 +101,7 @@ int32_t main(int32_t argc, const char* argv[])
     const auto raytracingContext = scene->createRaytracingContext();
 
     // GI Test
-    if (true)
+    if (false)
     {
         phmap::parallel_flat_hash_map<std::string, uint16_t> resolutions;
         std::ifstream stream(path + ".txt");
@@ -155,6 +163,9 @@ int32_t main(int32_t argc, const char* argv[])
     else
     {
         auto lightField = LightFieldBaker::bake(raytracingContext, bakeParams);
+
+        printf("Saving...\n");
+
         lightField->save("light-field.lft");
     }
 
