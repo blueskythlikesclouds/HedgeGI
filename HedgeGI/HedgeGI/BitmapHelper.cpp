@@ -85,7 +85,7 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 
     const size_t bitmapSize = bitmap.width * bitmap.height;
 
-    std::for_each(std::execution::par_unseq, &dilated->data[0], &dilated->data[bitmapSize * bitmap.arraySize], [&bitmap, &dilated, bitmapSize](Eigen::Array4f& outputColor)
+    std::for_each(std::execution::par_unseq, &dilated->data[0], &dilated->data[bitmapSize * bitmap.arraySize], [&](Eigen::Array4f& outputColor)
     {
         const size_t i = std::distance(&dilated->data[0], &outputColor);
 

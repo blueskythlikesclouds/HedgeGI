@@ -54,7 +54,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
     const Eigen::Matrix3f lightTangentToWorldMatrix = sunLight->getTangentToWorldMatrix();
 
-    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&raytracingContext, &bakeParams, &sunLight, &lightTangentToWorldMatrix](TBakePoint& bakePoint)
+    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](TBakePoint& bakePoint)
     {
         if (!bakePoint.valid())
             return;

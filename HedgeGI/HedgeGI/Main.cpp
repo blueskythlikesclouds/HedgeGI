@@ -116,8 +116,7 @@ int32_t main(int32_t argc, const char* argv[])
         }
 
         size_t i = 0;
-        std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(),
-            [&i, &resolutions, &bakeParams, &raytracingContext, &game, &outputPath](const std::unique_ptr<const Instance>& instance)
+        std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(), [&](const std::unique_ptr<const Instance>& instance)
         {
             const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
 
