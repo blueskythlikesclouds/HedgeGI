@@ -15,7 +15,7 @@ bool DenoiserDevice::initialized;
 OptixDeviceContext DenoiserDevice::context;
 OptixDenoiser DenoiserDevice::denoiser;
 
-std::unique_ptr<Bitmap> DenoiserDevice::denoise(const Bitmap& bitmap)
+std::unique_ptr<Bitmap> DenoiserDevice::denoise(const Bitmap& bitmap, const bool denoiseAlpha)
 {
     std::lock_guard<std::mutex> lock(mutex);
 
@@ -51,7 +51,7 @@ std::unique_ptr<Bitmap> DenoiserDevice::denoise(const Bitmap& bitmap)
     cudaMalloc((void**)&scratch, returnSizes.withoutOverlapScratchSizeInBytes);
     cudaMalloc((void**)&state, returnSizes.stateSizeInBytes);
 
-    const OptixDenoiserParams params = { false, intensity, 0.0f, 0 };
+    const OptixDenoiserParams params = { denoiseAlpha, intensity, 0.0f, 0 };
 
     OptixImage2D srcImg = { 0, bitmap.width, bitmap.height, bitmap.width * sizeof(Eigen::Array4f), sizeof(Eigen::Array4f), OPTIX_PIXEL_FORMAT_FLOAT4 };
     OptixImage2D dstImg = srcImg;

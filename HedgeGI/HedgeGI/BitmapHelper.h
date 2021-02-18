@@ -22,7 +22,7 @@ class BitmapHelper
     static so_seam_t* findSeams(const Bitmap& bitmap, const Instance& instance, float cosNormalThreshold);
 
 public:
-    static std::unique_ptr<Bitmap> denoise(const Bitmap& bitmap);
+    static std::unique_ptr<Bitmap> denoise(const Bitmap& bitmap, bool denoiseAlpha = false);
 
     static std::unique_ptr<Bitmap> dilate(const Bitmap& bitmap);
 

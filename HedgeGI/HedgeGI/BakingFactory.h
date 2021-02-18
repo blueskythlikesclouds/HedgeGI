@@ -23,6 +23,8 @@ struct BakeParams
     float lightStrength{};
     uint16_t defaultResolution{};
 
+    bool denoiseShadowMap {};
+
     void load(const std::string& filePath);
 };
 

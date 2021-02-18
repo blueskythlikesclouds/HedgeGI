@@ -127,11 +127,11 @@ int32_t main(int32_t argc, const char* argv[])
             pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
             pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
 
-            // Denoise
-            pair.lightMap = BitmapHelper::denoise(*pair.lightMap);
-
             // Combine
             auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
+
+            // Denoise
+            combined = BitmapHelper::denoise(*combined, true);
 
             // Optimize seams
             combined = BitmapHelper::optimizeSeams(*combined, *instance);

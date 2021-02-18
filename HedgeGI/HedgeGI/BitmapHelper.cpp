@@ -74,9 +74,9 @@ so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instanc
     return seams;
 }
 
-std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap)
+std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap, const bool denoiseAlpha)
 {
-    return DenoiserDevice::denoise(bitmap);
+    return DenoiserDevice::denoise(bitmap, denoiseAlpha);
 }
 
 std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
