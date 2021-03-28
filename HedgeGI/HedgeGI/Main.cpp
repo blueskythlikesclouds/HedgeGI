@@ -109,7 +109,7 @@ int32_t main(int32_t argc, const char* argv[])
     const auto raytracingContext = scene->createRaytracingContext();
 
     // GI Test
-    if (false)
+    if (true)
     {
         phmap::parallel_flat_hash_map<std::string, uint16_t> resolutions;
         std::ifstream stream(path + ".txt");
@@ -128,39 +128,65 @@ int32_t main(int32_t argc, const char* argv[])
         {
             const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
 
-            // GI Test
-            auto pair = GIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
-
-            // Dilate
-            pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
-            pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
-
-            // Combine
-            auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
-
-            // Denoise
-            combined = BitmapHelper::denoise(*combined, bakeParams.denoiseShadowMap);
-
-            // Optimize seams
-            combined = BitmapHelper::optimizeSeams(*combined, *instance);
-
-            // Make ready for encoding
-            if (game != GAME_FORCES)
-                combined = BitmapHelper::makeEncodeReady(*combined, (EncodeReadyFlags)(ENCODE_READY_FLAGS_SRGB | ENCODE_READY_FLAGS_SQRT));
-
-            if (game == GAME_GENERATIONS)
+            if (true)
             {
-                combined->save(outputPath + instance->name + "_lightmap.png", Bitmap::transformToLightMap);
-                combined->save(outputPath + instance->name + "_shadowmap.png", Bitmap::transformToShadowMap);
+                // SGGI Test
+                auto pair = SGGIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
+
+                // Dilate
+                pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
+                pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
+
+                // Denoise
+                pair.lightMap = BitmapHelper::denoise(*pair.lightMap);
+
+                if (bakeParams.denoiseShadowMap)
+                    pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap);
+
+                pair.lightMap = BitmapHelper::optimizeSeams(*pair.lightMap, *instance);
+                pair.shadowMap = BitmapHelper::optimizeSeams(*pair.shadowMap, *instance);
+
+                pair.lightMap->save(outputPath + instance->name + "_sg.dds", SGGIBaker::LIGHT_MAP_FORMAT);
+                pair.shadowMap->save(outputPath + instance->name + "_occlusion.dds", SGGIBaker::SHADOW_MAP_FORMAT);
             }
-            else if (game == GAME_LOST_WORLD)
+            else 
             {
-                combined->save(outputPath + instance->name + ".dds", DXGI_FORMAT_BC3_UNORM);
-            }
-            else if (game == GAME_FORCES)
-            {
-                combined->save(outputPath + instance->name + ".dds", SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
-                combined->save(outputPath + instance->name + "_occlusion.dds", SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
+                game = GAME_FORCES;
+
+                // GI Test
+                auto pair = GIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
+
+                // Dilate
+                pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
+                pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
+
+                // Combine
+                auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
+
+                // Denoise
+                combined = BitmapHelper::denoise(*combined, bakeParams.denoiseShadowMap);
+
+                // Optimize seams
+                combined = BitmapHelper::optimizeSeams(*combined, *instance);
+
+                // Make ready for encoding
+                if (game != GAME_FORCES)
+                    combined = BitmapHelper::makeEncodeReady(*combined, (EncodeReadyFlags)(ENCODE_READY_FLAGS_SRGB | ENCODE_READY_FLAGS_SQRT));
+
+                if (game == GAME_GENERATIONS)
+                {
+                    combined->save(outputPath + instance->name + "_lightmap.png", Bitmap::transformToLightMap);
+                    combined->save(outputPath + instance->name + "_shadowmap.png", Bitmap::transformToShadowMap);
+                }
+                else if (game == GAME_LOST_WORLD)
+                {
+                    combined->save(outputPath + instance->name + ".dds", DXGI_FORMAT_BC3_UNORM);
+                }
+                else if (game == GAME_FORCES)
+                {
+                    combined->save(outputPath + instance->name + ".dds", SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
+                    combined->save(outputPath + instance->name + "_occlusion.dds", SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
+                }
             }
            
             printf("(%llu/%llu): Saved %s (%dx%d)\n", InterlockedIncrement(&i), raytracingContext.scene->instances.size(), instance->name.c_str(), resolution, resolution);

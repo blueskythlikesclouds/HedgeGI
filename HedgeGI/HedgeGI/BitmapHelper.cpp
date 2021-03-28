@@ -16,7 +16,7 @@
 
 #pragma warning(pop)
 
-so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instance, const float cosNormalThreshold)
+so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, uint32_t index, const Instance& instance, const float cosNormalThreshold)
 {
     so_seam_t* seams = nullptr;
 
@@ -61,10 +61,10 @@ so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, const Instance& instanc
                 so_vec3 p2[] = { *(so_vec3*)&a2.position, *(so_vec3*)&b2.position, *(so_vec3*)&c2.position };
 
                 if ((b1.position - b2.position).norm() < 0.001f && so_should_optimize(p1, p2, cosNormalThreshold))
-                    so_seams_add_seam(&seams, *(so_vec2*)&a1.vPos, *(so_vec2*)&b1.vPos, *(so_vec2*)&a2.vPos, *(so_vec2*)&b2.vPos, (float*)bitmap.data.get(), bitmap.width, bitmap.height, 4);
+                    so_seams_add_seam(&seams, *(so_vec2*)&a1.vPos, *(so_vec2*)&b1.vPos, *(so_vec2*)&a2.vPos, *(so_vec2*)&b2.vPos, (float*)bitmap.getColors(index), bitmap.width, bitmap.height, 4);
 
                 else if ((b1.position - c2.position).norm() < 0.001f && so_should_optimize(p1, p2, cosNormalThreshold))
-                    so_seams_add_seam(&seams, *(so_vec2*)&a1.vPos, *(so_vec2*)&b1.vPos, *(so_vec2*)&a2.vPos, *(so_vec2*)&c2.vPos, (float*)bitmap.data.get(), bitmap.width, bitmap.height, 4);
+                    so_seams_add_seam(&seams, *(so_vec2*)&a1.vPos, *(so_vec2*)&b1.vPos, *(so_vec2*)&a2.vPos, *(so_vec2*)&c2.vPos, (float*)bitmap.getColors(index), bitmap.width, bitmap.height, 4);
             }
 
             t2->second.emplace_back(mesh, &t1);
@@ -131,12 +131,15 @@ std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const 
     std::unique_ptr<Bitmap> optimized = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
     memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Eigen::Vector4f));
 
-    so_seam_t* seams = findSeams(*optimized, instance, 0.5f);
+    for (size_t i = 0; i < bitmap.arraySize; i++)
+    {
+        so_seam_t* seams = findSeams(*optimized, i, instance, 0.5f);
 
-    for (so_seam_t* seam = seams; seam; seam = seam->next)
-        so_seam_optimize(seam, (float*)optimized->data.get(), bitmap.width, bitmap.height, 4, 0.5f);
+        for (so_seam_t* seam = seams; seam; seam = seam->next)
+            so_seam_optimize(seam, (float*)optimized->getColors(i), bitmap.width, bitmap.height, 4, 0.5f);
 
-    so_seams_free(seams);
+        so_seams_free(seams);
+    }
 
     return optimized;
 }

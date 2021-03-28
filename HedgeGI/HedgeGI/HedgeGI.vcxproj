@@ -98,7 +98,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;..\..\Dependencies\opencv\build\x64\vc15\lib;$(CUDA_PATH)\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;opencv_world451.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

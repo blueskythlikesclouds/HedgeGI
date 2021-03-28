@@ -8,9 +8,18 @@ void BakeParams::load(const std::string& filePath)
     if (reader.ParseError() != 0)
         return;
 
-    environmentColor.x() = pow(reader.GetFloat("Baker", "EnvironmentColorR", 255.0f) / 255.0f, 2.2f);
-    environmentColor.y() = pow(reader.GetFloat("Baker", "EnvironmentColorG", 255.0f) / 255.0f, 2.2f);
-    environmentColor.z() = pow(reader.GetFloat("Baker", "EnvironmentColorB", 255.0f) / 255.0f, 2.2f);
+    if (reader.GetBoolean("Baker", "EnvironmentColorIsHDR", false))
+    {
+        environmentColor.x() = reader.GetFloat("Baker", "EnvironmentColorR", 1.0f);
+        environmentColor.y() = reader.GetFloat("Baker", "EnvironmentColorG", 1.0f);
+        environmentColor.z() = reader.GetFloat("Baker", "EnvironmentColorB", 1.0f);
+    }
+    else
+    {
+        environmentColor.x() = pow(reader.GetFloat("Baker", "EnvironmentColorR", 255.0f) / 255.0f, 2.2f);
+        environmentColor.y() = pow(reader.GetFloat("Baker", "EnvironmentColorG", 255.0f) / 255.0f, 2.2f);
+        environmentColor.z() = pow(reader.GetFloat("Baker", "EnvironmentColorB", 255.0f) / 255.0f, 2.2f);
+    }
 
     lightBounceCount = reader.GetInteger("Baker", "LightBounceCount", 10);
     lightSampleCount = reader.GetInteger("Baker", "LightSampleCount", 100);

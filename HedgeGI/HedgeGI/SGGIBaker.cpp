@@ -13,11 +13,25 @@ const std::array<Eigen::Vector3f, 4> SG_DIRECTIONS =
 
 struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
 {
+    std::array<Eigen::Vector3f, 4> directions;
+
+    void begin()
+    {
+        BakePoint::begin();
+
+        for (size_t i = 0; i < 4; i++)
+        {
+            directions[i] = SG_DIRECTIONS[i];
+            directions[i].y() *= tangentToWorldMatrix(1, 2);
+            directions[i].normalize();
+        }
+    }
+
     void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
     {
         for (size_t i = 0; i < 4; i++)
         {
-            const float dot = tangentSpaceDirection.dot(SG_DIRECTIONS[i]);
+            const float dot = worldSpaceDirection.dot(directions[i]);
             if (dot <= 0.0f)
                 continue;
 
