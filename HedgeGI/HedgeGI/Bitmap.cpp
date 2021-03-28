@@ -12,6 +12,11 @@ void Bitmap::transformToShadowMap(Eigen::Array4f* color)
     color->w() = 1.0f;
 }
 
+void Bitmap::transformToLinearSpace(Eigen::Array4f* color)
+{
+    color->head<3>() = color->head<3>().pow(2.2f);
+}
+
 Bitmap::Bitmap() = default;
 
 Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize)
@@ -140,11 +145,6 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transfo
     SaveToDDSFile(scratchImage.GetImages(), scratchImage.GetImageCount(), scratchImage.GetMetadata(), DirectX::DDS_FLAGS_NONE, wideCharFilePath);
 }
 
-cv::Mat Bitmap::toMat(const size_t index) const
-{
-    return cv::Mat(cv::Size(width, height), CV_32FC4, &data[width * height * index]);
-}
-
 DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) const
 {
     DirectX::ScratchImage scratchImage;
@@ -167,4 +167,10 @@ DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) con
     }
 
     return scratchImage;
+}
+
+void Bitmap::transform(Transformer* transformer) const
+{
+    for (size_t i = 0; i < width * height * arraySize; i++)
+        transformer(&data[i]);
 }

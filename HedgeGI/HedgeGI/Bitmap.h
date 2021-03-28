@@ -13,6 +13,7 @@ public:
 
     static void transformToLightMap(Eigen::Array4f* color);
     static void transformToShadowMap(Eigen::Array4f* color);
+    static void transformToLinearSpace(Eigen::Array4f* color);
 
     Bitmap();
     Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1);
@@ -34,6 +35,7 @@ public:
     void save(const std::string& filePath, Transformer* transformer = nullptr) const;
     void save(const std::string& filePath, DXGI_FORMAT format, Transformer* transformer = nullptr) const;
 
-    cv::Mat toMat(size_t index) const;
     DirectX::ScratchImage toScratchImage(Transformer* transformer = nullptr) const;
+
+    void transform(Transformer* transformer) const;
 };

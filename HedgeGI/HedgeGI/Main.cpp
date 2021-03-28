@@ -46,10 +46,18 @@ int32_t main(int32_t argc, const char* argv[])
     Eigen::initParallel();
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
+    // Detect accidental drag and drop of -HedgeGI
+    char argv1[1024];
+    strcpy(argv1, argv[1]);
+
+    char* suffix = strstr(argv1, "-HedgeGI");
+    if (suffix != nullptr)
+        suffix[0] = '\0';
+
     std::unique_ptr<Scene> scene;
 
-    const std::string path = argv[1];
-    const std::string outputPath = std::string(argv[1]) + "-HedgeGI/";
+    const std::string path = argv1;
+    const std::string outputPath = std::string(argv1) + "-HedgeGI/";
 
     Game game = GAME_UNKNOWN;
 
@@ -131,7 +139,7 @@ int32_t main(int32_t argc, const char* argv[])
             auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
 
             // Denoise
-            combined = BitmapHelper::denoise(*combined, true);
+            combined = BitmapHelper::denoise(*combined, bakeParams.denoiseShadowMap);
 
             // Optimize seams
             combined = BitmapHelper::optimizeSeams(*combined, *instance);

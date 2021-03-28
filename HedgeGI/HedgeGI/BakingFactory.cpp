@@ -75,10 +75,10 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
         const Eigen::Vector3f hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
         const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
 
-        Eigen::Array4f diffuse { 1, 1, 1, 1 };
+        Eigen::Array4f diffuse = barycentricLerp(a.color, b.color, c.color, hitUV);
         if (mesh.material && mesh.material->diffuse)
         {
-            diffuse = mesh.material->diffuse->pickColor(hitUV).pow(Eigen::Array4f(2.2f, 2.2f, 2.2f, 1.0f));
+            diffuse *= mesh.material->diffuse->pickColor(hitUV);
 
             // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.
             if (mesh.type == MESH_TYPE_PUNCH && diffuse.w() < 0.5f)

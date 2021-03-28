@@ -357,6 +357,7 @@ void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
         char name[MAX_PATH];
         hlStrConvNativeToUTF8NoAlloc(entry->path, name, 0, MAX_PATH);
         bitmap->name = getFileNameWithoutExtension(name);
+        bitmap->transform(Bitmap::transformToLinearSpace);
 
         scene.bitmaps.push_back(std::move(bitmap));
     }
