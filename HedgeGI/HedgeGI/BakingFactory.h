@@ -133,8 +133,8 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(worldSpaceDirection) >= 0.0f)
                         continue;
 
-                    float alpha = mesh.type != MESH_TYPE_OPAQUE && mesh.material && mesh.material->diffuse ?
-                        mesh.material->diffuse->pickColor(barycentricLerp(a.uv, b.uv, c.uv, baryUV)).w() : 1.0f;
+                    float alpha = mesh.type != MESH_TYPE_OPAQUE && mesh.material && mesh.material->textures.diffuse ?
+                        mesh.material->textures.diffuse->pickColor(barycentricLerp(a.uv, b.uv, c.uv, baryUV)).w() : 1.0f;
 
                     if (mesh.type == MESH_TYPE_PUNCH && alpha < 0.5f)
                         continue;
@@ -206,7 +206,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     const Vertex& c = mesh.vertices[triangle.c];
                     const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, { query.hit.v, query.hit.u });
 
-                    shadow = std::max(shadow, mesh.material && mesh.material->diffuse ? mesh.material->diffuse->pickColor(hitUV)[3] : 1);
+                    shadow = std::max(shadow, mesh.material && mesh.material->textures.diffuse ? mesh.material->textures.diffuse->pickColor(hitUV)[3] : 1);
                     position = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
                 } while (shadow < 1.0f);
 

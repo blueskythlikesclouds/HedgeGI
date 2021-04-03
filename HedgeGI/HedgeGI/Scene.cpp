@@ -40,8 +40,15 @@ void Scene::removeUnusedBitmaps()
     std::unordered_set<const Bitmap*> bitmapSet;
     for (auto& material : materials)
     {
-        bitmapSet.insert(material->diffuse);
-        bitmapSet.insert(material->emission);
+        bitmapSet.insert(material->textures.diffuse);
+        bitmapSet.insert(material->textures.specular);
+        bitmapSet.insert(material->textures.gloss);
+        bitmapSet.insert(material->textures.alpha);
+        bitmapSet.insert(material->textures.diffuseBlend);
+        bitmapSet.insert(material->textures.specularBlend);
+        bitmapSet.insert(material->textures.glossBlend);
+        bitmapSet.insert(material->textures.emission);
+        bitmapSet.insert(material->textures.environment);
     }
 
     std::vector<std::unique_ptr<const Bitmap>> distinctBitmaps;

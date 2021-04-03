@@ -48,36 +48,80 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
 {
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
+    HL_OFF32(HlHHMaterialParameter)* parameters = (HL_OFF32(HlHHMaterialParameter)*)hlOff32Get(&material->vec4ParamsOffset);
+
+    for (size_t i = 0; i < material->vec4ParamCount; i++)
+    {
+        HlHHMaterialParameter* parameter = (HlHHMaterialParameter*)hlOff32Get(&parameters[i]);
+        char* name = (char*)hlOff32Get(&parameter->nameOffset);
+        float* valuePtr = (float*)hlOff32Get(&parameter->valuesOffset);
+        const Eigen::Array4f value(valuePtr[0], valuePtr[1], valuePtr[2], valuePtr[3]);
+
+        if (strcmp(name, "diffuse") == 0) newMaterial->parameters.diffuse = value;
+        else if (strcmp(name, "specular") == 0) newMaterial->parameters.specular = value;
+        else if (strcmp(name, "ambient") == 0) newMaterial->parameters.ambient = value;
+        else if (strcmp(name, "power_gloss_level") == 0) newMaterial->parameters.powerGlossLevel = value;
+        else if (strcmp(name, "mrgLuminanceRange") == 0) newMaterial->parameters.luminanceRange = value;
+        else if (strcmp(name, "Luminance") == 0) newMaterial->parameters.luminance = value;
+    }
+
     HL_OFF32(HlHHTextureV1)* textures = (HL_OFF32(HlHHTextureV1)*)hlOff32Get(&material->texturesOffset);
 
     for (size_t i = 0; i < material->textureCount; i++)
     {
         HlHHTextureV1* texture = (HlHHTextureV1*)hlOff32Get(&textures[i]);
-        const char* type = (const char*)hlOff32Get(&texture->typeOffset);
+        char* type = (char*)hlOff32Get(&texture->typeOffset);
+        char* fileName = (char*)hlOff32Get(&texture->fileNameOffset);
 
-        if (strcmp(type, "diffuse") != 0 &&
-            strcmp(type, "displacement") != 0)
-            continue;
+        const Bitmap* bitmap = nullptr;
 
-        const char* fileName = (const char*)hlOff32Get(&texture->fileNameOffset);
-
-        bool found = false;
-        for (auto& bitmap : scene.bitmaps)
+        for (auto& item : scene.bitmaps)
         {
-            if (strcmp(fileName, bitmap->name.c_str()) != 0)
+            if (strcmp(fileName, item->name.c_str()) != 0)
                 continue;
 
-            if (strcmp(type, "diffuse") == 0)
-                newMaterial->diffuse = bitmap.get();
-            else
-                newMaterial->emission = bitmap.get();
-
-            found = true;
+            bitmap = item.get();
             break;
         }
 
-        if (found)
-            break;
+        if (bitmap == nullptr)
+            continue;
+
+        if (strcmp(type, "diffuse") == 0)
+        {
+            if (newMaterial->textures.diffuse != nullptr)
+                newMaterial->textures.diffuseBlend = bitmap;
+            else
+                newMaterial->textures.diffuse = bitmap;
+        }
+        else if (strcmp(type, "specular") == 0)
+        {
+            if (newMaterial->textures.specular != nullptr)
+                newMaterial->textures.specularBlend = bitmap;
+            else
+                newMaterial->textures.specular = bitmap;
+        }
+        else if (strcmp(type, "gloss") == 0)
+        {
+            if (newMaterial->textures.gloss != nullptr)
+                newMaterial->textures.glossBlend = bitmap;
+            else
+                newMaterial->textures.gloss = bitmap;
+        }
+        else if (strcmp(type, "opacity") == 0 ||
+            strcmp(type, "transparency") == 0)
+        {
+            newMaterial->textures.alpha = bitmap;
+        }
+        else if (strcmp(type, "displacement") == 0 ||
+            strcmp(type, "emission") == 0)
+        {
+            newMaterial->textures.emission = bitmap;
+        }
+        else if (strcmp(type, "reflection") == 0)
+        {
+            newMaterial->textures.environment = bitmap;
+        }
     }
 
     return newMaterial;
@@ -357,7 +401,6 @@ void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
         char name[MAX_PATH];
         hlStrConvNativeToUTF8NoAlloc(entry->path, name, 0, MAX_PATH);
         bitmap->name = getFileNameWithoutExtension(name);
-        bitmap->transform(Bitmap::transformToLinearSpace);
 
         scene.bitmaps.push_back(std::move(bitmap));
     }

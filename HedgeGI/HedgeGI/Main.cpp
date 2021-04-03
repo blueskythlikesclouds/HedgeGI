@@ -128,7 +128,7 @@ int32_t main(int32_t argc, const char* argv[])
         {
             const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
 
-            if (true)
+            if (false)
             {
                 // SGGI Test
                 auto pair = SGGIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
@@ -151,8 +151,6 @@ int32_t main(int32_t argc, const char* argv[])
             }
             else 
             {
-                game = GAME_FORCES;
-
                 // GI Test
                 auto pair = GIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
 

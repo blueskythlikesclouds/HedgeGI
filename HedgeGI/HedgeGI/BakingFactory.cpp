@@ -8,17 +8,17 @@ void BakeParams::load(const std::string& filePath)
     if (reader.ParseError() != 0)
         return;
 
-    if (reader.GetBoolean("Baker", "EnvironmentColorIsHDR", false))
+    if (reader.GetBoolean("EnvironmentColor", "IsHDR", false))
     {
-        environmentColor.x() = reader.GetFloat("Baker", "EnvironmentColorR", 1.0f);
-        environmentColor.y() = reader.GetFloat("Baker", "EnvironmentColorG", 1.0f);
-        environmentColor.z() = reader.GetFloat("Baker", "EnvironmentColorB", 1.0f);
+        environmentColor.x() = reader.GetFloat("EnvironmentColor", "R", 1.0f);
+        environmentColor.y() = reader.GetFloat("EnvironmentColor", "G", 1.0f);
+        environmentColor.z() = reader.GetFloat("EnvironmentColor", "B", 1.0f);
     }
     else
     {
-        environmentColor.x() = pow(reader.GetFloat("Baker", "EnvironmentColorR", 255.0f) / 255.0f, 2.2f);
-        environmentColor.y() = pow(reader.GetFloat("Baker", "EnvironmentColorG", 255.0f) / 255.0f, 2.2f);
-        environmentColor.z() = pow(reader.GetFloat("Baker", "EnvironmentColorB", 255.0f) / 255.0f, 2.2f);
+        environmentColor.x() = pow(reader.GetFloat("EnvironmentColor", "R", 255.0f) / 255.0f, 2.2f);
+        environmentColor.y() = pow(reader.GetFloat("EnvironmentColor", "G", 255.0f) / 255.0f, 2.2f);
+        environmentColor.z() = pow(reader.GetFloat("EnvironmentColor", "B", 255.0f) / 255.0f, 2.2f);
     }
 
     lightBounceCount = reader.GetInteger("Baker", "LightBounceCount", 10);
@@ -66,6 +66,19 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
     for (uint32_t i = 0; i < bakeParams.lightBounceCount; i++)
     {
+        const Eigen::Vector3f rayPosition(query.ray.org_x, query.ray.org_y, query.ray.org_z);
+        const Eigen::Vector3f rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
+
+        // Do russian roulette at highest difficulty fuhuhuhuhuhu
+        float probability = throughput.head<3>().cwiseProduct(Eigen::Array3f(0.2126f, 0.7152f, 0.0722f)).sum();
+        if (i >= 4)
+        {
+            if (Random::next() > probability)
+                break;
+
+            throughput.head<3>() /= probability;
+        }
+
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
         {
@@ -73,21 +86,60 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             break;
         }
 
-        const Eigen::Vector2f baryUV { query.hit.v, query.hit.u };
+        const Eigen::Vector3f triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
 
         const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
+
+        // Break the loop if we hit a backfacing triangle on an opaque mesh.
+        if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(rayNormal) >= 0.0f)
+        {
+            faceFactor = (float)(i != 0);
+            break;
+        }
+
+        const Eigen::Vector2f baryUV { query.hit.v, query.hit.u };
+
         const Triangle& triangle = mesh.triangles[query.hit.primID];
         const Vertex& a = mesh.vertices[triangle.a];
         const Vertex& b = mesh.vertices[triangle.b];
         const Vertex& c = mesh.vertices[triangle.c];
 
         const Eigen::Vector3f hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
+        const Eigen::Vector3f hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
         const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
+        const Eigen::Array4f hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
 
-        Eigen::Array4f diffuse = barycentricLerp(a.color, b.color, c.color, hitUV);
-        if (mesh.material && mesh.material->diffuse)
+        Eigen::Array4f diffuse = Eigen::Array4f::Ones();
+        Eigen::Array4f specular = Eigen::Array4f::Zero();
+        Eigen::Array4f emission = Eigen::Array4f::Zero();
+
+        float glossPower = 1.0f;
+        float glossLevel = 0.0f;
+
+        const Material* material = mesh.material;
+
+        if (material != nullptr)
         {
-            diffuse *= mesh.material->diffuse->pickColor(hitUV);
+            diffuse *= material->parameters.diffuse;
+
+            if (material->textures.diffuse != nullptr)
+            {
+                Eigen::Array4f diffuseTex = material->textures.diffuse->pickColor(hitUV).pow(Eigen::Array4f(2.2f, 2.2f, 2.2f, 1.0f));
+
+                if (material->textures.diffuseBlend != nullptr)
+                    diffuseTex = lerp<Eigen::Array4f>(diffuseTex, material->textures.diffuseBlend->pickColor(hitUV).pow(Eigen::Array4f(2.2f, 2.2f, 2.2f, 1.0f)), hitColor.w());
+                else
+                    diffuseTex *= hitColor;
+
+                diffuse *= diffuseTex;
+            }
+            else
+            {
+                diffuse *= hitColor;
+            }
+
+            if (material->textures.alpha != nullptr)
+                diffuse.w() *= material->textures.alpha->pickColor(hitUV).x();
 
             // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.
             if (mesh.type == MESH_TYPE_PUNCH && diffuse.w() < 0.5f)
@@ -105,29 +157,33 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
                 continue;
             }
+
+            if (material->textures.gloss != nullptr)
+            {
+                float gloss = material->textures.gloss->pickColor(hitUV).x();
+
+                if (material->textures.glossBlend != nullptr)
+                    gloss = lerp(gloss, material->textures.glossBlend->pickColor(hitUV).x(), hitColor.w());
+
+                glossPower = std::min(1024.0f, std::max(1.0f, gloss * material->parameters.powerGlossLevel.y() * 500.0f));
+                glossLevel = gloss * material->parameters.powerGlossLevel.z() * 5.0f;
+
+                specular = material->parameters.specular;
+
+                if (material->textures.specular != nullptr)
+                {
+                    Eigen::Array4f specularTex = material->textures.specular->pickColor(hitUV);
+
+                    if (material->textures.specularBlend != nullptr)
+                        specularTex = lerp(specularTex, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
+
+                    specular *= specularTex;
+                }
+            }
+
+            if (material->textures.emission != nullptr)
+                emission = material->textures.emission->pickColor(hitUV) * material->parameters.ambient * material->parameters.luminance.x();
         }
-
-        const Eigen::Vector3f triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
-        const Eigen::Vector3f rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
-
-        // Break the loop if we hit a backfacing triangle on an opaque mesh.
-        if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(rayNormal) >= 0.0f)
-        {
-            faceFactor = (float)(i != 0);
-            break;
-        }
-
-        const Eigen::Vector3f hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
-        const Eigen::Array4f hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
-
-        diffuse.head<3>() *= hitColor.head<3>();
-        diffuse.head<3>() *= bakeParams.diffuseStrength;
-
-        Eigen::Array4f emission{ 0, 0, 0, 0 };
-        if (mesh.material && mesh.material->emission)
-            emission = mesh.material->emission->pickColor(hitUV);
-
-        radiance += throughput * emission.head<3>();
 
         context = {};
         rtcInitIntersectContext(&context);
@@ -144,20 +200,21 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
         ray.tfar = INFINITY;
         rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
 
-        radiance += throughput * sunLight.color * bakeParams.lightStrength * std::max(0.0f, std::min(1.0f, 
-            hitNormal.dot(-sunLight.positionOrDirection))) * (diffuse.head<3>() / PI) * (ray.tfar > 0);
+        // Diffuse
+        Eigen::Array3f directLighting = diffuse.head<3>();
 
-        // Do russian roulette at highest difficulty fuhuhuhuhuhu
-        float probability = diffuse.head<3>().cwiseProduct(Eigen::Array3f(0.2126f, 0.7152f, 0.0722f)).sum();
-        if (i >= 4)
+        // Specular
+        if (glossLevel > 0.0f)
         {
-            if (Random::next() > probability)
-                break;
-
-            diffuse.head<3>() /= probability;
+            const Eigen::Vector3f halfwayDirection = (rayPosition - hitPosition - sunLight.positionOrDirection).normalized();
+            directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
         }
 
-        throughput *= diffuse.head<3>();
+        directLighting *= saturate(hitNormal.dot(-sunLight.positionOrDirection)) * (sunLight.color * bakeParams.lightStrength) * (ray.tfar > 0);
+
+        // Combine
+        radiance += throughput * directLighting;
+        radiance += throughput * emission.head<3>();
 
         // Setup next ray
         const Eigen::Vector3f hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
@@ -170,7 +227,10 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             hitTangent[2], hitBinormal[2], hitNormal[2];
 
         const Eigen::Vector3f hitDirection = (hitTangentToWorldMatrix * sampleCosineWeightedHemisphere(
-            Random::next() * diffuse[3], Random::next() * diffuse[3])).normalized();
+            Random::next(), Random::next())).normalized();
+
+        // TODO: Is this correct?
+        throughput *= diffuse.head<3>() * saturate(hitDirection.dot(hitNormal));
 
         query.ray.dir_x = hitDirection[0];
         query.ray.dir_y = hitDirection[1];

@@ -41,6 +41,12 @@ static T barycentricLerp(const T& a, const T& b, const T& c, const Eigen::Vector
     return a + (c - a) * uv[0] + (b - a) * uv[1];
 }
 
+template <typename T>
+static T lerp(const T& a, const T& b, float factor)
+{
+    return a + (b - a) * factor;
+}
+
 static Eigen::Vector2f clampUV(const Eigen::Vector2f& uv)
 {
     float temp;
