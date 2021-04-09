@@ -222,7 +222,7 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
         for (size_t i = 0; i < 8; i++)
         {
             for (size_t j = 0; j < 3; j++)
-                probe.colors[i][j] = (uint8_t)(saturate(pow(bakePoint.colors[i][j], 1.0f / 2.2f)) * 255.0f);
+                probe.colors[i][j] = (uint8_t)(saturate(bakePoint.colors[i][j]) * 255.0f);
         }
 
         probe.shadow = (uint8_t)(saturate(bakePoint.shadow) * 255.0f);

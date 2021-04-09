@@ -8,7 +8,7 @@ void BakeParams::load(const std::string& filePath)
     if (reader.ParseError() != 0)
         return;
 
-    if (reader.GetBoolean("EnvironmentColor", "IsHDR", false))
+    if (targetEngine == TARGET_ENGINE_HE2)
     {
         environmentColor.x() = reader.GetFloat("EnvironmentColor", "R", 1.0f);
         environmentColor.y() = reader.GetFloat("EnvironmentColor", "G", 1.0f);
@@ -16,13 +16,14 @@ void BakeParams::load(const std::string& filePath)
     }
     else
     {
-        environmentColor.x() = pow(reader.GetFloat("EnvironmentColor", "R", 255.0f) / 255.0f, 2.2f);
-        environmentColor.y() = pow(reader.GetFloat("EnvironmentColor", "G", 255.0f) / 255.0f, 2.2f);
-        environmentColor.z() = pow(reader.GetFloat("EnvironmentColor", "B", 255.0f) / 255.0f, 2.2f);
+        environmentColor.x() = reader.GetFloat("EnvironmentColor", "R", 255.0f) / 255.0f;
+        environmentColor.y() = reader.GetFloat("EnvironmentColor", "G", 255.0f) / 255.0f;
+        environmentColor.z() = reader.GetFloat("EnvironmentColor", "B", 255.0f) / 255.0f;
     }
 
     lightBounceCount = reader.GetInteger("Baker", "LightBounceCount", 10);
     lightSampleCount = reader.GetInteger("Baker", "LightSampleCount", 100);
+    russianRouletteMaxDepth = reader.GetInteger("Baker", "RussianRouletteMaxDepth", 6);
 
     shadowSampleCount = reader.GetInteger("Baker", "ShadowSampleCount", 64);
     shadowSearchRadius = reader.GetFloat("Baker", "ShadowSearchRadius", 0.01f);
@@ -71,7 +72,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
         float probability = throughput.head<3>().cwiseProduct(Eigen::Array3f(0.2126f, 0.7152f, 0.0722f)).sum();
-        if (i >= 4)
+        if (i > bakeParams.russianRouletteMaxDepth)
         {
             if (Random::next() > probability)
                 break;
@@ -118,16 +119,18 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
         const Material* material = mesh.material;
 
+        // TODO: Support HE2 properly.
+
         if (material != nullptr)
         {
             diffuse *= material->parameters.diffuse;
 
             if (material->textures.diffuse != nullptr)
             {
-                Eigen::Array4f diffuseTex = material->textures.diffuse->pickColor(hitUV).pow(Eigen::Array4f(2.2f, 2.2f, 2.2f, 1.0f));
+                Eigen::Array4f diffuseTex = material->textures.diffuse->pickColor(hitUV);
 
                 if (material->textures.diffuseBlend != nullptr)
-                    diffuseTex = lerp<Eigen::Array4f>(diffuseTex, material->textures.diffuseBlend->pickColor(hitUV).pow(Eigen::Array4f(2.2f, 2.2f, 2.2f, 1.0f)), hitColor.w());
+                    diffuseTex = lerp<Eigen::Array4f>(diffuseTex, material->textures.diffuseBlend->pickColor(hitUV), hitColor.w());
                 else
                     diffuseTex *= hitColor;
 
@@ -229,8 +232,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
         const Eigen::Vector3f hitDirection = (hitTangentToWorldMatrix * sampleCosineWeightedHemisphere(
             Random::next(), Random::next())).normalized();
 
-        // TODO: Is this correct?
-        throughput *= diffuse.head<3>() * saturate(hitDirection.dot(hitNormal));
+        throughput *= diffuse.head<3>();
 
         query.ray.dir_x = hitDirection[0];
         query.ray.dir_y = hitDirection[1];

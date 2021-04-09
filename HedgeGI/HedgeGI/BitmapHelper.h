@@ -13,6 +13,7 @@ enum PaintFlags
 
 enum EncodeReadyFlags
 {
+    ENCORE_READY_FLAGS_NONE = 0,
     ENCODE_READY_FLAGS_SRGB = 1 << 0,
     ENCODE_READY_FLAGS_SQRT = 1 << 1,
 };

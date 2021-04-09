@@ -3,12 +3,21 @@
 #include "BakePoint.h"
 #include "Scene.h"
 
+enum TargetEngine
+{
+    TARGET_ENGINE_HE1,
+    TARGET_ENGINE_HE2
+};
+
 struct BakeParams
 {
+    TargetEngine targetEngine;
+
     Eigen::Array3f environmentColor;
 
     uint32_t lightBounceCount{};
     uint32_t lightSampleCount{};
+    uint32_t russianRouletteMaxDepth {};
 
     uint32_t shadowSampleCount{};
     float shadowSearchRadius{};
@@ -24,6 +33,8 @@ struct BakeParams
     uint16_t defaultResolution{};
 
     bool denoiseShadowMap {};
+
+    BakeParams(const TargetEngine targetEngine) : targetEngine(targetEngine) {}
 
     void load(const std::string& filePath);
 };

@@ -40,9 +40,6 @@ int32_t main(int32_t argc, const char* argv[])
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
     _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
-    BakeParams bakeParams{};
-    bakeParams.load(getDirectoryPath(argv[0]) + "/HedgeGI.ini");
-
     Eigen::initParallel();
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
@@ -108,6 +105,9 @@ int32_t main(int32_t argc, const char* argv[])
 
     const auto raytracingContext = scene->createRaytracingContext();
 
+    BakeParams bakeParams(game == GAME_FORCES ? TARGET_ENGINE_HE2 : TARGET_ENGINE_HE1);
+    bakeParams.load(getDirectoryPath(argv[0]) + "/HedgeGI.ini");
+
     // GI Test
     if (true)
     {
@@ -168,8 +168,8 @@ int32_t main(int32_t argc, const char* argv[])
                 combined = BitmapHelper::optimizeSeams(*combined, *instance);
 
                 // Make ready for encoding
-                if (game != GAME_FORCES)
-                    combined = BitmapHelper::makeEncodeReady(*combined, (EncodeReadyFlags)(ENCODE_READY_FLAGS_SRGB | ENCODE_READY_FLAGS_SQRT));
+                if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+                    combined = BitmapHelper::makeEncodeReady(*combined, ENCODE_READY_FLAGS_SQRT);
 
                 if (game == GAME_GENERATIONS)
                 {
