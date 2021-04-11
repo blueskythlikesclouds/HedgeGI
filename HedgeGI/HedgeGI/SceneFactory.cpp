@@ -63,6 +63,8 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
         else if (strcmp(name, "power_gloss_level") == 0) newMaterial->parameters.powerGlossLevel = value;
         else if (strcmp(name, "mrgLuminanceRange") == 0) newMaterial->parameters.luminanceRange = value;
         else if (strcmp(name, "Luminance") == 0) newMaterial->parameters.luminance = value;
+        else if (strcmp(name, "PBRFactor") == 0) newMaterial->parameters.pbrFactor = value;
+        else if (strcmp(name, "PBRFactor2") == 0) newMaterial->parameters.pbrFactor2 = value;
     }
 
     HL_OFF32(HlHHTextureV1)* textures = (HL_OFF32(HlHHTextureV1)*)hlOff32Get(&material->texturesOffset);
@@ -293,12 +295,12 @@ std::unique_ptr<Instance> SceneFactory::createInstance(HlHHTerrainInstanceInfoV0
     newInstance->name = (const char*)(instance ?
         hlOff32Get(&instance->instanceInfoNameOffset) : hlOff32Get(&model->nameOffset));
 
-    HlMatrix4x4* matrix = (HlMatrix4x4*)hlOff32Get(&instance->matrixOffset);
-
     Eigen::Matrix4f transformationMatrix;
 
     if (instance != nullptr)
     {
+        HlMatrix4x4* matrix = (HlMatrix4x4*)hlOff32Get(&instance->matrixOffset);
+
         transformationMatrix <<
             matrix->m11, matrix->m12, matrix->m13, matrix->m14,
             matrix->m21, matrix->m22, matrix->m23, matrix->m24,

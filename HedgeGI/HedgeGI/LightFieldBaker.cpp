@@ -3,8 +3,6 @@
 #include "BakingFactory.h"
 #include "LightField.h"
 
-const float MIN_AREA_SIZE = 5.0f;
-
 const Eigen::Vector3f LIGHT_FIELD_DIRECTIONS[8] =
 {
     Eigen::Vector3f(-1, -1, -1).normalized(),
@@ -21,11 +19,9 @@ const Eigen::Vector3f LIGHT_FIELD_DIRECTIONS[8] =
 
 struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
 {
-    std::array<float, 8> factors {};
-
     static Eigen::Vector3f sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
     {
-        return sampleSphere(index, sampleCount);
+        return sampleDirectionSphere(u1, u2);
     }
 
     bool valid() const
@@ -36,20 +32,13 @@ struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
     void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
     {
         for (size_t i = 0; i < 8; i++)
-        {
-            const float factor = saturate(worldSpaceDirection.dot(LIGHT_FIELD_DIRECTIONS[i]));
-            colors[i] += color * factor;
-            factors[i] += factor;
-        }
+            colors[i] += color * saturate(worldSpaceDirection.dot(LIGHT_FIELD_DIRECTIONS[i]));
     }
 
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 8; i++)
-        {
-            const float factor = factors[i];
-            colors[i] = factor > 0.0f ? colors[i] / factor : Eigen::Array3f();
-        }
+            colors[i] *= (4.0f * PI) / sampleCount;
     }
 };
 
@@ -101,9 +90,13 @@ bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
 }
 
 void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytracingContext, LightField& lightField, size_t cellIndex, const Eigen::AlignedBox3f& aabb,
-    std::vector<LightFieldPoint>& bakePoints, phmap::parallel_flat_hash_map<Eigen::Vector3f, std::vector<uint32_t>, EigenHash<Eigen::Vector3f>>& corners)
+    std::vector<LightFieldPoint>& bakePoints, phmap::parallel_flat_hash_map<Eigen::Vector3f, std::vector<uint32_t>, EigenHash<Eigen::Vector3f>>& corners, const BakeParams& bakeParams)
 {
-    const Eigen::Array3f center = aabb.center();
+    const Eigen::Vector3f center = aabb.center();
+
+    float radius = 0.0f;
+    for (size_t i = 0; i < 8; i++)
+        radius = std::max(radius, (center - aabb.corner((Eigen::AlignedBox3f::CornerType)i)).norm());
 
     RTCPointQueryContext context {};
     rtcInitPointQueryContext(&context);
@@ -112,7 +105,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
     query.x = center.x();
     query.y = center.y();
     query.z = center.z();
-    query.radius = aabb.sizes().maxCoeff() * sqrtf(2.0f) / 2.0f;
+    query.radius = radius;
 
     PointQueryFuncUserData userData = { raytracingContext.scene, aabb };
 
@@ -126,9 +119,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
     rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
 
-    size_t axisIndex = 0;
-
-    if (aabb.sizes().maxCoeff(&axisIndex) < MIN_AREA_SIZE || userData.materials.size() <= 1)
+    if (radius < bakeParams.lightFieldMinCellRadius || userData.materials.size() <= 1)
     {
         lightField.cells[cellIndex].type = LIGHT_FIELD_CELL_TYPE_PROBE;
         lightField.cells[cellIndex].index = (uint32_t)lightField.indices.size();
@@ -153,6 +144,9 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
     }
     else
     {
+        size_t axisIndex;
+        aabb.sizes().maxCoeff(&axisIndex);
+
         const size_t index = lightField.cells.size();
 
         lightField.cells[cellIndex].type = (LightFieldCellType)axisIndex;
@@ -161,8 +155,8 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
         lightField.cells.emplace_back();
         lightField.cells.emplace_back();
 
-        createBakePointsRecursively(raytracingContext, lightField, index, getAabbHalf(aabb, axisIndex, 0), bakePoints, corners);
-        createBakePointsRecursively(raytracingContext, lightField, index + 1, getAabbHalf(aabb, axisIndex, 1), bakePoints, corners);
+        createBakePointsRecursively(raytracingContext, lightField, index, getAabbHalf(aabb, axisIndex, 0), bakePoints, corners, bakeParams);
+        createBakePointsRecursively(raytracingContext, lightField, index + 1, getAabbHalf(aabb, axisIndex, 1), bakePoints, corners, bakeParams);
     }
 }
 
@@ -176,7 +170,7 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
     std::vector<LightFieldPoint> bakePoints;
     phmap::parallel_flat_hash_map<Eigen::Vector3f, std::vector<uint32_t>, EigenHash<Eigen::Vector3f>> corners;
 
-    createBakePointsRecursively(raytracingContext, *lightField, 0, raytracingContext.scene->aabb, bakePoints, corners);
+    createBakePointsRecursively(raytracingContext, *lightField, 0, raytracingContext.scene->aabb, bakePoints, corners, bakeParams);
 
     printf("Baking points...\n");
 

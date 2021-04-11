@@ -13,36 +13,21 @@ const std::array<Eigen::Vector3f, 4> SG_DIRECTIONS =
 
 struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
 {
-    std::array<Eigen::Vector3f, 4> directions;
-
-    void begin()
+    static Eigen::Vector3f sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
     {
-        BakePoint::begin();
-
-        for (size_t i = 0; i < 4; i++)
-        {
-            directions[i] = SG_DIRECTIONS[i];
-            directions[i].y() *= tangentToWorldMatrix(1, 2);
-            directions[i].normalize();
-        }
+        return sampleDirectionHemisphere(u1, u2);
     }
 
     void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
     {
         for (size_t i = 0; i < 4; i++)
-        {
-            const float dot = worldSpaceDirection.dot(directions[i]);
-            if (dot <= 0.0f)
-                continue;
-
-            colors[i] += color * exp((dot - 1.0f) * 4.0f);
-        }
+            colors[i] += computeSggiDiffuse(worldSpaceDirection, color, SG_DIRECTIONS[i]).array();
     }
 
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 4; i++)
-            colors[i] *= (2 * PI) / (float)sampleCount;
+            colors[i] *= (2.0f * PI) / (float)sampleCount;
     }
 };
 

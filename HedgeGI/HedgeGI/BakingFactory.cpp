@@ -23,7 +23,7 @@ void BakeParams::load(const std::string& filePath)
 
     lightBounceCount = reader.GetInteger("Baker", "LightBounceCount", 10);
     lightSampleCount = reader.GetInteger("Baker", "LightSampleCount", 100);
-    russianRouletteMaxDepth = reader.GetInteger("Baker", "RussianRouletteMaxDepth", 6);
+    russianRouletteMaxDepth = reader.GetInteger("Baker", "RussianRouletteMaxDepth", 4);
 
     shadowSampleCount = reader.GetInteger("Baker", "ShadowSampleCount", 64);
     shadowSearchRadius = reader.GetFloat("Baker", "ShadowSearchRadius", 0.01f);
@@ -36,9 +36,13 @@ void BakeParams::load(const std::string& filePath)
 
     diffuseStrength = reader.GetFloat("Baker", "DiffuseStrength", 1.0f);
     lightStrength = reader.GetFloat("Baker", "LightStrength", 1.0f);
-    defaultResolution = (uint16_t)reader.GetInteger("Baker", "DefaultResolution", 256);
+    resolutionBase = reader.GetFloat("Baker", "ResolutionBase", 2.0f);
+    resolutionBias = reader.GetFloat("Baker", "ResolutionBias", 3.0f);
 
     denoiseShadowMap = reader.GetBoolean("Baker", "DenoiseShadowMap", true);
+    optimizeSeams = reader.GetBoolean("Baker", "OptimizeSeams", true);
+
+    lightFieldMinCellRadius = reader.GetFloat("LightField", "MinCellRadius", 5.0f);
 }
 
 std::mutex BakingFactory::mutex;
@@ -119,27 +123,33 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
         const Material* material = mesh.material;
 
-        // TODO: Support HE2 properly.
-
         if (material != nullptr)
         {
-            diffuse *= material->parameters.diffuse;
+            if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+                diffuse *= material->parameters.diffuse;
 
             if (material->textures.diffuse != nullptr)
             {
                 Eigen::Array4f diffuseTex = material->textures.diffuse->pickColor(hitUV);
 
+                if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+                    diffuseTex.head<3>() = diffuseTex.head<3>().pow(2.2f);
+
                 if (material->textures.diffuseBlend != nullptr)
-                    diffuseTex = lerp<Eigen::Array4f>(diffuseTex, material->textures.diffuseBlend->pickColor(hitUV), hitColor.w());
-                else
-                    diffuseTex *= hitColor;
+                {
+                    Eigen::Array4f diffuseBlendTex = material->textures.diffuseBlend->pickColor(hitUV);
+
+                    if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+                        diffuseBlendTex.head<3>() = diffuseBlendTex.head<3>().pow(2.2f);
+
+                    diffuseTex = lerp(diffuseTex, diffuseBlendTex, hitColor.w());
+                }
 
                 diffuse *= diffuseTex;
             }
-            else
-            {
+
+            if (material->textures.diffuseBlend == nullptr || bakeParams.targetEngine == TARGET_ENGINE_HE2)
                 diffuse *= hitColor;
-            }
 
             if (material->textures.alpha != nullptr)
                 diffuse.w() *= material->textures.alpha->pickColor(hitUV).x();
@@ -161,7 +171,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
                 continue;
             }
 
-            if (material->textures.gloss != nullptr)
+            if (bakeParams.targetEngine == TARGET_ENGINE_HE1 && material->textures.gloss != nullptr)
             {
                 float gloss = material->textures.gloss->pickColor(hitUV).x();
 
@@ -184,9 +194,34 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
                 }
             }
 
+            else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+            {
+                if (material->textures.specular != nullptr)
+                {
+                    specular = material->textures.specular->pickColor(hitUV);
+
+                    if (material->textures.specularBlend != nullptr)
+                        specular = lerp(specular, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
+
+                    specular.x() *= 0.25f;
+                }
+                else
+                {
+                    specular.head<2>() = material->parameters.pbrFactor.head<2>();
+
+                    if (material->textures.diffuseBlend != nullptr)
+                        specular.head<2>() = lerp<Eigen::Array2f>(specular.head<2>(), material->parameters.pbrFactor2.head<2>(), hitColor.w());
+
+                    specular.z() = 1.0f;
+                    specular.w() = 1.0f;
+                }
+            }
+
             if (material->textures.emission != nullptr)
                 emission = material->textures.emission->pickColor(hitUV) * material->parameters.ambient * material->parameters.luminance.x();
         }
+
+        diffuse.head<3>() *= bakeParams.diffuseStrength;
 
         context = {};
         rtcInitIntersectContext(&context);
@@ -203,17 +238,41 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
         ray.tfar = INFINITY;
         rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
 
-        // Diffuse
-        Eigen::Array3f directLighting = diffuse.head<3>();
+        const Eigen::Vector3f viewDirection = (rayPosition - hitPosition).normalized();
+        const float cosLightDirection = saturate(hitNormal.dot(-sunLight.positionOrDirection));
 
-        // Specular
-        if (glossLevel > 0.0f)
+        Eigen::Array3f directLighting;
+
+        if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
         {
-            const Eigen::Vector3f halfwayDirection = (rayPosition - hitPosition - sunLight.positionOrDirection).normalized();
-            directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
+            directLighting = diffuse.head<3>();
+
+            if (glossLevel > 0.0f)
+            {
+                const Eigen::Vector3f halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+                directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
+            }
+        }
+        else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+        {
+            const Eigen::Vector3f halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+            const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
+
+            const float metalness = specular.x() > 0.225f;
+            const float roughness = std::max(0.01f, 1 - specular.y());
+
+            const Eigen::Array3f F0 = lerp<Eigen::Array3f>(Eigen::Array3f(specular.x()), diffuse.head<3>(), metalness);
+            const Eigen::Array3f F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
+            const float D = ndfGGX(cosHalfwayDirection, roughness);
+            const float Vis = visSchlick(roughness, saturate(viewDirection.dot(hitNormal)), cosLightDirection);
+
+            const Eigen::Array3f kd = lerp<Eigen::Array3f>(Eigen::Array3f::Ones() - F, Eigen::Array3f::Zero(), metalness);
+
+            directLighting = kd * (diffuse.head<3>() / PI);
+            directLighting += (D * Vis) * F;
         }
 
-        directLighting *= saturate(hitNormal.dot(-sunLight.positionOrDirection)) * (sunLight.color * bakeParams.lightStrength) * (ray.tfar > 0);
+        directLighting *= cosLightDirection * (sunLight.color * bakeParams.lightStrength) * (ray.tfar > 0);
 
         // Combine
         radiance += throughput * directLighting;

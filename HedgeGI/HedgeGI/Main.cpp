@@ -28,6 +28,19 @@ const char* const GAME_NAMES[] =
     "Sonic Forces"
 };
 
+int nextPowerOfTwo(int value)
+{
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value++;
+
+    return value;
+}
+
 int32_t main(int32_t argc, const char* argv[])
 {
     if (argc < 2)
@@ -126,7 +139,14 @@ int32_t main(int32_t argc, const char* argv[])
         size_t i = 0;
         std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(), [&](const std::unique_ptr<const Instance>& instance)
         {
-            const uint16_t resolution = resolutions.find(instance->name) != resolutions.end() ? std::max<uint16_t>(64, resolutions[instance->name]) : bakeParams.defaultResolution;
+            float radius = 0.0f;
+
+            for (size_t j = 0; j < 8; j++)
+                radius = std::max<float>(radius, (instance->aabb.center() - instance->aabb.corner((Eigen::AlignedBox3f::CornerType)j)).norm());
+
+            const uint16_t resolution = std::max<uint16_t>(16, std::min<uint16_t>(2048, 
+                resolutions.find(instance->name) != resolutions.end() ? resolutions[instance->name] : 
+                nextPowerOfTwo((int)exp2f(bakeParams.resolutionBias + logf(radius) / logf(bakeParams.resolutionBase)))));
 
             if (false)
             {
@@ -165,7 +185,8 @@ int32_t main(int32_t argc, const char* argv[])
                 combined = BitmapHelper::denoise(*combined, bakeParams.denoiseShadowMap);
 
                 // Optimize seams
-                combined = BitmapHelper::optimizeSeams(*combined, *instance);
+                if (bakeParams.optimizeSeams)
+                    combined = BitmapHelper::optimizeSeams(*combined, *instance);
 
                 // Make ready for encoding
                 if (bakeParams.targetEngine == TARGET_ENGINE_HE1)

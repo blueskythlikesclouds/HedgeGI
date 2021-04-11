@@ -30,9 +30,14 @@ struct BakeParams
 
     float diffuseStrength{};
     float lightStrength{};
-    uint16_t defaultResolution{};
+
+    float resolutionBase {};
+    float resolutionBias {};
 
     bool denoiseShadowMap {};
+    bool optimizeSeams {};
+
+    float lightFieldMinCellRadius {};
 
     BakeParams(const TargetEngine targetEngine) : targetEngine(targetEngine) {}
 

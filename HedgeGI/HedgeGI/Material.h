@@ -20,6 +20,8 @@ public:
         Eigen::Array4f powerGlossLevel {};
         Eigen::Array4f luminanceRange {};
         Eigen::Array4f luminance { Eigen::Array4f::Ones() };
+        Eigen::Array4f pbrFactor { };
+        Eigen::Array4f pbrFactor2 { };
     } parameters{};
 
     struct Textures

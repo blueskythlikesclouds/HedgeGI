@@ -2,7 +2,8 @@
 
 #include "Mesh.h"
 
-#define PI 3.14159265358979323846264338327950288f
+#define LOG2E 1.44269504088896340736f
+#define PI    3.14159265358979323846264338327950288f
 
 template<typename T>
 struct EigenHash
@@ -304,4 +305,58 @@ static Eigen::Vector3f closestPointTriangle(const Eigen::Vector3f& p, const Eige
     const float v = vb * denom;
     const float w = vc * denom;
     return a + v * ab + w * ac;
+}
+
+static Eigen::Vector3f fresnelSchlick(Eigen::Vector3f F0, float cosTheta)
+{
+    float p = (-5.55473f * cosTheta - 6.98316f) * cosTheta;
+    return F0 + (Eigen::Vector3f::Ones() - F0) * exp2(p);
+}
+
+static float ndfGGX(float cosLh, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alphaSq = alpha * alpha;
+
+    float denom = (cosLh * alphaSq - cosLh) * cosLh + 1;
+    return alphaSq / (PI * denom * denom);
+}
+
+static float visSchlick(float roughness, float cosLo, float cosLi)
+{
+    float r = roughness + 1;
+    float k = (r * r) / 8;
+    float schlickV = cosLo * (1 - k) + k;
+    float schlickL = cosLi * (1 - k) + k;
+    return 0.25f / (schlickV * schlickL);
+}
+
+static Eigen::Vector3f computeSggiDiffuse(const Eigen::Vector3f& normal, const Eigen::Vector3f& amplitude, const Eigen::Vector3f& axis)
+{
+    Eigen::Vector4f r9 = { normal.y(), normal.x(), normal.z(), normal.x() };
+    Eigen::Vector4f r12, r7, r13, r14, r15, r10;
+
+    r12.head<3>() = amplitude.head<3>();               
+    r7.w() = 4;                              
+    r13.head<3>() = axis;                        
+    r13.w() = r9.x() * r13.y();                  
+    r13.head<3>() = Eigen::Vector3f(r13.x(), r13.w(), r13.z()).normalized();
+    r14.z() = -r9.z();                         
+    r14.head<2>() = r9.head<2>();                        
+    r13.head<3>() = r7.w() * r13.head<3>();              
+    r15.head<3>() = 4.02 * Eigen::Vector3f(r14.y(), r14.x(), r14.z());
+    r13.head<3>() = r13.head<3>() + r15.head<3>();           
+    r7.w() = dot(r13.head<3>(), r13.head<3>());          
+    r7.w() = sqrt(r7.w());                     
+    r9.w() = r7.w() * LOG2E;                   
+    r10.w() = exp2(r9.w());                    
+    r9.w() = -r9.w();                          
+    r9.w() = exp2(r9.w());                     
+    r9.w() = -r9.w();                          
+    r9.w() = r9.w() + r10.w();                   
+    r9.w() = r9.w() * 0.5f;                    
+    r7.w() = r9.w() / r7.w();                    
+    r7.w() = r7.w() * 0.00421554781;           
+    r12.head<3>() = r7.w() * r12.head<3>();              
+    return r12.head<3>();                        
 }
