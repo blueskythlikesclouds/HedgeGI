@@ -3,25 +3,11 @@
 #include "BakingFactory.h"
 #include "LightField.h"
 
-const Eigen::Vector3f LIGHT_FIELD_DIRECTIONS[8] =
-{
-    Eigen::Vector3f(-1, -1, -1).normalized(),
-    Eigen::Vector3f(-1, -1,  1).normalized(),
-    Eigen::Vector3f(-1,  1, -1).normalized(),
-    Eigen::Vector3f(-1,  1,  1).normalized(),
-    Eigen::Vector3f(1, -1, -1).normalized(),
-    Eigen::Vector3f(1, -1,  1).normalized(),
-    Eigen::Vector3f(1,  1, -1).normalized(),
-    Eigen::Vector3f(1,  1,  1).normalized()
-};
-
-// This probably isn't how you project it but it does the job, so...
-
 struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
 {
     static Eigen::Vector3f sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
     {
-        return sampleDirectionSphere(u1, u2);
+        return sampleSphere(index, sampleCount);
     }
 
     bool valid() const
@@ -31,14 +17,13 @@ struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
 
     void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
     {
-        for (size_t i = 0; i < 8; i++)
-            colors[i] += color * saturate(worldSpaceDirection.dot(LIGHT_FIELD_DIRECTIONS[i]));
+        colors[relativeCorner(Eigen::Vector3f::Zero(), worldSpaceDirection)] += color;
     }
 
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 8; i++)
-            colors[i] *= (4.0f * PI) / sampleCount;
+            colors[i] *= (0.5f * PI) / (sampleCount / 8.0f);
     }
 };
 
@@ -81,7 +66,7 @@ bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
             if (userData->distances[i] < distance)
                 continue;
 
-            userData->cornersOptimized[i] = closestPoint + normal.normalized() * 0.01f;
+            userData->cornersOptimized[i] = closestPoint + normal.normalized() * 0.1f;
             userData->distances[i] = distance;
         }
     }

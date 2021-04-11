@@ -252,6 +252,36 @@ static Eigen::AlignedBox3f getAabbHalf(const Eigen::AlignedBox3f& aabb, const si
     return result;
 }
 
+static size_t relativeCorner(const Eigen::Vector3f& left, const Eigen::Vector3f& right)
+{
+    if (right.x() <= left.x()) 
+    {
+        if (right.y() <= left.y()) 
+        {
+            if (right.z() <= left.z()) 
+                return 0;
+
+            return 1;
+        }
+
+        if (right.z() <= left.z()) 
+            return 2;
+
+        return 3;
+    }
+    if (right.y() <= left.y()) 
+    {
+        if (right.z() <= left.z()) 
+            return 4;
+
+        return 5;
+    }
+    if (right.z() <= left.z())
+        return 6;
+
+    return 7;
+}
+
 template<typename T>
 static float dot(const T& a, const T& b)
 {
