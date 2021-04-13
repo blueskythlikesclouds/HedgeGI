@@ -5,6 +5,7 @@
 #include "Light.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "SHLightField.h"
 
 struct RaytracingContext
 {
@@ -24,6 +25,7 @@ public:
     std::vector<std::unique_ptr<const Mesh>> meshes;
     std::vector<std::unique_ptr<const Instance>> instances;
     std::vector<std::unique_ptr<const Light>> lights;
+    std::vector<std::unique_ptr<const SHLightField>> shLightFields;
     Eigen::AlignedBox3f aabb;
 
     void buildAABB();

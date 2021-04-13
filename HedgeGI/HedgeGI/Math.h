@@ -390,3 +390,60 @@ static Eigen::Vector3f computeSggiDiffuse(const Eigen::Vector3f& normal, const E
     r12.head<3>() = r7.w() * r12.head<3>();              
     return r12.head<3>();                        
 }
+
+static Eigen::Vector3f computeSHLightField(const Eigen::Vector3f& normal, const Eigen::Vector3f& amplitude, const Eigen::Vector3f& axis)
+{
+    Eigen::Vector4f r18 = { normal.x(), normal.y(), normal.z(), normal.x() };
+    Eigen::Vector4f r3 = Eigen::Array4f(-normal.z());
+
+    Eigen::Vector4f r21, r12, r13, r22, r23, r14, r20, r15, r16;
+
+    r20.head<3>() = amplitude;              
+    r21.head<3>() = Eigen::Array3f(1.17);                   
+    r12.w() = 3;                        
+    r13.w() = 2.133;                    
+    r22.head<3>() = axis;                   
+    r23.head<2>() = r18.head<2>();                  
+    r23.z() = r3.x();                     
+    r22.head<3>() = r12.w() * r22.head<3>();        
+    r23.head<3>() = r13.w() * r23.head<3>();        
+    r22.head<3>() = r22.head<3>() + r23.head<3>();      
+    r14.w() = dot(r22.head<3>(), r22.head<3>());    
+    r14.w() = sqrt(r14.w());              
+    r20.head<3>() = r20.head<3>() * (4 * PI);     
+    r20.head<3>() = r21.head<3>().cwiseProduct(r20.head<3>());      
+    r15.w() = r14.w() * LOG2E;            
+    r16.x() = exp2(r15.w());              
+    r15.w() = -r15.w();                   
+    r15.w() = exp2(r15.w());              
+    r15.w() = -r15.w();                   
+    r15.w() = r15.w() + r16.x();            
+    r15.w() = r15.w() * 0.5;              
+    r20.head<3>() = r15.w() * r20.head<3>();        
+    r12.w() = r12.w() + r13.w();            
+    r12.w() = r12.w() * LOG2E;            
+    r12.w() = exp2(r12.w());              
+    r12.w() = r14.w() * r12.w();            
+    r20.head<3>() = r20.head<3>() / r12.w();        
+    return r20.head<3>();                                             
+}
+
+// https://stackoverflow.com/a/60047308
+
+static uint32_t as_uint(const float x)
+{
+    return *(uint*)&x;
+}
+
+static float as_float(const uint32_t x)
+{
+    return *(float*)&x;
+}
+
+static float half_to_float(const uint16_t x)
+{
+    const uint32_t e = (x & 0x7C00) >> 10;
+    const uint32_t m = (x & 0x03FF) << 13;
+    const uint32_t v = as_uint((float)m) >> 23;
+    return as_float((x & 0x8000) << 16 | (e != 0) * ((e + 112) << 23 | m) | ((e == 0) & (m != 0)) * ((v - 37) << 23 | ((m << (150 - v)) & 0x007FE000)));
+}

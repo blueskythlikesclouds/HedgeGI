@@ -11,6 +11,7 @@
 #include <fstream>
 
 #include "LightFieldBaker.h"
+#include "SHLightFieldBaker.h"
 
 enum Game
 {
@@ -93,7 +94,9 @@ int32_t main(int32_t argc, const char* argv[])
         return -1;
     }
 
-    printf("Detected game: %s\n", GAME_NAMES[game]);
+    const bool isPbrMod = false;
+
+    printf("Detected game: %s%s\n", GAME_NAMES[game], isPbrMod ? " (PBR Shaders)" : "");
 
     if (std::filesystem::exists(path + ".scene"))
     {
@@ -118,7 +121,7 @@ int32_t main(int32_t argc, const char* argv[])
 
     const auto raytracingContext = scene->createRaytracingContext();
 
-    BakeParams bakeParams(game == GAME_FORCES ? TARGET_ENGINE_HE2 : TARGET_ENGINE_HE1);
+    BakeParams bakeParams(game == GAME_FORCES || isPbrMod ? TARGET_ENGINE_HE2 : TARGET_ENGINE_HE1);
     bakeParams.load(getDirectoryPath(argv[0]) + "/HedgeGI.ini");
 
     // GI Test
@@ -148,7 +151,7 @@ int32_t main(int32_t argc, const char* argv[])
                 resolutions.find(instance->name) != resolutions.end() ? resolutions[instance->name] : 
                 nextPowerOfTwo((int)exp2f(bakeParams.resolutionBias + logf(radius) / logf(bakeParams.resolutionBase)))));
 
-            if (false)
+            if (game == GAME_FORCES || isPbrMod)
             {
                 // SGGI Test
                 auto pair = SGGIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
@@ -163,11 +166,14 @@ int32_t main(int32_t argc, const char* argv[])
                 if (bakeParams.denoiseShadowMap)
                     pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap);
 
-                pair.lightMap = BitmapHelper::optimizeSeams(*pair.lightMap, *instance);
-                pair.shadowMap = BitmapHelper::optimizeSeams(*pair.shadowMap, *instance);
+                if (bakeParams.optimizeSeams)
+                {
+                    pair.lightMap = BitmapHelper::optimizeSeams(*pair.lightMap, *instance);
+                    pair.shadowMap = BitmapHelper::optimizeSeams(*pair.shadowMap, *instance);
+                }
 
-                pair.lightMap->save(outputPath + instance->name + "_sg.dds", SGGIBaker::LIGHT_MAP_FORMAT);
-                pair.shadowMap->save(outputPath + instance->name + "_occlusion.dds", SGGIBaker::SHADOW_MAP_FORMAT);
+                pair.lightMap->save(outputPath + instance->name + "_sg.dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT);
+                pair.shadowMap->save(outputPath + instance->name + "_occlusion.dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::SHADOW_MAP_FORMAT);
             }
             else 
             {
@@ -189,7 +195,7 @@ int32_t main(int32_t argc, const char* argv[])
                     combined = BitmapHelper::optimizeSeams(*combined, *instance);
 
                 // Make ready for encoding
-                if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+                if (bakeParams.targetEngine == TARGET_ENGINE_HE1 || isPbrMod)
                     combined = BitmapHelper::makeEncodeReady(*combined, ENCODE_READY_FLAGS_SQRT);
 
                 if (game == GAME_GENERATIONS)
@@ -214,11 +220,27 @@ int32_t main(int32_t argc, const char* argv[])
     // Light Field Test
     else
     {
-        auto lightField = LightFieldBaker::bake(raytracingContext, bakeParams);
+        // SHLF Test
+        if (game == GAME_FORCES || isPbrMod)
+        {
+            size_t i = 0;
+            std::for_each(std::execution::par_unseq, scene->shLightFields.begin(), scene->shLightFields.end(), [&](const std::unique_ptr<const SHLightField>& shlf)
+            {
+                auto bitmap = SHLightFieldBaker::bake(raytracingContext, *shlf, bakeParams);
+                BitmapHelper::denoise(*bitmap)->save(outputPath + shlf->name + ".dds", DXGI_FORMAT_R16G16B16A16_FLOAT);
 
-        printf("Saving...\n");
+                printf("(%llu/%llu): Saved %s (%dx%dx%d)\n", InterlockedIncrement(&i), 
+                    raytracingContext.scene->shLightFields.size(), shlf->name.c_str(), shlf->resolution.x(), shlf->resolution.y(), shlf->resolution.z());
+            });
+        }
+        else
+        {
+            auto lightField = LightFieldBaker::bake(raytracingContext, bakeParams);
 
-        lightField->save("light-field.lft");
+            printf("Saving...\n");
+
+            lightField->save("light-field.lft");
+        }
     }
 
     printf("Completed!\n");

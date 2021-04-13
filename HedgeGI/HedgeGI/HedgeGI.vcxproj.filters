@@ -45,9 +45,6 @@
     <ClCompile Include="LightField.cpp">
       <Filter>HedgehogEngine\LightField</Filter>
     </ClCompile>
-    <ClCompile Include="SHLightField.cpp">
-      <Filter>HedgehogEngine\LightField</Filter>
-    </ClCompile>
     <ClCompile Include="BitmapHelper.cpp">
       <Filter>Bitmap</Filter>
     </ClCompile>
@@ -56,6 +53,9 @@
     </ClCompile>
     <ClCompile Include="D3D11Device.cpp">
       <Filter>Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="SHLightField.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -117,9 +117,6 @@
     <ClInclude Include="LightField.h">
       <Filter>HedgehogEngine\LightField</Filter>
     </ClInclude>
-    <ClInclude Include="SHLightField.h">
-      <Filter>HedgehogEngine\LightField</Filter>
-    </ClInclude>
     <ClInclude Include="BitmapHelper.h">
       <Filter>Bitmap</Filter>
     </ClInclude>
@@ -131,6 +128,12 @@
     </ClInclude>
     <ClInclude Include="hl_hh_light.h">
       <Filter>HedgehogEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="SHLightField.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="hl_hh_shlf.h">
+      <Filter>HedgehogEngine\LightField</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

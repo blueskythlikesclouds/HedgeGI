@@ -19,8 +19,8 @@ void Bitmap::transformToLinearSpace(Eigen::Array4f* color)
 
 Bitmap::Bitmap() = default;
 
-Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize)
-    : width(width), height(height), arraySize(arraySize), data(std::make_unique<Eigen::Array4f[]>(width * height * arraySize))
+Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize, const BitmapType type)
+    : type(type), width(width), height(height), arraySize(arraySize), data(std::make_unique<Eigen::Array4f[]>(width * height * arraySize))
 {
     for (size_t i = 0; i < width * height * arraySize; i++)
         data[i] = Eigen::Vector4f::Zero();
@@ -72,6 +72,7 @@ void Bitmap::putColor(const Eigen::Array4f& color, const uint32_t x, const uint3
 
 void Bitmap::read(const FileStream& file)
 {
+    type = file.read<BitmapType>();
     name = file.readString();
     width = file.read<uint32_t>();
     height = file.read<uint32_t>();
@@ -82,6 +83,7 @@ void Bitmap::read(const FileStream& file)
 
 void Bitmap::write(const FileStream& file) const
 {
+    file.write(type);
     file.write(name);
     file.write(width);
     file.write(height);
@@ -148,11 +150,25 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transfo
 DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) const
 {
     DirectX::ScratchImage scratchImage;
-    scratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+
+    switch(type)
+    {
+    case BITMAP_TYPE_2D:
+        scratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+        break;
+
+    case BITMAP_TYPE_3D:
+        scratchImage.Initialize3D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+        break;
+
+    case BITMAP_TYPE_CUBE:
+        scratchImage.InitializeCube(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize / 6, 1);
+        break;
+    }
 
     for (size_t i = 0; i < arraySize; i++)
     {
-        Eigen::Array4f* const pixels = (Eigen::Array4f*)scratchImage.GetImage(0, i, 0)->pixels;
+        Eigen::Array4f* const pixels = (Eigen::Array4f*)scratchImage.GetImages()[i].pixels;
 
         memcpy(pixels, &data[i * width * height], sizeof(Eigen::Array4f) * width * height);
 
@@ -161,7 +177,7 @@ DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) con
             for (size_t x = 0; x < width; x++)
             {
                 for (size_t y = 0; y < height; y++)
-                    transformer(&pixels[getColorIndex(x, y, 0)]);
+                    transformer(&pixels[getColorIndex(x, y, i)]);
             }
         }
     }

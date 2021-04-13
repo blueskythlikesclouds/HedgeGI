@@ -145,6 +145,7 @@
     <ClInclude Include="D3D11Device.h" />
     <ClInclude Include="DenoiserDevice.h" />
     <ClInclude Include="hl_hh_light.h" />
+    <ClInclude Include="hl_hh_shlf.h" />
     <ClInclude Include="Light.h" />
     <ClInclude Include="BakingFactory.h" />
     <ClInclude Include="LightField.h" />

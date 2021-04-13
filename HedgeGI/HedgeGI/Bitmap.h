@@ -1,8 +1,16 @@
 ﻿#pragma once
 
+enum BitmapType : uint32_t
+{
+    BITMAP_TYPE_2D,
+    BITMAP_TYPE_3D,
+    BITMAP_TYPE_CUBE
+};
+
 class Bitmap
 {
 public:
+    BitmapType type{};
     std::string name;
     uint32_t width{};
     uint32_t height{};
@@ -16,7 +24,7 @@ public:
     static void transformToLinearSpace(Eigen::Array4f* color);
 
     Bitmap();
-    Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1);
+    Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1, BitmapType type = BITMAP_TYPE_2D);
 
     float* getColors(size_t index) const;
     size_t getColorIndex(size_t x, size_t y, size_t arrayIndex = 0) const;

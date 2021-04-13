@@ -38,7 +38,7 @@ std::unique_ptr<Bitmap> DenoiserDevice::denoise(const Bitmap& bitmap, const bool
         initialized = true;
     }
 
-    std::unique_ptr<Bitmap> denoised = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
+    std::unique_ptr<Bitmap> denoised = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
 
     OptixDenoiserSizes returnSizes;
     optixDenoiserComputeMemoryResources(denoiser, bitmap.width, bitmap.height, &returnSizes);

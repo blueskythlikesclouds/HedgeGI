@@ -70,12 +70,14 @@ void Scene::read(const FileStream& file)
     const uint32_t meshCount = file.read<uint32_t>();
     const uint32_t instanceCount = file.read<uint32_t>();
     const uint32_t lightCount = file.read<uint32_t>();
+    const uint32_t shlfCount = file.read<uint32_t>();
 
     bitmaps.reserve(bitmapCount);
     materials.reserve(materialCount);
     meshes.reserve(meshCount);
     instances.reserve(instanceCount);
     lights.reserve(lightCount);
+    shLightFields.reserve(lightCount);
 
     for (uint32_t i = 0; i < bitmapCount; i++)
     {
@@ -112,6 +114,13 @@ void Scene::read(const FileStream& file)
         lights.push_back(std::move(light));
     }
 
+    for (uint32_t i = 0; i < shlfCount; i++)
+    {
+        std::unique_ptr<SHLightField> shlf = std::make_unique<SHLightField>();
+        shlf->read(file);
+        shLightFields.push_back(std::move(shlf));
+    }
+
     aabb = file.read<Eigen::AlignedBox3f>();
 }
 
@@ -122,6 +131,7 @@ void Scene::write(const FileStream& file) const
     file.write((uint32_t)meshes.size());
     file.write((uint32_t)instances.size());
     file.write((uint32_t)lights.size());
+    file.write((uint32_t)shLightFields.size());
 
     for (auto& bitmap : bitmaps)
         bitmap->write(file);
@@ -137,6 +147,9 @@ void Scene::write(const FileStream& file) const
 
     for (auto& light : lights)
         light->write(file);
+
+    for (auto& shlf : shLightFields)
+        shlf->write(file);
 
     file.write(aabb);
 }

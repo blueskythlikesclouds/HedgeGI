@@ -81,7 +81,7 @@ std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap, const bool d
 
 std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 {
-    std::unique_ptr<Bitmap> dilated = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
+    std::unique_ptr<Bitmap> dilated = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
 
     const size_t bitmapSize = bitmap.width * bitmap.height;
 
@@ -128,7 +128,7 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 
 std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const Instance& instance)
 {
-    std::unique_ptr<Bitmap> optimized = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
+    std::unique_ptr<Bitmap> optimized = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
     memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Eigen::Vector4f));
 
     for (size_t i = 0; i < bitmap.arraySize; i++)
@@ -146,7 +146,7 @@ std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const 
 
 std::unique_ptr<Bitmap> BitmapHelper::makeEncodeReady(const Bitmap& bitmap, const EncodeReadyFlags encodeReadyFlags)
 {
-    std::unique_ptr<Bitmap> encoded = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize);
+    std::unique_ptr<Bitmap> encoded = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
 
     for (size_t i = 0; i < bitmap.arraySize; i++)
     {
@@ -173,7 +173,7 @@ std::unique_ptr<Bitmap> BitmapHelper::combine(const Bitmap& lightMap, const Bitm
 {
     assert(lightMap.width == shadowMap.width && lightMap.height == shadowMap.height);
 
-    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(lightMap.width, lightMap.height, lightMap.arraySize);
+    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(lightMap.width, lightMap.height, lightMap.arraySize, lightMap.type);
 
     for (size_t i = 0; i < bitmap->arraySize; i++)
     {

@@ -33,9 +33,15 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     metadata = scratchImage->GetMetadata();
 
     std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>();
+
+    bitmap->type =
+        ((metadata.miscFlags & DirectX::TEX_MISC_TEXTURECUBE) != 0) ? BITMAP_TYPE_CUBE :
+        metadata.dimension == DirectX::TEX_DIMENSION_TEXTURE3D ? BITMAP_TYPE_3D :
+        BITMAP_TYPE_3D;
+
     bitmap->width = (uint32_t)metadata.width;
     bitmap->height = (uint32_t)metadata.height;
-    bitmap->arraySize = 1;
+    bitmap->arraySize = bitmap->type == BITMAP_TYPE_3D ? (uint32_t)metadata.depth : (uint32_t)metadata.arraySize;
     bitmap->data = std::make_unique<Eigen::Array4f[]>(bitmap->width * bitmap->height * bitmap->arraySize);
 
     for (size_t i = 0; i < bitmap->arraySize; i++)
@@ -214,6 +220,22 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Eigen::Affi
                     destination[j] = (float)source[j] / 255.0f;
 
                 break;
+
+            case HL_HH_VERTEX_FORMAT_VECTOR2_HALF:
+
+                for (size_t j = 0; j < 2; j++)
+                    destination[j] = half_to_float(((uint16_t*)source)[j]);
+
+                break;
+
+            case HL_HH_VERTEX_FORMAT_VECTOR3_HH2:
+                const uint32_t value = ((uint32_t*)source)[0];
+
+                destination[0] = ((value & 0x00000200 ? -1 : 0) + (float)((value) & 0x1FF) / 512.0f);
+                destination[1] = ((value & 0x00080000 ? -1 : 0) + (float)((value >> 10) & 0x1FF) / 512.0f);
+                destination[2] = ((value & 0x20000000 ? -1 : 0) + (float)((value >> 20) & 0x1FF) / 512.0f);
+
+                break;
             }
 
             element++;
@@ -387,6 +409,23 @@ std::unique_ptr<Light> SceneFactory::createLight(HlHHLightV1* light)
     return newLight;
 }
 
+std::unique_ptr<SHLightField> SceneFactory::createSHLightField(HlHHSHLightField* shlf)
+{
+    Eigen::Affine3f affine =
+        Eigen::Translation3f(shlf->position.x, shlf->position.y, shlf->position.z) *
+        Eigen::AngleAxisf(shlf->rotation.x, Eigen::Vector3f::UnitX()) *
+        Eigen::AngleAxisf(shlf->rotation.y, Eigen::Vector3f::UnitY()) *
+        Eigen::AngleAxisf(shlf->rotation.z, Eigen::Vector3f::UnitZ()) *
+        Eigen::Scaling(shlf->scale.x, shlf->scale.y, shlf->scale.z);
+
+    std::unique_ptr<SHLightField> newSHLightField = std::make_unique<SHLightField>();
+    newSHLightField->name = (char*)hlOff64Get(&shlf->name);
+    newSHLightField->resolution = Eigen::Array3i(shlf->probeCounts[0], shlf->probeCounts[1], shlf->probeCounts[2]);
+    newSHLightField->matrix = affine.matrix();
+
+    return newSHLightField;
+}
+
 void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
 {
     for (size_t i = 0; i < archive->entries.count; i++)
@@ -441,6 +480,22 @@ void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
         hlHHLightV1Fix(light);
 
         scene.lights.push_back(std::move(createLight(light)));
+    }
+
+    for (size_t i = 0; i < archive->entries.count; i++)
+    {
+        HlArchiveEntry* entry = &archive->entries.data[i];
+
+        if (!hlNStrStr(entry->path, HL_NTEXT(".shlf")))
+            continue;
+
+        hlBINAV2Fix((void*)entry->data, entry->size);
+
+        HlHHSHLightFieldSet* shlfSet = (HlHHSHLightFieldSet*)hlBINAV2GetData((void*)entry->data);
+        HlHHSHLightField* items = (HlHHSHLightField*)hlOff64Get(&shlfSet->items);
+
+        for (size_t j = 0; j < shlfSet->count; j++)
+            scene.shLightFields.push_back(std::move(createSHLightField(&items[j])));
     }
 }
 

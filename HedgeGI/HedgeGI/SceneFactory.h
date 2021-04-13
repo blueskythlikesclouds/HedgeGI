@@ -6,6 +6,7 @@ class Light;
 class Material;
 class Mesh;
 class Scene;
+class SHLightField;
 
 class SceneFactory
 {
@@ -15,6 +16,7 @@ public:
     static std::unique_ptr<Mesh> createMesh(HlHHMesh* mesh, const Eigen::Affine3f& transformation, const Scene& scene);
     static std::unique_ptr<Instance> createInstance(HlHHTerrainInstanceInfoV0* instance, HlHHTerrainModelV5* model, Scene& scene);
     static std::unique_ptr<Light> createLight(HlHHLightV1* light);
+    static std::unique_ptr<SHLightField> createSHLightField(HlHHSHLightField* shlf);
 
     static void loadResources(HlArchive* archive, Scene& scene);
     static void loadTerrain(HlArchive* archive, Scene& scene);

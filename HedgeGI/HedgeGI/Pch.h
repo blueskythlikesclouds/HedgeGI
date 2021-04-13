@@ -24,6 +24,7 @@
 #include <hedgelib/terrain/hl_hh_terrain_instance_info.h>
 
 #include "hl_hh_light.h"
+#include "hl_hh_shlf.h"
 
 // Eigen
 #include <Eigen/Core>
