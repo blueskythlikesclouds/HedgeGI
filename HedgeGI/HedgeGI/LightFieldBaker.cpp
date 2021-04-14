@@ -23,7 +23,7 @@ struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 8; i++)
-            colors[i] *= (0.5f * PI) / (sampleCount / 8.0f);
+            colors[i] /= sampleCount / 8.0f;
     }
 };
 
@@ -201,7 +201,7 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
         for (size_t i = 0; i < 8; i++)
         {
             for (size_t j = 0; j < 3; j++)
-                probe.colors[i][j] = (uint8_t)(saturate(bakePoint.colors[i][j]) * 255.0f);
+                probe.colors[i][j] = (uint8_t)(sqrtf(saturate(bakePoint.colors[i][j])) * 255.0f);
         }
 
         probe.shadow = (uint8_t)(saturate(bakePoint.shadow) * 255.0f);

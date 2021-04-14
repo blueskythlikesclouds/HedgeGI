@@ -44,7 +44,24 @@ int nextPowerOfTwo(int value)
 
 int32_t main(int32_t argc, const char* argv[])
 {
-    if (argc < 2)
+    const char* inputDirectoryPath = nullptr;
+    bool generateLightField = false;
+    bool isPbrMod = false;
+
+    for (size_t i = 1; i < argc; i++)
+    {
+        if (strcmp(argv[i], "--lft") == 0)
+            generateLightField = true;
+
+        else if (strcmp(argv[i], "--pbr") == 0)
+            isPbrMod = true;
+
+        else if (inputDirectoryPath == nullptr)
+            inputDirectoryPath = argv[i];
+    }
+
+
+    if (inputDirectoryPath == nullptr)
     {
         printf("Insufficient amount of arguments given.\n");
         getchar();
@@ -59,7 +76,7 @@ int32_t main(int32_t argc, const char* argv[])
 
     // Detect accidental drag and drop of -HedgeGI
     char argv1[1024];
-    strcpy(argv1, argv[1]);
+    strcpy(argv1, inputDirectoryPath);
 
     char* suffix = strstr(argv1, "-HedgeGI");
     if (suffix != nullptr)
@@ -94,8 +111,7 @@ int32_t main(int32_t argc, const char* argv[])
         return -1;
     }
 
-    const bool isPbrMod = false;
-
+    printf("Mode: %s\n", generateLightField ? "Light Field" : "Global Illumination");
     printf("Detected game: %s%s\n", GAME_NAMES[game], isPbrMod ? " (PBR Shaders)" : "");
 
     if (std::filesystem::exists(path + ".scene"))
@@ -125,7 +141,7 @@ int32_t main(int32_t argc, const char* argv[])
     bakeParams.load(getDirectoryPath(argv[0]) + "/HedgeGI.ini");
 
     // GI Test
-    if (true)
+    if (!generateLightField)
     {
         phmap::parallel_flat_hash_map<std::string, uint16_t> resolutions;
         std::ifstream stream(path + ".txt");
@@ -195,10 +211,10 @@ int32_t main(int32_t argc, const char* argv[])
                     combined = BitmapHelper::optimizeSeams(*combined, *instance);
 
                 // Make ready for encoding
-                if (bakeParams.targetEngine == TARGET_ENGINE_HE1 || isPbrMod)
+                if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
                     combined = BitmapHelper::makeEncodeReady(*combined, ENCODE_READY_FLAGS_SQRT);
 
-                if (game == GAME_GENERATIONS)
+                if (game == GAME_GENERATIONS && !isPbrMod)
                 {
                     combined->save(outputPath + instance->name + "_lightmap.png", Bitmap::transformToLightMap);
                     combined->save(outputPath + instance->name + "_shadowmap.png", Bitmap::transformToShadowMap);
@@ -207,10 +223,10 @@ int32_t main(int32_t argc, const char* argv[])
                 {
                     combined->save(outputPath + instance->name + ".dds", DXGI_FORMAT_BC3_UNORM);
                 }
-                else if (game == GAME_FORCES)
+                else if (game == GAME_FORCES || isPbrMod)
                 {
-                    combined->save(outputPath + instance->name + ".dds", SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
-                    combined->save(outputPath + instance->name + "_occlusion.dds", SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
+                    combined->save(outputPath + instance->name + ".dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
+                    combined->save(outputPath + instance->name + "_occlusion.dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
                 }
             }
            
