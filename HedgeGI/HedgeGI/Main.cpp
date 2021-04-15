@@ -158,13 +158,37 @@ int32_t main(int32_t argc, const char* argv[])
         size_t i = 0;
         std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(), [&](const std::unique_ptr<const Instance>& instance)
         {
+            bool skip = false;
+
+            if (game == GAME_FORCES || isPbrMod)
+            {
+                skip = std::filesystem::exists(outputPath + instance->name + "_sg.dds") &&
+                    std::filesystem::exists(outputPath + instance->name + "_occlusion.dds");
+            }
+            else if (game == GAME_LOST_WORLD)
+            {
+                skip = std::filesystem::exists(outputPath + instance->name + ".dds");
+            }
+            else
+            {
+                skip = std::filesystem::exists(outputPath + instance->name + "_lightmap.png") &&
+                    std::filesystem::exists(outputPath + instance->name + "_shadowmap.png");
+            }
+
+            if (skip)
+            {
+                printf("(%llu/%llu): Skipped %s\n", InterlockedIncrement(&i), raytracingContext.scene->instances.size(), instance->name.c_str());
+                return;
+            }
+
             float radius = 0.0f;
 
             for (size_t j = 0; j < 8; j++)
                 radius = std::max<float>(radius, (instance->aabb.center() - instance->aabb.corner((Eigen::AlignedBox3f::CornerType)j)).norm());
 
             const uint16_t resolution = std::max<uint16_t>(16, std::min<uint16_t>(2048, 
-                resolutions.find(instance->name) != resolutions.end() ? resolutions[instance->name] : 
+                resolutions.find(instance->name) != resolutions.end() ? resolutions[instance->name] :
+                bakeParams.resolutionOverride != 0xFFFF ? bakeParams.resolutionOverride :
                 nextPowerOfTwo((int)exp2f(bakeParams.resolutionBias + logf(radius) / logf(bakeParams.resolutionBase)))));
 
             if (game == GAME_FORCES || isPbrMod)

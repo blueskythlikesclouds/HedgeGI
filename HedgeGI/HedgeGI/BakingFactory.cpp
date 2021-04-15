@@ -38,6 +38,7 @@ void BakeParams::load(const std::string& filePath)
     lightStrength = reader.GetFloat("Baker", "LightStrength", 1.0f);
     resolutionBase = reader.GetFloat("Baker", "ResolutionBase", 2.0f);
     resolutionBias = reader.GetFloat("Baker", "ResolutionBias", 3.0f);
+    resolutionOverride = (uint16_t)reader.GetInteger("Baker", "ResolutionOverride", -1);
 
     denoiseShadowMap = reader.GetBoolean("Baker", "DenoiseShadowMap", true);
     optimizeSeams = reader.GetBoolean("Baker", "OptimizeSeams", true);

@@ -33,6 +33,7 @@ struct BakeParams
 
     float resolutionBase {};
     float resolutionBias {};
+    uint16_t resolutionOverride {};
 
     bool denoiseShadowMap {};
     bool optimizeSeams {};

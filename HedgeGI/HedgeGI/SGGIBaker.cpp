@@ -11,6 +11,8 @@ const std::array<Eigen::Vector3f, 4> SG_DIRECTIONS =
     Eigen::Vector3f(-1.0f, 0.57735002f, 0.0f)
 };
 
+const float SG_INTEGRAL = 0.64f;
+
 struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
 {
     static Eigen::Vector3f sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)

@@ -432,7 +432,7 @@ static Eigen::Vector3f computeSHLightField(const Eigen::Vector3f& normal, const 
 
 static uint32_t as_uint(const float x)
 {
-    return *(uint*)&x;
+    return *(uint32_t*)&x;
 }
 
 static float as_float(const uint32_t x)
