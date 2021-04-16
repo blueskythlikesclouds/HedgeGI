@@ -22,14 +22,24 @@ struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
 
     void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
     {
+        const Eigen::Vector3f direction(worldSpaceDirection.x(), worldSpaceDirection.y(), -worldSpaceDirection.z());
+
         for (size_t i = 0; i < 4; i++)
-            colors[i] += computeSggiDiffuse(worldSpaceDirection, color, SG_DIRECTIONS[i]).array();
+        {
+            const Eigen::Vector3f sgDirection(SG_DIRECTIONS[i].x(), direction.y() * SG_DIRECTIONS[i].y(), SG_DIRECTIONS[i].z());
+
+            const float cosTheta = direction.dot(sgDirection.normalized());
+            if (cosTheta <= 0.0f)
+                continue;
+
+            colors[i] += color * exp((cosTheta - 1.0f) * 4.0f);
+        }
     }
 
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 4; i++)
-            colors[i] *= (2.0f * PI) / (float)sampleCount;
+            colors[i] *= (2.0f * PI) / sampleCount;
     }
 };
 

@@ -455,7 +455,12 @@ void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
 
         hlHHFix((void*)entry->data);
 
-        HlHHMaterialV3* material = (HlHHMaterialV3*)hlHHGetData((void*)entry->data, nullptr);
+        uint32_t version;
+        HlHHMaterialV3* material = (HlHHMaterialV3*)hlHHGetData((void*)entry->data, &version);
+
+        if (version != 3)
+            continue;
+
         hlHHMaterialV3Fix(material);
 
         std::unique_ptr<Material> newMaterial = createMaterial(material, scene);

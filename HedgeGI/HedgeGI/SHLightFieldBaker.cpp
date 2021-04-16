@@ -28,14 +28,22 @@ struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_NONE>
 
     void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
     {
+        const Eigen::Vector3f direction(worldSpaceDirection.x(), worldSpaceDirection.y(), -worldSpaceDirection.z());
+
         for (size_t i = 0; i < 6; i++)
-            colors[i] += computeSHLightField(worldSpaceDirection, color, SHLF_DIRECTIONS[i]).array();
+        {
+            const float cosTheta = direction.dot(SHLF_DIRECTIONS[i]);
+            if (cosTheta <= 0.0f)
+                continue;
+
+            colors[i] += color * exp((cosTheta - 1.0f) * 3.0f);
+        }
     }
 
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 6; i++)
-            colors[i] = (colors[i] * (PI / sampleCount)).cwiseMax(0);
+            colors[i] *= (2.0f * PI) / sampleCount; // TODO: Is 2 * PI correct? Has correct brightnesss in-game but I'm not sampling a hemisphere.
     }
 };
 
