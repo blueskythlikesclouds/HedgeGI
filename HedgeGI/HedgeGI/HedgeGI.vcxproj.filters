@@ -48,14 +48,17 @@
     <ClCompile Include="BitmapHelper.cpp">
       <Filter>Bitmap</Filter>
     </ClCompile>
-    <ClCompile Include="DenoiserDevice.cpp">
-      <Filter>Devices</Filter>
-    </ClCompile>
     <ClCompile Include="D3D11Device.cpp">
       <Filter>Devices</Filter>
     </ClCompile>
     <ClCompile Include="SHLightField.cpp">
       <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="OptixDenoiserDevice.cpp">
+      <Filter>Devices</Filter>
+    </ClCompile>
+    <ClCompile Include="OidnDenoiserDevice.cpp">
+      <Filter>Devices</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -120,9 +123,6 @@
     <ClInclude Include="BitmapHelper.h">
       <Filter>Bitmap</Filter>
     </ClInclude>
-    <ClInclude Include="DenoiserDevice.h">
-      <Filter>Devices</Filter>
-    </ClInclude>
     <ClInclude Include="D3D11Device.h">
       <Filter>Devices</Filter>
     </ClInclude>
@@ -134,6 +134,12 @@
     </ClInclude>
     <ClInclude Include="hl_hh_shlf.h">
       <Filter>HedgehogEngine\LightField</Filter>
+    </ClInclude>
+    <ClInclude Include="OptixDenoiserDevice.h">
+      <Filter>Devices</Filter>
+    </ClInclude>
+    <ClInclude Include="OidnDenoiserDevice.h">
+      <Filter>Devices</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

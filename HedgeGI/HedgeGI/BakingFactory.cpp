@@ -10,15 +10,15 @@ void BakeParams::load(const std::string& filePath)
 
     if (targetEngine == TARGET_ENGINE_HE2)
     {
-        environmentColor.x() = reader.GetFloat("EnvironmentColor", "R", 1.0f);
-        environmentColor.y() = reader.GetFloat("EnvironmentColor", "G", 1.0f);
-        environmentColor.z() = reader.GetFloat("EnvironmentColor", "B", 1.0f);
+        environmentColor.x() = reader.GetFloat("EnvironmentColorHE2", "R", 1.0f);
+        environmentColor.y() = reader.GetFloat("EnvironmentColorHE2", "G", 1.0f);
+        environmentColor.z() = reader.GetFloat("EnvironmentColorHE2", "B", 1.0f);
     }
     else
     {
-        environmentColor.x() = reader.GetFloat("EnvironmentColor", "R", 255.0f) / 255.0f;
-        environmentColor.y() = reader.GetFloat("EnvironmentColor", "G", 255.0f) / 255.0f;
-        environmentColor.z() = reader.GetFloat("EnvironmentColor", "B", 255.0f) / 255.0f;
+        environmentColor.x() = reader.GetFloat("EnvironmentColorHE1", "R", 255.0f) / 255.0f;
+        environmentColor.y() = reader.GetFloat("EnvironmentColorHE1", "G", 255.0f) / 255.0f;
+        environmentColor.z() = reader.GetFloat("EnvironmentColorHE1", "B", 255.0f) / 255.0f;
     }
 
     lightBounceCount = reader.GetInteger("Baker", "LightBounceCount", 10);
@@ -39,9 +39,12 @@ void BakeParams::load(const std::string& filePath)
     resolutionBase = reader.GetFloat("Baker", "ResolutionBase", 2.0f);
     resolutionBias = reader.GetFloat("Baker", "ResolutionBias", 3.0f);
     resolutionOverride = (uint16_t)reader.GetInteger("Baker", "ResolutionOverride", -1);
+    resolutionMinimum = (uint16_t)reader.GetInteger("Baker", "ResolutionMinimum", 16);
+    resolutionMaximum = (uint16_t)reader.GetInteger("Baker", "ResolutionMaximum", 2048);
 
     denoiseShadowMap = reader.GetBoolean("Baker", "DenoiseShadowMap", true);
     optimizeSeams = reader.GetBoolean("Baker", "OptimizeSeams", true);
+    denoiserType = (DenoiserType)reader.GetInteger("Baker", "DenoiserType", DENOISER_TYPE_OPTIX);
 
     lightFieldMinCellRadius = reader.GetFloat("LightField", "MinCellRadius", 5.0f);
 }

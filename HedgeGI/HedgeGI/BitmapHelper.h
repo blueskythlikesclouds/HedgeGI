@@ -2,6 +2,7 @@
 
 #include "Bitmap.h"
 
+enum DenoiserType;
 class Instance;
 struct so_seam_t;
 
@@ -23,7 +24,7 @@ class BitmapHelper
     static so_seam_t* findSeams(const Bitmap& bitmap, uint32_t index, const Instance& instance, float cosNormalThreshold);
 
 public:
-    static std::unique_ptr<Bitmap> denoise(const Bitmap& bitmap, bool denoiseAlpha = false);
+    static std::unique_ptr<Bitmap> denoise(const Bitmap& bitmap, DenoiserType denoiserType, bool denoiseAlpha = false);
 
     static std::unique_ptr<Bitmap> dilate(const Bitmap& bitmap);
 

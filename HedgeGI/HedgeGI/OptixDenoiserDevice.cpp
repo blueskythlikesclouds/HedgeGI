@@ -1,4 +1,4 @@
-﻿#include "DenoiserDevice.h"
+﻿#include "OptixDenoiserDevice.h"
 #include "Bitmap.h"
 
 // cuda
@@ -10,12 +10,12 @@
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
 
-std::mutex DenoiserDevice::mutex;
-bool DenoiserDevice::initialized;
-OptixDeviceContext DenoiserDevice::context;
-OptixDenoiser DenoiserDevice::denoiser;
+std::mutex OptixDenoiserDevice::mutex;
+bool OptixDenoiserDevice::initialized;
+OptixDeviceContext OptixDenoiserDevice::context;
+OptixDenoiser OptixDenoiserDevice::denoiser;
 
-std::unique_ptr<Bitmap> DenoiserDevice::denoise(const Bitmap& bitmap, const bool denoiseAlpha)
+std::unique_ptr<Bitmap> OptixDenoiserDevice::denoise(const Bitmap& bitmap, const bool denoiseAlpha)
 {
     std::lock_guard<std::mutex> lock(mutex);
 

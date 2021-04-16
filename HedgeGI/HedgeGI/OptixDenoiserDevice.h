@@ -5,7 +5,7 @@ class Bitmap;
 typedef struct OptixDeviceContext_t* OptixDeviceContext;
 typedef struct OptixDenoiser_t* OptixDenoiser;
 
-class DenoiserDevice
+class OptixDenoiserDevice
 {
     static std::mutex mutex;
     static bool initialized;

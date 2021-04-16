@@ -9,6 +9,13 @@ enum TargetEngine
     TARGET_ENGINE_HE2
 };
 
+enum DenoiserType
+{
+    DENOISER_TYPE_NONE,
+    DENOISER_TYPE_OPTIX,
+    DENOISER_TYPE_OIDN
+};
+
 struct BakeParams
 {
     TargetEngine targetEngine;
@@ -34,9 +41,12 @@ struct BakeParams
     float resolutionBase {};
     float resolutionBias {};
     uint16_t resolutionOverride {};
+    uint16_t resolutionMinimum {};
+    uint16_t resolutionMaximum {};
 
     bool denoiseShadowMap {};
     bool optimizeSeams {};
+    DenoiserType denoiserType {};
 
     float lightFieldMinCellRadius {};
 
@@ -231,7 +241,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     shadow += (1 - shadow) * (mesh.type == MESH_TYPE_PUNCH ? alpha > 0.5f : alpha);
 
                     position = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
-                } while (shadow < 1.0f && depth++ < 8); // TODO: Some meshes get stuck in an infinite loop, intersecting each other infinitely. Figure out the solution instead of doing this.
+                } while (shadow < 1.0f && ++depth < 8); // TODO: Some meshes get stuck in an infinite loop, intersecting each other infinitely. Figure out the solution instead of doing this.
 
                 bakePoint.shadow += shadow;
             }

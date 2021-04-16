@@ -1,5 +1,7 @@
 ﻿#include "BitmapHelper.h"
-#include "DenoiserDevice.h"
+#include "BakingFactory.h"
+#include "OidnDenoiserDevice.h"
+#include "OptixDenoiserDevice.h"
 #include "Instance.h"
 #include "Mesh.h"
 
@@ -74,9 +76,10 @@ so_seam_t* BitmapHelper::findSeams(const Bitmap& bitmap, uint32_t index, const I
     return seams;
 }
 
-std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap, const bool denoiseAlpha)
+std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap, const DenoiserType denoiserType, const bool denoiseAlpha)
 {
-    return DenoiserDevice::denoise(bitmap, denoiseAlpha);
+    return denoiserType == DENOISER_TYPE_OPTIX ? OptixDenoiserDevice::denoise(bitmap, denoiseAlpha) :
+        denoiserType == DENOISER_TYPE_OIDN ? OidnDenoiserDevice::denoise(bitmap, denoiseAlpha) : nullptr;
 }
 
 std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)

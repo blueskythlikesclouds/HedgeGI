@@ -42,6 +42,18 @@ int nextPowerOfTwo(int value)
     return value;
 }
 
+void alert()
+{
+    FLASHWINFO flashInfo;
+    flashInfo.cbSize = sizeof(FLASHWINFO);
+    flashInfo.dwFlags = FLASHW_TRAY | FLASHW_TIMERNOFG;
+    flashInfo.uCount = 5;
+    flashInfo.dwTimeout = 0;
+    flashInfo.hwnd = GetConsoleWindow();
+    FlashWindowEx(&flashInfo);
+    MessageBeep(MB_OK);
+}
+
 int32_t main(int32_t argc, const char* argv[])
 {
     const char* inputDirectoryPath = nullptr;
@@ -138,7 +150,9 @@ int32_t main(int32_t argc, const char* argv[])
     const auto raytracingContext = scene->createRaytracingContext();
 
     BakeParams bakeParams(game == GAME_FORCES || isPbrMod ? TARGET_ENGINE_HE2 : TARGET_ENGINE_HE1);
-    bakeParams.load(getDirectoryPath(argv[0]) + "/HedgeGI.ini");
+
+    const std::string directoryPath = getDirectoryPath(argv[0]);
+    bakeParams.load((!directoryPath.empty() ? directoryPath + "/" : "") + "HedgeGI.ini");
 
     // GI Test
     if (!generateLightField)
@@ -186,7 +200,7 @@ int32_t main(int32_t argc, const char* argv[])
             for (size_t j = 0; j < 8; j++)
                 radius = std::max<float>(radius, (instance->aabb.center() - instance->aabb.corner((Eigen::AlignedBox3f::CornerType)j)).norm());
 
-            const uint16_t resolution = std::max<uint16_t>(16, std::min<uint16_t>(2048, 
+            const uint16_t resolution = std::max<uint16_t>(bakeParams.resolutionMinimum, std::min<uint16_t>(bakeParams.resolutionMaximum, 
                 resolutions.find(instance->name) != resolutions.end() ? resolutions[instance->name] :
                 bakeParams.resolutionOverride != 0xFFFF ? bakeParams.resolutionOverride :
                 nextPowerOfTwo((int)exp2f(bakeParams.resolutionBias + logf(radius) / logf(bakeParams.resolutionBase)))));
@@ -201,10 +215,13 @@ int32_t main(int32_t argc, const char* argv[])
                 pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
 
                 // Denoise
-                pair.lightMap = BitmapHelper::denoise(*pair.lightMap);
+                if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+                {
+                    pair.lightMap = BitmapHelper::denoise(*pair.lightMap, bakeParams.denoiserType);
 
-                if (bakeParams.denoiseShadowMap)
-                    pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap);
+                    if (bakeParams.denoiseShadowMap)
+                        pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap, bakeParams.denoiserType);
+                }
 
                 if (bakeParams.optimizeSeams)
                 {
@@ -228,7 +245,8 @@ int32_t main(int32_t argc, const char* argv[])
                 auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
 
                 // Denoise
-                combined = BitmapHelper::denoise(*combined, bakeParams.denoiseShadowMap);
+                if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+                combined = BitmapHelper::denoise(*combined, bakeParams.denoiserType, bakeParams.denoiseShadowMap);
 
                 // Optimize seams
                 if (bakeParams.optimizeSeams)
@@ -267,7 +285,10 @@ int32_t main(int32_t argc, const char* argv[])
             std::for_each(std::execution::par_unseq, scene->shLightFields.begin(), scene->shLightFields.end(), [&](const std::unique_ptr<const SHLightField>& shlf)
             {
                 auto bitmap = SHLightFieldBaker::bake(raytracingContext, *shlf, bakeParams);
-                BitmapHelper::denoise(*bitmap)->save(outputPath + shlf->name + ".dds", DXGI_FORMAT_R16G16B16A16_FLOAT);
+                if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+                    bitmap = BitmapHelper::denoise(*bitmap, bakeParams.denoiserType);
+                
+                bitmap->save(outputPath + shlf->name + ".dds", DXGI_FORMAT_R16G16B16A16_FLOAT);
 
                 printf("(%llu/%llu): Saved %s (%dx%dx%d)\n", InterlockedIncrement(&i), 
                     raytracingContext.scene->shLightFields.size(), shlf->name.c_str(), shlf->resolution.x(), shlf->resolution.y(), shlf->resolution.z());
@@ -279,11 +300,12 @@ int32_t main(int32_t argc, const char* argv[])
 
             printf("Saving...\n");
 
-            lightField->save("light-field.lft");
+            lightField->save(outputPath + "light-field.lft");
         }
     }
 
     printf("Completed!\n");
+    alert();
     getchar();
 
     return 0;
