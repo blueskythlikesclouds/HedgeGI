@@ -194,6 +194,8 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 Eigen::Vector3f position = bakePoint.smoothPosition;
 
                 float shadow = 0;
+                size_t depth = 0;
+
                 do
                 {
                     RTCIntersectContext context {};
@@ -223,9 +225,13 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     const Vertex& c = mesh.vertices[triangle.c];
                     const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, { query.hit.v, query.hit.u });
 
-                    shadow = std::max(shadow, mesh.material && mesh.material->textures.diffuse ? mesh.material->textures.diffuse->pickColor(hitUV)[3] : 1);
+                    const float alpha = mesh.type != MESH_TYPE_OPAQUE && mesh.material && mesh.material->textures.diffuse ? 
+                        mesh.material->textures.diffuse->pickColor(hitUV)[3] : 1;
+
+                    shadow += (1 - shadow) * (mesh.type == MESH_TYPE_PUNCH ? alpha > 0.5f : alpha);
+
                     position = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
-                } while (shadow < 1.0f);
+                } while (shadow < 1.0f && depth++ < 8); // TODO: Some meshes get stuck in an infinite loop, intersecting each other infinitely. Figure out the solution instead of doing this.
 
                 bakePoint.shadow += shadow;
             }
