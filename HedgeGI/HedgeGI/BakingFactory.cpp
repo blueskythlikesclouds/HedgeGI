@@ -114,9 +114,12 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
         const Vertex& c = mesh.vertices[triangle.c];
 
         const Eigen::Vector3f hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
-        const Eigen::Vector3f hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
         const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
         const Eigen::Array4f hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
+
+        Eigen::Vector3f hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
+        if (mesh.type != MESH_TYPE_OPAQUE && triNormal.dot(hitNormal) < 0)
+            hitNormal *= -1;
 
         Eigen::Array4f diffuse = Eigen::Array4f::Ones();
         Eigen::Array4f specular = Eigen::Array4f::Zero();

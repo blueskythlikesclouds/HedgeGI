@@ -246,7 +246,7 @@ int32_t main(int32_t argc, const char* argv[])
 
                 // Denoise
                 if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
-                combined = BitmapHelper::denoise(*combined, bakeParams.denoiserType, bakeParams.denoiseShadowMap);
+                    combined = BitmapHelper::denoise(*combined, bakeParams.denoiserType, bakeParams.denoiseShadowMap);
 
                 // Optimize seams
                 if (bakeParams.optimizeSeams)
