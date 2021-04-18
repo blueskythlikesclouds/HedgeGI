@@ -135,6 +135,7 @@
     <ClCompile Include="RaytracingDevice.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneFactory.cpp" />
+    <ClCompile Include="SeamOptimizer.cpp" />
     <ClCompile Include="SGGIBaker.cpp" />
     <ClCompile Include="SHLightField.cpp" />
     <ClCompile Include="SHLightFieldBaker.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="Pch.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="SeamOptimizer.h" />
     <ClInclude Include="SGGIBaker.h" />
     <ClInclude Include="SHLightField.h" />
     <ClInclude Include="SHLightFieldBaker.h" />

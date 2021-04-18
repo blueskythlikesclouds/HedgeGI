@@ -60,6 +60,9 @@
     <ClCompile Include="OidnDenoiserDevice.cpp">
       <Filter>Devices</Filter>
     </ClCompile>
+    <ClCompile Include="SeamOptimizer.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -141,6 +144,9 @@
     <ClInclude Include="OidnDenoiserDevice.h">
       <Filter>Devices</Filter>
     </ClInclude>
+    <ClInclude Include="SeamOptimizer.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scene">
@@ -166,6 +172,9 @@
     </Filter>
     <Filter Include="Baker\Subclasses">
       <UniqueIdentifier>{d2790bb7-5357-4478-98bd-d0cbd9a79a3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{c66fe44a-b61b-4f92-829c-b97bdb490f6d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -64,6 +64,7 @@ void Mesh::generateTangents() const
     for (uint32_t i = 0; i < vertexCount; i++)
     {
         Vertex& vertex = vertices[i];
+        vertex.normal.normalize();
         vertex.tangent.normalize();
         vertex.binormal.normalize();
     }

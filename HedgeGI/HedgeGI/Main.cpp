@@ -11,6 +11,7 @@
 #include <fstream>
 
 #include "LightFieldBaker.h"
+#include "SeamOptimizer.h"
 #include "SHLightFieldBaker.h"
 
 enum Game
@@ -225,8 +226,9 @@ int32_t main(int32_t argc, const char* argv[])
 
                 if (bakeParams.optimizeSeams)
                 {
-                    pair.lightMap = BitmapHelper::optimizeSeams(*pair.lightMap, *instance);
-                    pair.shadowMap = BitmapHelper::optimizeSeams(*pair.shadowMap, *instance);
+                    const SeamOptimizer seamOptimizer(*instance);
+                    pair.lightMap = seamOptimizer.optimize(*pair.lightMap);
+                    pair.shadowMap = seamOptimizer.optimize(*pair.shadowMap);
                 }
 
                 pair.lightMap->save(outputPath + instance->name + "_sg.dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT);

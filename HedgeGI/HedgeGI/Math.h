@@ -380,3 +380,9 @@ static float half_to_float(const uint16_t x)
     const uint32_t v = as_uint((float)m) >> 23;
     return as_float((x & 0x8000) << 16 | (e != 0) * ((e + 112) << 23 | m) | ((e == 0) & (m != 0)) * ((v - 37) << 23 | ((m << (150 - v)) & 0x007FE000)));
 }
+
+template<typename T>
+static bool nearlyEqual(const T& a, const T& b)
+{
+    return (a - b).cwiseAbs().maxCoeff() < 0.0001f;
+}
