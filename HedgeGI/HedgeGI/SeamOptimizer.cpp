@@ -93,6 +93,22 @@ int32_t SeamOptimizer::findVertex(const Eigen::Vector3f& position, const Eigen::
 
 SeamOptimizer::SeamOptimizer(const Instance& instance) : instance(instance)
 {
+    for (size_t i = 0; i < instance.meshes.size(); i++)
+    {
+        const Mesh* mesh = instance.meshes[i];
+
+        for (size_t j = 0; j < mesh->triangleCount; j++)
+        {
+            const Triangle& triangle = mesh->triangles[j];
+            const Vertex& a = mesh->vertices[triangle.a];
+            const Vertex& b = mesh->vertices[triangle.b];
+            const Vertex& c = mesh->vertices[triangle.c];
+
+            nodes.push_back({ std::min(a.position.x(), std::min(b.position.x(), c.position.x())), (uint32_t)i, (uint32_t)j });
+        }
+    }
+
+    nodes.sort([](const auto& left, const auto& right) { return left.key < right.key; });
 }
 
 SeamOptimizer::~SeamOptimizer() = default;
@@ -102,23 +118,26 @@ std::unique_ptr<Bitmap> SeamOptimizer::optimize(const Bitmap& bitmap) const
     std::unique_ptr<Bitmap> optimized = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
     memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Eigen::Vector4f));
 
-    // TODO: Optimize using an acceleration structure!!! This is slow!!!
-    for (size_t mA = 0; mA < instance.meshes.size(); mA++)
+    std::list<const SeamNode*> list;
+    for (auto& node : nodes)
     {
-        for (size_t tA = 0; tA < instance.meshes[mA]->triangleCount; tA++)
+        list.push_back(&node);
+        for (auto it = list.begin(); it != list.end();)
         {
-            for (size_t mB = 0; mB < instance.meshes.size(); mB++)
+            if (node.key + 0.0001f > (*it)->key - 0.0001f)
             {
-                for (size_t tB = 0; tB < instance.meshes[mB]->triangleCount; tB++)
-                {
-                    if (mA == mB && tA == tB)
-                        continue;
+                const Mesh* meshA = instance.meshes[node.meshIndex];
+                const Triangle& triangleA = meshA->triangles[node.triangleIndex];
+                const Mesh* meshB = instance.meshes[(*it)->meshIndex];
+                const Triangle& triangleB = meshB->triangles[(*it)->triangleIndex];
 
-                    compareAndBlend(
-                        *instance.meshes[mA], *instance.meshes[mB],
-                        instance.meshes[mA]->triangles[tA], instance.meshes[mB]->triangles[tB],
-                        *optimized);
-                }
+                compareAndBlend(*meshA, *meshB, triangleA, triangleB, *optimized);
+
+                ++it;
+            }
+            else
+            {
+                it = list.erase(it);
             }
         }
     }

@@ -3,9 +3,17 @@
 class Bitmap;
 class Instance;
 
+struct SeamNode
+{
+    float key;
+    uint32_t meshIndex;
+    uint32_t triangleIndex;
+};
+
 class SeamOptimizer
 {
     const Instance& instance;
+    std::list<SeamNode> nodes;
 
     static void blend(uint32_t stepCount, const Eigen::Vector2f& startA, const Eigen::Vector2f& endA, const Eigen::Vector2f& startB, const Eigen::Vector2f& endB, const Bitmap& bitmap);
     static void compareAndBlend(const Mesh& mA, const Mesh& mB, const Triangle& tA, const Triangle& tB, const Bitmap& bitmap);
