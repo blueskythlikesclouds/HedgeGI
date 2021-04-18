@@ -132,157 +132,206 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
         if (material != nullptr)
         {
-            if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
-                diffuse *= material->parameters.diffuse;
-
-            if (material->textures.diffuse != nullptr)
+            if (material->type == MATERIAL_TYPE_COMMON)
             {
-                Eigen::Array4f diffuseTex = material->textures.diffuse->pickColor(hitUV);
+                if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+                    diffuse *= material->parameters.diffuse;
 
-                if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
-                    diffuseTex.head<3>() = diffuseTex.head<3>().pow(2.2f);
-
-                if (material->textures.diffuseBlend != nullptr)
+                if (material->textures.diffuse != nullptr)
                 {
-                    Eigen::Array4f diffuseBlendTex = material->textures.diffuseBlend->pickColor(hitUV);
+                    Eigen::Array4f diffuseTex = material->textures.diffuse->pickColor(hitUV);
 
                     if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
-                        diffuseBlendTex.head<3>() = diffuseBlendTex.head<3>().pow(2.2f);
-
-                    diffuseTex = lerp(diffuseTex, diffuseBlendTex, hitColor.w());
-                }
-
-                diffuse *= diffuseTex;
-            }
-
-            if (material->textures.diffuseBlend == nullptr || bakeParams.targetEngine == TARGET_ENGINE_HE2)
-                diffuse *= hitColor;
-
-            if (material->textures.alpha != nullptr)
-                diffuse.w() *= material->textures.alpha->pickColor(hitUV).x();
-
-            // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.
-            if (mesh.type == MESH_TYPE_PUNCH && diffuse.w() < 0.5f)
-            {
-                query.ray.org_x = hitPosition[0];
-                query.ray.org_y = hitPosition[1];
-                query.ray.org_z = hitPosition[2];
-                query.ray.tnear = 0.001f;
-                query.ray.tfar = INFINITY;
-                query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-                context = {};
-                rtcInitIntersectContext(&context);
-
-                continue;
-            }
-
-            if (bakeParams.targetEngine == TARGET_ENGINE_HE1 && material->textures.gloss != nullptr)
-            {
-                float gloss = material->textures.gloss->pickColor(hitUV).x();
-
-                if (material->textures.glossBlend != nullptr)
-                    gloss = lerp(gloss, material->textures.glossBlend->pickColor(hitUV).x(), hitColor.w());
-
-                glossPower = std::min(1024.0f, std::max(1.0f, gloss * material->parameters.powerGlossLevel.y() * 500.0f));
-                glossLevel = gloss * material->parameters.powerGlossLevel.z() * 5.0f;
-
-                specular = material->parameters.specular;
-
-                if (material->textures.specular != nullptr)
-                {
-                    Eigen::Array4f specularTex = material->textures.specular->pickColor(hitUV);
-
-                    if (material->textures.specularBlend != nullptr)
-                        specularTex = lerp(specularTex, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
-
-                    specular *= specularTex;
-                }
-            }
-
-            else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
-            {
-                if (material->textures.specular != nullptr)
-                {
-                    specular = material->textures.specular->pickColor(hitUV);
-
-                    if (material->textures.specularBlend != nullptr)
-                        specular = lerp(specular, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
-
-                    specular.x() *= 0.25f;
-                }
-                else
-                {
-                    specular.head<2>() = material->parameters.pbrFactor.head<2>();
+                        diffuseTex.head<3>() = diffuseTex.head<3>().pow(2.2f);
 
                     if (material->textures.diffuseBlend != nullptr)
-                        specular.head<2>() = lerp<Eigen::Array2f>(specular.head<2>(), material->parameters.pbrFactor2.head<2>(), hitColor.w());
+                    {
+                        Eigen::Array4f diffuseBlendTex = material->textures.diffuseBlend->pickColor(hitUV);
 
-                    specular.z() = 1.0f;
-                    specular.w() = 1.0f;
+                        if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+                            diffuseBlendTex.head<3>() = diffuseBlendTex.head<3>().pow(2.2f);
+
+                        diffuseTex = lerp(diffuseTex, diffuseBlendTex, hitColor.w());
+                    }
+
+                    diffuse *= diffuseTex;
                 }
+
+                if (material->textures.diffuseBlend == nullptr || bakeParams.targetEngine == TARGET_ENGINE_HE2)
+                    diffuse *= hitColor;
+
+                if (material->textures.alpha != nullptr)
+                    diffuse.w() *= material->textures.alpha->pickColor(hitUV).x();
+
+                // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.
+                if (mesh.type == MESH_TYPE_PUNCH && diffuse.w() < 0.5f)
+                {
+                    query.ray.org_x = hitPosition[0];
+                    query.ray.org_y = hitPosition[1];
+                    query.ray.org_z = hitPosition[2];
+                    query.ray.tnear = 0.001f;
+                    query.ray.tfar = INFINITY;
+                    query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                    query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+                    context = {};
+                    rtcInitIntersectContext(&context);
+
+                    continue;
+                }
+
+                if (bakeParams.targetEngine == TARGET_ENGINE_HE1 && material->textures.gloss != nullptr)
+                {
+                    float gloss = material->textures.gloss->pickColor(hitUV).x();
+
+                    if (material->textures.glossBlend != nullptr)
+                        gloss = lerp(gloss, material->textures.glossBlend->pickColor(hitUV).x(), hitColor.w());
+
+                    glossPower = std::min(1024.0f, std::max(1.0f, gloss * material->parameters.powerGlossLevel.y() * 500.0f));
+                    glossLevel = gloss * material->parameters.powerGlossLevel.z() * 5.0f;
+
+                    specular = material->parameters.specular;
+
+                    if (material->textures.specular != nullptr)
+                    {
+                        Eigen::Array4f specularTex = material->textures.specular->pickColor(hitUV);
+
+                        if (material->textures.specularBlend != nullptr)
+                            specularTex = lerp(specularTex, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
+
+                        specular *= specularTex;
+                    }
+                }
+
+                else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+                {
+                    if (material->textures.specular != nullptr)
+                    {
+                        specular = material->textures.specular->pickColor(hitUV);
+
+                        if (material->textures.specularBlend != nullptr)
+                            specular = lerp(specular, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
+
+                        specular.x() *= 0.25f;
+                    }
+                    else
+                    {
+                        specular.head<2>() = material->parameters.pbrFactor.head<2>();
+
+                        if (material->textures.diffuseBlend != nullptr)
+                            specular.head<2>() = lerp<Eigen::Array2f>(specular.head<2>(), material->parameters.pbrFactor2.head<2>(), hitColor.w());
+
+                        specular.z() = 1.0f;
+                        specular.w() = 1.0f;
+                    }
+                }
+
+                if (material->textures.emission != nullptr)
+                    emission = material->textures.emission->pickColor(hitUV) * material->parameters.ambient * material->parameters.luminance.x();
             }
 
-            if (material->textures.emission != nullptr)
-                emission = material->textures.emission->pickColor(hitUV) * material->parameters.ambient * material->parameters.luminance.x();
+            else if (material->type == MATERIAL_TYPE_IGNORE_LIGHT)
+            {
+                diffuse *= hitColor * material->parameters.diffuse;
+
+                if (material->textures.diffuse != nullptr)
+                    diffuse *= material->textures.diffuse->pickColor(hitUV);
+
+                if (material->textures.alpha != nullptr)
+                    diffuse.w() *= material->textures.alpha->pickColor(hitUV).w();
+
+                if (mesh.type == MESH_TYPE_PUNCH && diffuse.w() < 0.5f)
+                {
+                    query.ray.org_x = hitPosition[0];
+                    query.ray.org_y = hitPosition[1];
+                    query.ray.org_z = hitPosition[2];
+                    query.ray.tnear = 0.001f;
+                    query.ray.tfar = INFINITY;
+                    query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                    query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+                    context = {};
+                    rtcInitIntersectContext(&context);
+
+                    continue;
+                }
+
+                if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+                {
+                    emission = material->textures.emission != nullptr ? material->textures.emission->pickColor(hitUV) : material->parameters.emissive;
+                    emission *= material->parameters.ambient * material->parameters.luminance.x();
+                }
+                else if (material->textures.emission != nullptr)
+                {
+                    emission = material->textures.emission->pickColor(hitUV);
+                    emission.head<3>() += material->parameters.emissionParam.head<3>();
+                    emission *= material->parameters.ambient * material->parameters.emissionParam.w();
+                }
+            }
         }
 
         diffuse.head<3>() *= bakeParams.diffuseStrength;
 
-        context = {};
-        rtcInitIntersectContext(&context);
-
-        // Check for shadow intersection
-        RTCRay ray{};
-        ray.dir_x = -sunLight.positionOrDirection[0];
-        ray.dir_y = -sunLight.positionOrDirection[1];
-        ray.dir_z = -sunLight.positionOrDirection[2];
-        ray.org_x = hitPosition[0];
-        ray.org_y = hitPosition[1];
-        ray.org_z = hitPosition[2];
-        ray.tnear = 0.001f;
-        ray.tfar = INFINITY;
-        rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
-
-        const Eigen::Vector3f viewDirection = (rayPosition - hitPosition).normalized();
-        const float cosLightDirection = saturate(hitNormal.dot(-sunLight.positionOrDirection));
-
-        Eigen::Array3f directLighting;
-
-        if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+        if (material == nullptr || material->type == MATERIAL_TYPE_COMMON)
         {
-            directLighting = diffuse.head<3>();
+            context = {};
+            rtcInitIntersectContext(&context);
 
-            if (glossLevel > 0.0f)
+            // Check for shadow intersection
+            RTCRay ray {};
+            ray.dir_x = -sunLight.positionOrDirection[0];
+            ray.dir_y = -sunLight.positionOrDirection[1];
+            ray.dir_z = -sunLight.positionOrDirection[2];
+            ray.org_x = hitPosition[0];
+            ray.org_y = hitPosition[1];
+            ray.org_z = hitPosition[2];
+            ray.tnear = 0.001f;
+            ray.tfar = INFINITY;
+            rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
+
+            const Eigen::Vector3f viewDirection = (rayPosition - hitPosition).normalized();
+            const float cosLightDirection = saturate(hitNormal.dot(-sunLight.positionOrDirection));
+
+            Eigen::Array3f directLighting;
+
+            if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+            {
+                directLighting = diffuse.head<3>();
+
+                if (glossLevel > 0.0f)
+                {
+                    const Eigen::Vector3f halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+                    directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
+                }
+            }
+            else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
             {
                 const Eigen::Vector3f halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
-                directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
+                const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
+
+                const float metalness = specular.x() > 0.225f;
+                const float roughness = std::max(0.01f, 1 - specular.y());
+
+                const Eigen::Array3f F0 = lerp<Eigen::Array3f>(Eigen::Array3f(specular.x()), diffuse.head<3>(), metalness);
+                const Eigen::Array3f F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
+                const float D = ndfGGX(cosHalfwayDirection, roughness);
+                const float Vis = visSchlick(roughness, saturate(viewDirection.dot(hitNormal)), cosLightDirection);
+
+                const Eigen::Array3f kd = lerp<Eigen::Array3f>(Eigen::Array3f::Ones() - F, Eigen::Array3f::Zero(), metalness);
+
+                directLighting = kd * (diffuse.head<3>() / PI);
+                directLighting += (D * Vis) * F;
             }
+
+            directLighting *= cosLightDirection * (sunLight.color * bakeParams.lightStrength) * (ray.tfar > 0);
+
+            radiance += throughput * directLighting;
         }
-        else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+        else if (material->type == MATERIAL_TYPE_IGNORE_LIGHT)
         {
-            const Eigen::Vector3f halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
-            const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
-
-            const float metalness = specular.x() > 0.225f;
-            const float roughness = std::max(0.01f, 1 - specular.y());
-
-            const Eigen::Array3f F0 = lerp<Eigen::Array3f>(Eigen::Array3f(specular.x()), diffuse.head<3>(), metalness);
-            const Eigen::Array3f F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
-            const float D = ndfGGX(cosHalfwayDirection, roughness);
-            const float Vis = visSchlick(roughness, saturate(viewDirection.dot(hitNormal)), cosLightDirection);
-
-            const Eigen::Array3f kd = lerp<Eigen::Array3f>(Eigen::Array3f::Ones() - F, Eigen::Array3f::Zero(), metalness);
-
-            directLighting = kd * (diffuse.head<3>() / PI);
-            directLighting += (D * Vis) * F;
+            radiance += throughput * diffuse.head<3>();
         }
 
-        directLighting *= cosLightDirection * (sunLight.color * bakeParams.lightStrength) * (ray.tfar > 0);
-
-        // Combine
-        radiance += throughput * directLighting;
         radiance += throughput * emission.head<3>();
 
         // Setup next ray

@@ -54,6 +54,9 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
 {
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
+    char* shaderName = (char*)hlOff32Get(&material->shaderNameOffset);
+    newMaterial->type = strstr(shaderName, "IgnoreLight") != nullptr ? MATERIAL_TYPE_IGNORE_LIGHT : MATERIAL_TYPE_COMMON;
+
     HL_OFF32(HlHHMaterialParameter)* parameters = (HL_OFF32(HlHHMaterialParameter)*)hlOff32Get(&material->vec4ParamsOffset);
 
     for (size_t i = 0; i < material->vec4ParamCount; i++)
@@ -71,6 +74,8 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
         else if (strcmp(name, "Luminance") == 0) newMaterial->parameters.luminance = value;
         else if (strcmp(name, "PBRFactor") == 0) newMaterial->parameters.pbrFactor = value;
         else if (strcmp(name, "PBRFactor2") == 0) newMaterial->parameters.pbrFactor2 = value;
+        else if (strcmp(name, "g_EmissionParam") == 0) newMaterial->parameters.emissionParam = value;
+        else if (strcmp(name, "emissive") == 0) newMaterial->parameters.emissive = value;
     }
 
     HL_OFF32(HlHHTextureV1)* textures = (HL_OFF32(HlHHTextureV1)*)hlOff32Get(&material->texturesOffset);

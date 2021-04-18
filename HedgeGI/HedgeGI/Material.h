@@ -3,6 +3,12 @@
 class Bitmap;
 class Scene;
 
+enum MaterialType : uint32_t
+{
+    MATERIAL_TYPE_COMMON,
+    MATERIAL_TYPE_IGNORE_LIGHT
+};
+
 class Material
 {
 private:
@@ -11,17 +17,20 @@ private:
 
 public:
     std::string name;
+    MaterialType type{};
 
     struct Parameters
     {
-        Eigen::Array4f diffuse { Eigen::Array4f::Ones() };
-        Eigen::Array4f specular { Eigen::Array4f::Ones() };
-        Eigen::Array4f ambient { Eigen::Array4f::Ones() };
-        Eigen::Array4f powerGlossLevel {};
-        Eigen::Array4f luminanceRange {};
-        Eigen::Array4f luminance { Eigen::Array4f::Ones() };
-        Eigen::Array4f pbrFactor { };
-        Eigen::Array4f pbrFactor2 { };
+        Eigen::Array4f diffuse { 1, 1, 1, 1 };
+        Eigen::Array4f specular { 1, 1, 1, 1 };
+        Eigen::Array4f ambient { 1, 1, 1, 1 };
+        Eigen::Array4f powerGlossLevel { 0, 0, 0, 0 };
+        Eigen::Array4f luminanceRange { 0, 0, 0, 0 };
+        Eigen::Array4f luminance { 1, 1, 1, 1 };
+        Eigen::Array4f pbrFactor { 0.04, 0.5, 0, 0 };
+        Eigen::Array4f pbrFactor2 { 0.04, 0.5, 0, 0 };
+        Eigen::Array4f emissionParam { 0, 0, 0, 1 };
+        Eigen::Array4f emissive { 0, 0, 0, 0 };
     } parameters{};
 
     struct Textures

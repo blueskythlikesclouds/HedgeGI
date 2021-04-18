@@ -29,6 +29,7 @@ void Material::writeBitmapReference(const FileStream& file, const Scene& scene, 
 void Material::read(const FileStream& file, const Scene& scene)
 {
     name = file.readString();
+    type = (MaterialType)file.read<uint32_t>();
     parameters = file.read<Parameters>();
     textures.diffuse = readBitmapReference(file, scene);
     textures.specular = readBitmapReference(file, scene);
@@ -44,6 +45,7 @@ void Material::read(const FileStream& file, const Scene& scene)
 void Material::write(const FileStream& file, const Scene& scene) const
 {
     file.write(name);
+    file.write((uint32_t)type);
     file.write(parameters);
     writeBitmapReference(file, scene, textures.diffuse);
     writeBitmapReference(file, scene, textures.specular);
