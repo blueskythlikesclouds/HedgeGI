@@ -79,7 +79,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
         const Eigen::Vector3f rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
-        float probability = throughput.head<3>().cwiseProduct(Eigen::Array3f(0.2126f, 0.7152f, 0.0722f)).sum();
+        const float probability = throughput.head<3>().maxCoeff();
         if (i > bakeParams.russianRouletteMaxDepth)
         {
             if (Random::next() > probability)
