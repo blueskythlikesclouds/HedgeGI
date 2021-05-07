@@ -104,7 +104,7 @@ void Bitmap::save(const std::string& filePath, Transformer* const transformer) c
     WCHAR wideCharFilePath[MAX_PATH];
     MultiByteToWideChar(CP_UTF8, NULL, filePath.c_str(), -1, wideCharFilePath, MAX_PATH);
 
-    SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_FORCE_SRGB, GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
+    SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_NONE, GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
 }
 
 void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transformer* const transformer) const
