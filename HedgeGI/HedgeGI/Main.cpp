@@ -231,8 +231,8 @@ int32_t main(int32_t argc, const char* argv[])
                     pair.shadowMap = seamOptimizer.optimize(*pair.shadowMap);
                 }
 
-                pair.lightMap->save(outputPath + instance->name + "_sg.dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT);
-                pair.shadowMap->save(outputPath + instance->name + "_occlusion.dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::SHADOW_MAP_FORMAT);
+                pair.lightMap->save(outputPath + instance->name + "_sg.dds", isPbrMod ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT);
+                pair.shadowMap->save(outputPath + instance->name + "_occlusion.dds", isPbrMod ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT);
             }
             else 
             {
@@ -269,8 +269,8 @@ int32_t main(int32_t argc, const char* argv[])
                 }
                 else if (game == GAME_FORCES || isPbrMod)
                 {
-                    combined->save(outputPath + instance->name + ".dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
-                    combined->save(outputPath + instance->name + "_occlusion.dds", isPbrMod ? DXGI_FORMAT_R32G32B32A32_FLOAT : SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
+                    combined->save(outputPath + instance->name + ".dds", isPbrMod ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
+                    combined->save(outputPath + instance->name + "_occlusion.dds", isPbrMod ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
                 }
             }
            
