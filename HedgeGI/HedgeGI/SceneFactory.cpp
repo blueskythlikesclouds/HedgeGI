@@ -522,6 +522,15 @@ void SceneFactory::loadTerrain(HlArchive* archive, Scene& scene)
 
         hlHHFix((void*)entry->data);
 
+        if (hlHHHeaderIsMirage(entry->data))
+        {
+            const HlHHMirageNode* nodes = hlHHMirageHeaderGetNodes((const HlHHMirageHeader*)entry->data);
+            const HlHHMirageNode* node = hlHHMirageGetNode(nodes, "DisableC", HL_TRUE);
+
+            if (node != nullptr && node->value != 0)
+                continue;
+        }
+
         HlHHTerrainModelV5* model = (HlHHTerrainModelV5*)hlHHGetData((void*)entry->data, nullptr);
         hlHHTerrainModelV5Fix(model);
         
@@ -565,8 +574,6 @@ void SceneFactory::loadTerrain(HlArchive* archive, Scene& scene)
 
         scene.instances.push_back(createInstance(nullptr, model, scene));
     }
-
-    scene.buildAABB();
 }
 
 std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& directoryPath)
@@ -641,6 +648,7 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
     std::system("del temp.ar");
 
     scene->removeUnusedBitmaps();
+    scene->buildAABB();
     return scene;
 }
 
@@ -682,5 +690,6 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
     }
 
     scene->removeUnusedBitmaps();
+    scene->buildAABB();
     return scene;
 }
