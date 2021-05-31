@@ -28,6 +28,7 @@ struct BakeParams
 
     uint32_t shadowSampleCount{};
     float shadowSearchRadius{};
+    float shadowBias {};
 
     uint32_t aoSampleCount {};
     float aoFadeConstant {};
@@ -219,7 +220,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     query.ray.org_x = position[0];
                     query.ray.org_y = position[1];
                     query.ray.org_z = position[2];
-                    query.ray.tnear = 0.001f;
+                    query.ray.tnear = bakeParams.shadowBias;
                     query.ray.tfar = INFINITY;
                     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
                     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;

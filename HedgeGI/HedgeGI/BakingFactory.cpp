@@ -27,6 +27,7 @@ void BakeParams::load(const std::string& filePath)
 
     shadowSampleCount = reader.GetInteger("Baker", "ShadowSampleCount", 64);
     shadowSearchRadius = reader.GetFloat("Baker", "ShadowSearchRadius", 0.01f);
+    shadowBias = reader.GetFloat("Baker", "ShadowBias", 0.001f);
 
     aoSampleCount = reader.GetInteger("Baker", "AoSampleCount", 64);
     aoFadeConstant = reader.GetFloat("Baker", "AoFadeConstant", 1.0f);
@@ -285,7 +286,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             ray.org_x = hitPosition[0];
             ray.org_y = hitPosition[1];
             ray.org_z = hitPosition[2];
-            ray.tnear = 0.001f;
+            ray.tnear = bakeParams.shadowBias;
             ray.tfar = INFINITY;
             rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
 
