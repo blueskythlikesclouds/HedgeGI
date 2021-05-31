@@ -437,7 +437,7 @@ void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
     {
         HlArchiveEntry* entry = &archive->entries.data[i];
 
-        if (!hlNStrStr(entry->path, HL_NTEXT(".dds")))
+        if (!hlNStrStr(entry->path, HL_NTEXT(".dds")) && !hlNStrStr(entry->path, HL_NTEXT(".DDS")))
             continue;
 
         std::unique_ptr<Bitmap> bitmap = createBitmap((uint8_t*)entry->data, entry->size);
