@@ -173,6 +173,9 @@ int32_t main(int32_t argc, const char* argv[])
         size_t i = 0;
         std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(), [&](const std::unique_ptr<const Instance>& instance)
         {
+            if (instance->name.find("_NoGI") != std::string::npos || instance->name.find("_noGI") != std::string::npos)
+                return;
+
             bool skip = false;
 
             if (game == GAME_FORCES || isPbrMod)
