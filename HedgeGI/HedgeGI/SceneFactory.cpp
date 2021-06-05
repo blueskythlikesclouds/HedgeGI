@@ -173,6 +173,16 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Eigen::Affi
                 size = vertex.normal.size();
                 break;
 
+            case HL_HH_VERTEX_TYPE_TANGENT:
+                destination = vertex.tangent.data();
+                size = vertex.tangent.size();
+                break;
+
+            case HL_HH_VERTEX_TYPE_BINORMAL:
+                destination = vertex.binormal.data();
+                size = vertex.binormal.size();
+                break;
+
             case HL_HH_VERTEX_TYPE_TEXCOORD:
                 if (element->index == 0)
                 {
@@ -256,6 +266,8 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Eigen::Affi
 
         vertex.position = transformation * vertex.position;
         vertex.normal = (rotation * vertex.normal).normalized();
+        vertex.tangent = (rotation * vertex.tangent).normalized();
+        vertex.binormal = (rotation * vertex.binormal).normalized();
     }
 
     std::vector<Triangle> triangles;
@@ -308,7 +320,6 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Eigen::Affi
         break;
     }
 
-    newMesh->generateTangents();
     newMesh->buildAABB();
 
     return newMesh;
