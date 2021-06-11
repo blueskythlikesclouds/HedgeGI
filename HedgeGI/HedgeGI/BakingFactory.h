@@ -37,6 +37,7 @@ struct BakeParams
     float aoStrength {};
 
     float diffuseStrength{};
+    float diffuseSaturation {};
     float lightStrength{};
 
     float resolutionBase {};

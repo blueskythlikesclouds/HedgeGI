@@ -19,7 +19,7 @@ struct EigenHash
     }
 };
 
-static Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
+inline Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
 {
     const Eigen::Vector3f v0 = c - a;
     const Eigen::Vector3f v1 = b - a;
@@ -37,18 +37,18 @@ static Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const 
 }
 
 template <typename T>
-static T barycentricLerp(const T& a, const T& b, const T& c, const Eigen::Vector2f& uv)
+inline T barycentricLerp(const T& a, const T& b, const T& c, const Eigen::Vector2f& uv)
 {
     return a + (c - a) * uv[0] + (b - a) * uv[1];
 }
 
 template <typename T>
-static T lerp(const T& a, const T& b, float factor)
+inline T lerp(const T& a, const T& b, float factor)
 {
     return a + (b - a) * factor;
 }
 
-static Eigen::Vector2f clampUV(const Eigen::Vector2f& uv)
+inline Eigen::Vector2f clampUV(const Eigen::Vector2f& uv)
 {
     float temp;
 
@@ -65,7 +65,7 @@ static Eigen::Vector2f clampUV(const Eigen::Vector2f& uv)
 
 // https://github.com/TheRealMJP/BakingLab/blob/master/SampleFramework11/v1.02/Shaders/Sampling.hlsl
 
-static Eigen::Vector2f squareToConcentricDiskMapping(const float x, const float y)
+inline Eigen::Vector2f squareToConcentricDiskMapping(const float x, const float y)
 {
     float phi = 0.0f;
     float r = 0.0f;
@@ -106,7 +106,7 @@ static Eigen::Vector2f squareToConcentricDiskMapping(const float x, const float 
     return { r * std::cos(phi), r * std::sin(phi) };
 }
 
-static Eigen::Vector3f sampleCosineWeightedHemisphere(const float u1, const float u2)
+inline Eigen::Vector3f sampleCosineWeightedHemisphere(const float u1, const float u2)
 {
     const Eigen::Vector2f uv = squareToConcentricDiskMapping(u1, u2);
     const float u = uv[0];
@@ -117,7 +117,7 @@ static Eigen::Vector3f sampleCosineWeightedHemisphere(const float u1, const floa
     return { u, v, std::sqrt(std::max(0.0f, 1.0f - r)) };
 }
 
-static Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sX, const size_t sY, const size_t sqrtNumSamples, const float u1, const float u2)
+inline Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sX, const size_t sY, const size_t sqrtNumSamples, const float u1, const float u2)
 {
     float jitteredX = (sX + u1) / sqrtNumSamples;
     float jitteredY = (sY + u2) / sqrtNumSamples;
@@ -135,12 +135,12 @@ static Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sX,
     return dir;
 }
 
-static Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sampleIndex, const size_t sqrtNumSamples, const float u1, const float u2)
+inline Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sampleIndex, const size_t sqrtNumSamples, const float u1, const float u2)
 {
     return sampleStratifiedCosineWeightedHemisphere(sampleIndex % sqrtNumSamples, sampleIndex / sqrtNumSamples, u1, u2);
 }
 
-static Eigen::Vector3f sampleDirectionHemisphere(const float u1, const float u2)
+inline Eigen::Vector3f sampleDirectionHemisphere(const float u1, const float u2)
 {
     float z = u1;
     float r = std::sqrt(std::max(0.0f, 1.0f - z * z));
@@ -151,7 +151,7 @@ static Eigen::Vector3f sampleDirectionHemisphere(const float u1, const float u2)
     return { x, y, z };
 }
 
-static Eigen::Vector3f sampleDirectionSphere(const float u1, const float u2)
+inline Eigen::Vector3f sampleDirectionSphere(const float u1, const float u2)
 {
     float z = u1 * 2.0f - 1.0f;
     float r = sqrt(std::max(0.0f, 1.0f - z * z));
@@ -164,7 +164,7 @@ static Eigen::Vector3f sampleDirectionSphere(const float u1, const float u2)
 
 const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
 
-static Eigen::Vector3f sampleSphere(const size_t index, const size_t sampleCount)
+inline Eigen::Vector3f sampleSphere(const size_t index, const size_t sampleCount)
 {
     const float y = 1 - (float)index / (float)(sampleCount - 1) * 2;
     const float radius = std::sqrt(1 - y * y);
@@ -177,7 +177,7 @@ static Eigen::Vector3f sampleSphere(const size_t index, const size_t sampleCount
     return { x, y, z };
 }
 
-static Eigen::Vector2f sampleVogelDisk(const size_t index, const size_t sampleCount, const float phi)
+inline Eigen::Vector2f sampleVogelDisk(const size_t index, const size_t sampleCount, const float phi)
 {
     const float radius = std::sqrt(index + 0.5f) / std::sqrt((float)sampleCount);
     const float theta = index * GOLDEN_ANGLE + phi;
@@ -187,7 +187,7 @@ static Eigen::Vector2f sampleVogelDisk(const size_t index, const size_t sampleCo
 
 // https://gist.github.com/pixnblox/5e64b0724c186313bc7b6ce096b08820
 
-static Eigen::Vector3f getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex& c, const Eigen::Vector2f& baryUV)
+inline Eigen::Vector3f getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex& c, const Eigen::Vector2f& baryUV)
 {
     const Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
     const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
@@ -200,14 +200,20 @@ static Eigen::Vector3f getSmoothPosition(const Vertex& a, const Vertex& b, const
     return (smoothPosition - position).dot(normal) > 0.0f ? smoothPosition : position;
 }
 
-static float saturate(const float value)
+inline float saturate(const float value)
 {
     return std::min(1.0f, std::max(0.0f, value));
 }
 
+template<typename T>
+inline T saturate(const T& value)
+{
+    return value.cwiseMax(0).cwiseMin(1);
+}
+
 // https://github.com/DarioSamo/libgens-sonicglvl/blob/master/src/LibGens/MathGens.cpp
 
-static Eigen::Vector3f getAabbCorner(const Eigen::AlignedBox3f& aabb, const size_t index)
+inline Eigen::Vector3f getAabbCorner(const Eigen::AlignedBox3f& aabb, const size_t index)
 {
     switch (index)
     {
@@ -225,7 +231,7 @@ static Eigen::Vector3f getAabbCorner(const Eigen::AlignedBox3f& aabb, const size
     }
 }
 
-static Eigen::AlignedBox3f getAabbHalf(const Eigen::AlignedBox3f& aabb, const size_t axis, const size_t side)
+inline Eigen::AlignedBox3f getAabbHalf(const Eigen::AlignedBox3f& aabb, const size_t axis, const size_t side)
 {
     Eigen::AlignedBox3f result = aabb;
 
@@ -252,7 +258,7 @@ static Eigen::AlignedBox3f getAabbHalf(const Eigen::AlignedBox3f& aabb, const si
     return result;
 }
 
-static size_t relativeCorner(const Eigen::Vector3f& left, const Eigen::Vector3f& right)
+inline size_t relativeCorner(const Eigen::Vector3f& left, const Eigen::Vector3f& right)
 {
     if (right.x() <= left.x()) 
     {
@@ -283,14 +289,14 @@ static size_t relativeCorner(const Eigen::Vector3f& left, const Eigen::Vector3f&
 }
 
 template<typename T>
-static float dot(const T& a, const T& b)
+inline float dot(const T& a, const T& b)
 {
     return a.dot(b);
 }
 
 // https://github.com/embree/embree/blob/master/tutorials/common/math/closest_point.h
 
-static Eigen::Vector3f closestPointTriangle(const Eigen::Vector3f& p, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
+inline Eigen::Vector3f closestPointTriangle(const Eigen::Vector3f& p, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
 {
     const Eigen::Vector3f ab = b - a;
     const Eigen::Vector3f ac = c - a;
@@ -337,13 +343,13 @@ static Eigen::Vector3f closestPointTriangle(const Eigen::Vector3f& p, const Eige
     return a + v * ab + w * ac;
 }
 
-static Eigen::Vector3f fresnelSchlick(Eigen::Vector3f F0, float cosTheta)
+inline Eigen::Vector3f fresnelSchlick(Eigen::Vector3f F0, float cosTheta)
 {
     float p = (-5.55473f * cosTheta - 6.98316f) * cosTheta;
     return F0 + (Eigen::Vector3f::Ones() - F0) * exp2(p);
 }
 
-static float ndfGGX(float cosLh, float roughness)
+inline float ndfGGX(float cosLh, float roughness)
 {
     float alpha = roughness * roughness;
     float alphaSq = alpha * alpha;
@@ -352,7 +358,7 @@ static float ndfGGX(float cosLh, float roughness)
     return alphaSq / (PI * denom * denom);
 }
 
-static float visSchlick(float roughness, float cosLo, float cosLi)
+inline float visSchlick(float roughness, float cosLo, float cosLi)
 {
     float r = roughness + 1;
     float k = (r * r) / 8;
@@ -363,17 +369,17 @@ static float visSchlick(float roughness, float cosLo, float cosLi)
 
 // https://stackoverflow.com/a/60047308
 
-static uint32_t as_uint(const float x)
+inline uint32_t as_uint(const float x)
 {
     return *(uint32_t*)&x;
 }
 
-static float as_float(const uint32_t x)
+inline float as_float(const uint32_t x)
 {
     return *(float*)&x;
 }
 
-static float half_to_float(const uint16_t x)
+inline float half_to_float(const uint16_t x)
 {
     const uint32_t e = (x & 0x7C00) >> 10;
     const uint32_t m = (x & 0x03FF) << 13;
@@ -382,7 +388,80 @@ static float half_to_float(const uint16_t x)
 }
 
 template<typename T>
-static bool nearlyEqual(const T& a, const T& b)
+inline bool nearlyEqual(const T& a, const T& b)
 {
     return (a - b).cwiseAbs().maxCoeff() < 0.0001f;
+}
+
+inline bool nearlyEqual(const float a, const float b)
+{
+    return abs(a - b) < 0.0001f;
+}
+
+inline Eigen::Array3f rgb2Hsv(const Eigen::Array3f& rgb)
+{
+    const float r = rgb.x();
+    const float g = rgb.y();
+    const float b = rgb.z();
+
+    const float max = rgb.maxCoeff();
+    const float min = rgb.minCoeff();
+
+    const float v = max;
+    float h, s;
+
+    if (max == 0.0f) {
+        s = 0;
+        h = 0;
+    }
+
+    else if (max - min == 0.0f) {
+        s = 0;
+        h = 0;
+    }
+
+    else 
+    {
+        s = (max - min) / max;
+
+        if (max == r) {
+            h = 60 * ((g - b) / (max - min)) + 0;
+        }
+        else if (max == g) {
+            h = 60 * ((b - r) / (max - min)) + 120;
+        }
+        else {
+            h = 60 * ((r - g) / (max - min)) + 240;
+        }
+    }
+
+    if (h < 0) h += 360.0f;
+
+    return { h / 2, s, v };
+}
+
+inline Eigen::Array3f hsv2Rgb(const Eigen::Array3f& hsv)
+{
+    const float h = hsv.x() * 2;
+    const float s = hsv.y();
+    const float v = hsv.z();
+
+    float r, g, b;
+
+    int   hi = (int)(h / 60.0f) % 6;
+    float f = (h / 60.0f) - hi;
+    float p = v * (1.0f - s);
+    float q = v * (1.0f - s * f);
+    float t = v * (1.0f - s * (1.0f - f));
+
+    switch (hi) {
+    case 0: r = v, g = t, b = p; break;
+    case 1: r = q, g = v, b = p; break;
+    case 2: r = p, g = v, b = t; break;
+    case 3: r = p, g = q, b = v; break;
+    case 4: r = t, g = p, b = v; break;
+    case 5: r = v, g = p, b = q; break;
+    }
+
+    return { r, g, b };
 }

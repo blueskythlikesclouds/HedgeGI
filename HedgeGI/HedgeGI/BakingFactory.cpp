@@ -36,6 +36,7 @@ void BakeParams::load(const std::string& filePath)
     aoStrength = reader.GetFloat("Baker", "AoStrength", 1.0f);
 
     diffuseStrength = reader.GetFloat("Baker", "DiffuseStrength", 1.0f);
+    diffuseSaturation = reader.GetFloat("Baker", "DiffuseSaturation", 1.0f);
     lightStrength = reader.GetFloat("Baker", "LightStrength", 1.0f);
     resolutionBase = reader.GetFloat("Baker", "ResolutionBase", 2.0f);
     resolutionBias = reader.GetFloat("Baker", "ResolutionBias", 3.0f);
@@ -271,6 +272,13 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
                     emission *= material->parameters.ambient * material->parameters.emissionParam.w();
                 }
             }
+        }
+
+        if (!nearlyEqual(bakeParams.diffuseSaturation, 1.0f))
+        {
+            Eigen::Array3f hsv = rgb2Hsv(diffuse.head<3>());
+            hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
+            diffuse.head<3>() = hsv2Rgb(hsv);
         }
 
         diffuse.head<3>() *= bakeParams.diffuseStrength;
