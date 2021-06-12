@@ -57,6 +57,8 @@ void alert()
 
 int32_t main(int32_t argc, const char* argv[])
 {
+    const auto begin = std::chrono::high_resolution_clock::now();
+
     const char* inputDirectoryPath = nullptr;
     bool generateLightField = false;
     bool isPbrMod = false;
@@ -309,7 +311,14 @@ int32_t main(int32_t argc, const char* argv[])
         }
     }
 
-    printf("Completed!\n");
+    const auto end = std::chrono::high_resolution_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - begin);
+
+    const int seconds = (int)(duration.count() % 60);
+    const int minutes = (int)((duration.count() / 60) % 60);
+    const int hours = (int)(duration.count() / (60 * 60));
+
+    printf("Completed in %02dh:%02dm:%02ds!", hours, minutes, seconds);
     alert();
     getchar();
 
