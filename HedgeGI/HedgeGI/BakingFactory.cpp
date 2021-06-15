@@ -274,14 +274,13 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             }
         }
 
-        if (!nearlyEqual(bakeParams.diffuseSaturation, 1.0f))
+        if (!nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f))
         {
             Eigen::Array3f hsv = rgb2Hsv(diffuse.head<3>());
             hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
+            hsv.z() = saturate(hsv.z() * bakeParams.diffuseStrength);
             diffuse.head<3>() = hsv2Rgb(hsv);
         }
-
-        diffuse.head<3>() *= bakeParams.diffuseStrength;
 
         if (material == nullptr || material->type == MATERIAL_TYPE_COMMON)
         {
