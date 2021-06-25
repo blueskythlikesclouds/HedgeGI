@@ -27,9 +27,8 @@ std::unique_ptr<Bitmap> OptixDenoiserDevice::denoise(const Bitmap& bitmap, const
         optixInit();
         optixDeviceContextCreate(cuCtx, nullptr, &context);
 
-        const OptixDenoiserOptions options = { OPTIX_DENOISER_INPUT_RGB };
-        optixDenoiserCreate(context, &options, &denoiser);
-        optixDenoiserSetModel(denoiser, OPTIX_DENOISER_MODEL_KIND_HDR, nullptr, 0);
+        const OptixDenoiserOptions options = { 0, 0 };
+        optixDenoiserCreate(context, OPTIX_DENOISER_MODEL_KIND_HDR, &options, &denoiser);
 
         std::atexit([]() { optixDenoiserDestroy(denoiser); });
         std::atexit([]() { optixDeviceContextDestroy(context); });
@@ -53,31 +52,33 @@ std::unique_ptr<Bitmap> OptixDenoiserDevice::denoise(const Bitmap& bitmap, const
 
     const OptixDenoiserParams params = { denoiseAlpha, intensity, 0.0f, 0 };
 
-    OptixImage2D srcImg = { 0, bitmap.width, bitmap.height, bitmap.width * sizeof(Eigen::Array4f), sizeof(Eigen::Array4f), OPTIX_PIXEL_FORMAT_FLOAT4 };
-    OptixImage2D dstImg = srcImg;
+    const OptixImage2D imgTmp = { 0, bitmap.width, bitmap.height, bitmap.width * sizeof(Eigen::Array4f), sizeof(Eigen::Array4f), OPTIX_PIXEL_FORMAT_FLOAT4 };
+
+    OptixDenoiserLayer layer = { imgTmp, {}, imgTmp };
+    const OptixDenoiserGuideLayer guideLayer = {};
 
     const size_t dataSize = bitmap.width * bitmap.height * sizeof(Eigen::Array4f);
 
-    cudaMalloc((void**)&srcImg.data, dataSize);
-    cudaMalloc((void**)&dstImg.data, dataSize);
+    cudaMalloc((void**)&layer.input.data, dataSize);
+    cudaMalloc((void**)&layer.output.data, dataSize);
 
     optixDenoiserSetup(denoiser, nullptr, bitmap.width, bitmap.height, state, returnSizes.stateSizeInBytes, scratch, returnSizes.withoutOverlapScratchSizeInBytes);
 
     for (size_t i = 0; i < bitmap.arraySize; i++)
     {
-        cudaMemcpy((void*)srcImg.data, bitmap.getColors(i), dataSize, cudaMemcpyHostToDevice);
+        cudaMemcpy((void*)layer.input.data, bitmap.getColors(i), dataSize, cudaMemcpyHostToDevice);
 
-        optixDenoiserComputeIntensity(denoiser, nullptr, &srcImg, intensity, scratch, returnSizes.withoutOverlapScratchSizeInBytes);
-        optixDenoiserInvoke(denoiser, nullptr, &params, state, returnSizes.stateSizeInBytes, &srcImg, 1, 0, 0, &dstImg, scratch, returnSizes.withoutOverlapScratchSizeInBytes);
+        optixDenoiserComputeIntensity(denoiser, nullptr, &layer.input, intensity, scratch, returnSizes.withoutOverlapScratchSizeInBytes);
+        optixDenoiserInvoke(denoiser, nullptr, &params, state, returnSizes.stateSizeInBytes, &guideLayer, &layer, 1, 0, 0, scratch, returnSizes.withoutOverlapScratchSizeInBytes);
 
-        cudaMemcpy(denoised->getColors(i), (void*)dstImg.data, dataSize, cudaMemcpyDeviceToHost);
+        cudaMemcpy(denoised->getColors(i), (void*)layer.output.data, dataSize, cudaMemcpyDeviceToHost);
     }
 
     cudaFree((void*)intensity);
     cudaFree((void*)scratch);
     cudaFree((void*)state);
-    cudaFree((void*)srcImg.data);
-    cudaFree((void*)dstImg.data);
+    cudaFree((void*)layer.input.data);
+    cudaFree((void*)layer.output.data);
 
     return denoised;
 }
