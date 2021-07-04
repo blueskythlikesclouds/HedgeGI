@@ -28,7 +28,7 @@ static std::string getFileNameWithoutExtension(const std::string& path)
     else
         fileName = path;
 
-    index = fileName.find_first_of('.');
+    index = fileName.find_last_of('.');
     if (index != std::string::npos)
         fileName = fileName.substr(0, index);
 
