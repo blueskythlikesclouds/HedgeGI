@@ -20,7 +20,7 @@ void Light::read(const FileStream& file)
 {
     type = (LightType)file.read<uint32_t>();
     positionOrDirection = file.read<Vector3>();
-    color = file.read<Vector3>();
+    color = file.read<Color3>();
 
     if (type != LIGHT_TYPE_POINT)
         return;
