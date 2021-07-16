@@ -81,13 +81,13 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         const Vector3 rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
-        const float probability = throughput.head<3>().maxCoeff();
+        const float probability = throughput.maxCoeff();
         if (i > bakeParams.russianRouletteMaxDepth)
         {
             if (Random::next() > probability)
                 break;
 
-            throughput.head<3>() /= probability;
+            throughput /= probability;
         }
 
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
@@ -345,8 +345,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         radiance += throughput * emission.head<3>();
 
         // Setup next ray
-        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
-        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
+        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);
+        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV);
 
         Matrix3 hitTangentToWorldMatrix;
         hitTangentToWorldMatrix <<
