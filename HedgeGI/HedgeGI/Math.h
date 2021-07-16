@@ -48,21 +48,6 @@ inline T lerp(const T& a, const T& b, float factor)
     return a + (b - a) * factor;
 }
 
-inline Vector2 clampUV(const Vector2& uv)
-{
-    float temp;
-
-    Vector2 value { std::modf(uv[0], &temp), std::modf(uv[1], &temp) };
-
-    if (value[0] < 0)
-        value[0] += 1.0f;
-
-    if (value[1] < 0)
-        value[1] += 1.0f;
-
-    return value;
-}
-
 // https://github.com/TheRealMJP/BakingLab/blob/master/SampleFramework11/v1.02/Shaders/Sampling.hlsl
 
 inline Vector2 squareToConcentricDiskMapping(const float x, const float y)

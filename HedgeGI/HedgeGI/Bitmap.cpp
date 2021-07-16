@@ -39,9 +39,8 @@ size_t Bitmap::getColorIndex(const size_t x, const size_t y, const size_t arrayI
 
 void Bitmap::getPixelCoords(const Vector2& uv, uint32_t& x, uint32_t& y) const
 {
-    const Vector2 clamped = clampUV(uv);
-    x = std::max(0u, std::min(width - 1, (uint32_t)std::roundf(clamped[0] * width)));
-    y = std::max(0u, std::min(height - 1, (uint32_t)std::roundf(clamped[1] * height)));
+    x = (int32_t)(width * uv.x()) % width;
+    y = (int32_t)(height * uv.y()) % height;
 }
 
 Color4 Bitmap::pickColor(const Vector2& uv, const uint32_t arrayIndex) const
