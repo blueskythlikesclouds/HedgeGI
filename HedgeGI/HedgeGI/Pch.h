@@ -29,9 +29,10 @@
 // Eigen
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <unsupported/Eigen/AlignedVector3>
 
 using Vector2 = Eigen::Vector2f;
-using Vector3 = Eigen::Vector3f;
+using Vector3 = Eigen::AlignedVector3<float>;
 using Vector4 = Eigen::Vector4f;
 using Color3 = Eigen::Array3f;
 using Color4 = Eigen::Array4f;

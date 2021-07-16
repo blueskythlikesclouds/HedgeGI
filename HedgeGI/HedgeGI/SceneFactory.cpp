@@ -264,10 +264,10 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Affine3& tr
     {
         Vertex& vertex = newMesh->vertices[i];
 
-        vertex.position = transformation * vertex.position;
-        vertex.normal = (rotation * vertex.normal).normalized();
-        vertex.tangent = (rotation * vertex.tangent).normalized();
-        vertex.binormal = (rotation * vertex.binormal).normalized();
+        vertex.position = transformation * Eigen::Vector3f(vertex.position);
+        vertex.normal = (rotation * Eigen::Vector3f(vertex.normal)).normalized();
+        vertex.tangent = (rotation * Eigen::Vector3f(vertex.tangent)).normalized();
+        vertex.binormal = (rotation * Eigen::Vector3f(vertex.binormal)).normalized();
     }
 
     std::vector<Triangle> triangles;

@@ -343,10 +343,10 @@ inline Vector3 closestPointTriangle(const Vector3& p, const Vector3& a, const Ve
     return a + v * ab + w * ac;
 }
 
-inline Vector3 fresnelSchlick(Vector3 F0, float cosTheta)
+inline Color3 fresnelSchlick(Color3 F0, float cosTheta)
 {
     float p = (-5.55473f * cosTheta - 6.98316f) * cosTheta;
-    return F0 + (Vector3::Ones() - F0) * exp2(p);
+    return F0 + (Color3::Ones() - F0) * exp2(p);
 }
 
 inline float ndfGGX(float cosLh, float roughness)
