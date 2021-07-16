@@ -66,13 +66,16 @@ public:
 
     template <typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
+
+    static std::lock_guard<std::mutex> lock()
+    {
+        return std::lock_guard(mutex);
+    }
 };
 
 template <typename TBakePoint>
 void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams)
 {
-    std::lock_guard<std::mutex> lock(mutex);
-
     const Light* sunLight = nullptr;
     for (auto& light : raytracingContext.scene->lights)
     {

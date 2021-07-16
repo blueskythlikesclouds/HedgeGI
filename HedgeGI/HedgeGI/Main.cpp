@@ -214,7 +214,11 @@ int32_t main(int32_t argc, const char* argv[])
             if (game == GAME_FORCES || isPbrMod)
             {
                 // SGGI Test
-                auto pair = SGGIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
+                GIPair pair;
+                {
+                    const std::lock_guard<std::mutex> lock = BakingFactory::lock();
+                    pair = SGGIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
+                }
 
                 // Dilate
                 pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
@@ -242,7 +246,11 @@ int32_t main(int32_t argc, const char* argv[])
             else 
             {
                 // GI Test
-                auto pair = GIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
+                GIPair pair;
+                {
+                    const std::lock_guard<std::mutex> lock = BakingFactory::lock();
+                    pair = GIBaker::bake(raytracingContext, *instance, resolution, bakeParams);
+                }
 
                 // Dilate
                 pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
