@@ -8,7 +8,7 @@ class Instance
 public:
     std::string name;
     std::vector<const Mesh*> meshes;
-    Eigen::AlignedBox3f aabb;
+    AABB aabb;
 
     void buildAABB();
 

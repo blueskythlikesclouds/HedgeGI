@@ -4,7 +4,7 @@ void SHLightField::read(const FileStream& file)
 {
     name = file.readString();
     resolution = file.read<Eigen::Array3i>();
-    matrix = file.read<Eigen::Matrix4f>();
+    matrix = file.read<Matrix4>();
 }
 
 void SHLightField::write(const FileStream& file) const

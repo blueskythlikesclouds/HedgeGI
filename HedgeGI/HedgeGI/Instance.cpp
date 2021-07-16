@@ -23,7 +23,7 @@ void Instance::read(const FileStream& file, const Scene& scene)
             meshes.push_back(scene.meshes[index].get());
     }
 
-    aabb = file.read<Eigen::AlignedBox3f>();
+    aabb = file.read<AABB>();
 }
 
 void Instance::write(const FileStream& file, const Scene& scene) const

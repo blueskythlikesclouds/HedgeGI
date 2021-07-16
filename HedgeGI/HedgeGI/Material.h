@@ -21,16 +21,16 @@ public:
 
     struct Parameters
     {
-        Eigen::Array4f diffuse { 1, 1, 1, 1 };
-        Eigen::Array4f specular { 1, 1, 1, 1 };
-        Eigen::Array4f ambient { 1, 1, 1, 1 };
-        Eigen::Array4f powerGlossLevel { 0, 0, 0, 0 };
-        Eigen::Array4f luminanceRange { 0, 0, 0, 0 };
-        Eigen::Array4f luminance { 1, 1, 1, 1 };
-        Eigen::Array4f pbrFactor { 0.04, 0.5, 0, 0 };
-        Eigen::Array4f pbrFactor2 { 0.04, 0.5, 0, 0 };
-        Eigen::Array4f emissionParam { 0, 0, 0, 1 };
-        Eigen::Array4f emissive { 0, 0, 0, 0 };
+        Color4 diffuse { 1, 1, 1, 1 };
+        Color4 specular { 1, 1, 1, 1 };
+        Color4 ambient { 1, 1, 1, 1 };
+        Color4 powerGlossLevel { 0, 0, 0, 0 };
+        Color4 luminanceRange { 0, 0, 0, 0 };
+        Color4 luminance { 1, 1, 1, 1 };
+        Color4 pbrFactor { 0.04, 0.5, 0, 0 };
+        Color4 pbrFactor2 { 0.04, 0.5, 0, 0 };
+        Color4 emissionParam { 0, 0, 0, 1 };
+        Color4 emissive { 0, 0, 0, 0 };
     } parameters{};
 
     struct Textures

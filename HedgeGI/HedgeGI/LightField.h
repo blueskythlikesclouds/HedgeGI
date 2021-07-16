@@ -28,7 +28,7 @@ struct LightFieldCell
 class LightField
 {
 public:
-    Eigen::AlignedBox3f aabb;
+    AABB aabb;
     std::vector<LightFieldCell> cells;
     std::vector<LightFieldProbe> probes;
     std::vector<uint32_t> indices;

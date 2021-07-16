@@ -53,7 +53,7 @@ void BakeParams::load(const std::string& filePath)
 
 std::mutex BakingFactory::mutex;
 
-Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams)
+Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams)
 {
     RTCIntersectContext context{};
     rtcInitIntersectContext(&context);
@@ -71,14 +71,14 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
-    Eigen::Array3f throughput(1, 1, 1);
-    Eigen::Array3f radiance(0, 0, 0);
+    Color3 throughput(1, 1, 1);
+    Color3 radiance(0, 0, 0);
     float faceFactor = 1.0f;
 
     for (uint32_t i = 0; i < bakeParams.lightBounceCount; i++)
     {
-        const Eigen::Vector3f rayPosition(query.ray.org_x, query.ray.org_y, query.ray.org_z);
-        const Eigen::Vector3f rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
+        const Vector3 rayPosition(query.ray.org_x, query.ray.org_y, query.ray.org_z);
+        const Vector3 rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
         const float probability = throughput.head<3>().maxCoeff();
@@ -97,7 +97,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             break;
         }
 
-        const Eigen::Vector3f triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
+        const Vector3 triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
 
         const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
 
@@ -108,26 +108,26 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             break;
         }
 
-        const Eigen::Vector2f baryUV { query.hit.v, query.hit.u };
+        const Vector2 baryUV { query.hit.v, query.hit.u };
 
         const Triangle& triangle = mesh.triangles[query.hit.primID];
         const Vertex& a = mesh.vertices[triangle.a];
         const Vertex& b = mesh.vertices[triangle.b];
         const Vertex& c = mesh.vertices[triangle.c];
 
-        const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
-        const Eigen::Array4f hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
+        const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
+        const Color4 hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
 
-        Eigen::Vector3f hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
+        Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
         if (mesh.type != MESH_TYPE_OPAQUE && triNormal.dot(hitNormal) < 0)
             hitNormal *= -1;
 
-        Eigen::Vector3f hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
+        Vector3 hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
         hitPosition += hitPosition.cwiseAbs().cwiseProduct(hitNormal.cwiseSign()) * 0.0000002f;
 
-        Eigen::Array4f diffuse = Eigen::Array4f::Ones();
-        Eigen::Array4f specular = Eigen::Array4f::Zero();
-        Eigen::Array4f emission = Eigen::Array4f::Zero();
+        Color4 diffuse = Color4::Ones();
+        Color4 specular = Color4::Zero();
+        Color4 emission = Color4::Zero();
 
         float glossPower = 1.0f;
         float glossLevel = 0.0f;
@@ -143,14 +143,14 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
                 if (material->textures.diffuse != nullptr)
                 {
-                    Eigen::Array4f diffuseTex = material->textures.diffuse->pickColor(hitUV);
+                    Color4 diffuseTex = material->textures.diffuse->pickColor(hitUV);
 
                     if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
                         diffuseTex.head<3>() = diffuseTex.head<3>().pow(2.2f);
 
                     if (material->textures.diffuseBlend != nullptr)
                     {
-                        Eigen::Array4f diffuseBlendTex = material->textures.diffuseBlend->pickColor(hitUV);
+                        Color4 diffuseBlendTex = material->textures.diffuseBlend->pickColor(hitUV);
 
                         if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
                             diffuseBlendTex.head<3>() = diffuseBlendTex.head<3>().pow(2.2f);
@@ -198,7 +198,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
                     if (material->textures.specular != nullptr)
                     {
-                        Eigen::Array4f specularTex = material->textures.specular->pickColor(hitUV);
+                        Color4 specularTex = material->textures.specular->pickColor(hitUV);
 
                         if (material->textures.specularBlend != nullptr)
                             specularTex = lerp(specularTex, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
@@ -276,7 +276,7 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
         if (!nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f))
         {
-            Eigen::Array3f hsv = rgb2Hsv(diffuse.head<3>());
+            Color3 hsv = rgb2Hsv(diffuse.head<3>());
             hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
             hsv.z() = saturate(hsv.z() * bakeParams.diffuseStrength);
             diffuse.head<3>() = hsv2Rgb(hsv);
@@ -299,10 +299,10 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
             ray.tfar = INFINITY;
             rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
 
-            const Eigen::Vector3f viewDirection = (rayPosition - hitPosition).normalized();
+            const Vector3 viewDirection = (rayPosition - hitPosition).normalized();
             const float cosLightDirection = saturate(hitNormal.dot(-sunLight.positionOrDirection));
 
-            Eigen::Array3f directLighting;
+            Color3 directLighting;
 
             if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
             {
@@ -310,24 +310,24 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
 
                 if (glossLevel > 0.0f)
                 {
-                    const Eigen::Vector3f halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+                    const Vector3 halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
                     directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
                 }
             }
             else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
             {
-                const Eigen::Vector3f halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+                const Vector3 halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
                 const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
 
                 const float metalness = specular.x() > 0.225f;
                 const float roughness = std::max(0.01f, 1 - specular.y());
 
-                const Eigen::Array3f F0 = lerp<Eigen::Array3f>(Eigen::Array3f(specular.x()), diffuse.head<3>(), metalness);
-                const Eigen::Array3f F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
+                const Color3 F0 = lerp<Color3>(Color3(specular.x()), diffuse.head<3>(), metalness);
+                const Color3 F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
                 const float D = ndfGGX(cosHalfwayDirection, roughness);
                 const float Vis = visSchlick(roughness, saturate(viewDirection.dot(hitNormal)), cosLightDirection);
 
-                const Eigen::Array3f kd = lerp<Eigen::Array3f>(Eigen::Array3f::Ones() - F, Eigen::Array3f::Zero(), metalness);
+                const Color3 kd = lerp<Color3>(Color3::Ones() - F, Color3::Zero(), metalness);
 
                 directLighting = kd * (diffuse.head<3>() / PI);
                 directLighting += (D * Vis) * F;
@@ -345,16 +345,16 @@ Eigen::Array4f BakingFactory::pathTrace(const RaytracingContext& raytracingConte
         radiance += throughput * emission.head<3>();
 
         // Setup next ray
-        const Eigen::Vector3f hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
-        const Eigen::Vector3f hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
+        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
+        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
 
-        Eigen::Matrix3f hitTangentToWorldMatrix;
+        Matrix3 hitTangentToWorldMatrix;
         hitTangentToWorldMatrix <<
             hitTangent[0], hitBinormal[0], hitNormal[0],
             hitTangent[1], hitBinormal[1], hitNormal[1],
             hitTangent[2], hitBinormal[2], hitNormal[2];
 
-        const Eigen::Vector3f hitDirection = (hitTangentToWorldMatrix * sampleCosineWeightedHemisphere(
+        const Vector3 hitDirection = (hitTangentToWorldMatrix * sampleCosineWeightedHemisphere(
             Random::next(), Random::next())).normalized();
 
         throughput *= diffuse.head<3>();

@@ -19,11 +19,11 @@ struct EigenHash
     }
 };
 
-inline Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
+inline Vector2 getBarycentricCoords(const Vector3& point, const Vector3& a, const Vector3& b, const Vector3& c)
 {
-    const Eigen::Vector3f v0 = c - a;
-    const Eigen::Vector3f v1 = b - a;
-    const Eigen::Vector3f v2 = point - a;
+    const Vector3 v0 = c - a;
+    const Vector3 v1 = b - a;
+    const Vector3 v2 = point - a;
 
     const float dot00 = v0.dot(v0);
     const float dot01 = v0.dot(v1);
@@ -37,7 +37,7 @@ inline Eigen::Vector2f getBarycentricCoords(const Eigen::Vector3f& point, const 
 }
 
 template <typename T>
-inline T barycentricLerp(const T& a, const T& b, const T& c, const Eigen::Vector2f& uv)
+inline T barycentricLerp(const T& a, const T& b, const T& c, const Vector2& uv)
 {
     return a + (c - a) * uv[0] + (b - a) * uv[1];
 }
@@ -48,11 +48,11 @@ inline T lerp(const T& a, const T& b, float factor)
     return a + (b - a) * factor;
 }
 
-inline Eigen::Vector2f clampUV(const Eigen::Vector2f& uv)
+inline Vector2 clampUV(const Vector2& uv)
 {
     float temp;
 
-    Eigen::Vector2f value { std::modf(uv[0], &temp), std::modf(uv[1], &temp) };
+    Vector2 value { std::modf(uv[0], &temp), std::modf(uv[1], &temp) };
 
     if (value[0] < 0)
         value[0] += 1.0f;
@@ -65,7 +65,7 @@ inline Eigen::Vector2f clampUV(const Eigen::Vector2f& uv)
 
 // https://github.com/TheRealMJP/BakingLab/blob/master/SampleFramework11/v1.02/Shaders/Sampling.hlsl
 
-inline Eigen::Vector2f squareToConcentricDiskMapping(const float x, const float y)
+inline Vector2 squareToConcentricDiskMapping(const float x, const float y)
 {
     float phi = 0.0f;
     float r = 0.0f;
@@ -106,27 +106,27 @@ inline Eigen::Vector2f squareToConcentricDiskMapping(const float x, const float 
     return { r * std::cos(phi), r * std::sin(phi) };
 }
 
-inline Eigen::Vector3f sampleCosineWeightedHemisphere(const float u1, const float u2)
+inline Vector3 sampleCosineWeightedHemisphere(const float u1, const float u2)
 {
-    const Eigen::Vector2f uv = squareToConcentricDiskMapping(u1, u2);
+    const Vector2 uv = squareToConcentricDiskMapping(u1, u2);
     const float u = uv[0];
     const float v = uv[1];
 
-    Eigen::Vector3f dir;
+    Vector3 dir;
     const float r = u * u + v * v;
     return { u, v, std::sqrt(std::max(0.0f, 1.0f - r)) };
 }
 
-inline Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sX, const size_t sY, const size_t sqrtNumSamples, const float u1, const float u2)
+inline Vector3 sampleStratifiedCosineWeightedHemisphere(const size_t sX, const size_t sY, const size_t sqrtNumSamples, const float u1, const float u2)
 {
     float jitteredX = (sX + u1) / sqrtNumSamples;
     float jitteredY = (sY + u2) / sqrtNumSamples;
 
-    Eigen::Vector2f uv = squareToConcentricDiskMapping(jitteredX, jitteredY);
+    Vector2 uv = squareToConcentricDiskMapping(jitteredX, jitteredY);
     float u = uv[0];
     float v = uv[1];
 
-    Eigen::Vector3f dir;
+    Vector3 dir;
     float r = u * u + v * v;
     dir[0] = u;
     dir[1] = v;
@@ -135,12 +135,12 @@ inline Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sX,
     return dir;
 }
 
-inline Eigen::Vector3f sampleStratifiedCosineWeightedHemisphere(const size_t sampleIndex, const size_t sqrtNumSamples, const float u1, const float u2)
+inline Vector3 sampleStratifiedCosineWeightedHemisphere(const size_t sampleIndex, const size_t sqrtNumSamples, const float u1, const float u2)
 {
     return sampleStratifiedCosineWeightedHemisphere(sampleIndex % sqrtNumSamples, sampleIndex / sqrtNumSamples, u1, u2);
 }
 
-inline Eigen::Vector3f sampleDirectionHemisphere(const float u1, const float u2)
+inline Vector3 sampleDirectionHemisphere(const float u1, const float u2)
 {
     float z = u1;
     float r = std::sqrt(std::max(0.0f, 1.0f - z * z));
@@ -151,7 +151,7 @@ inline Eigen::Vector3f sampleDirectionHemisphere(const float u1, const float u2)
     return { x, y, z };
 }
 
-inline Eigen::Vector3f sampleDirectionSphere(const float u1, const float u2)
+inline Vector3 sampleDirectionSphere(const float u1, const float u2)
 {
     float z = u1 * 2.0f - 1.0f;
     float r = sqrt(std::max(0.0f, 1.0f - z * z));
@@ -164,7 +164,7 @@ inline Eigen::Vector3f sampleDirectionSphere(const float u1, const float u2)
 
 const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
 
-inline Eigen::Vector3f sampleSphere(const size_t index, const size_t sampleCount)
+inline Vector3 sampleSphere(const size_t index, const size_t sampleCount)
 {
     const float y = 1 - (float)index / (float)(sampleCount - 1) * 2;
     const float radius = std::sqrt(1 - y * y);
@@ -177,7 +177,7 @@ inline Eigen::Vector3f sampleSphere(const size_t index, const size_t sampleCount
     return { x, y, z };
 }
 
-inline Eigen::Vector2f sampleVogelDisk(const size_t index, const size_t sampleCount, const float phi)
+inline Vector2 sampleVogelDisk(const size_t index, const size_t sampleCount, const float phi)
 {
     const float radius = std::sqrt(index + 0.5f) / std::sqrt((float)sampleCount);
     const float theta = index * GOLDEN_ANGLE + phi;
@@ -187,16 +187,16 @@ inline Eigen::Vector2f sampleVogelDisk(const size_t index, const size_t sampleCo
 
 // https://gist.github.com/pixnblox/5e64b0724c186313bc7b6ce096b08820
 
-inline Eigen::Vector3f getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex& c, const Eigen::Vector2f& baryUV)
+inline Vector3 getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex& c, const Vector2& baryUV)
 {
-    const Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
-    const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
+    const Vector3 position = barycentricLerp(a.position, b.position, c.position, baryUV);
+    const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
 
-    const Eigen::Vector3f vecProj0 = position - (position - a.position).dot(a.normal) * a.normal;
-    const Eigen::Vector3f vecProj1 = position - (position - b.position).dot(b.normal) * b.normal;
-    const Eigen::Vector3f vecProj2 = position - (position - c.position).dot(c.normal) * c.normal;
+    const Vector3 vecProj0 = position - (position - a.position).dot(a.normal) * a.normal;
+    const Vector3 vecProj1 = position - (position - b.position).dot(b.normal) * b.normal;
+    const Vector3 vecProj2 = position - (position - c.position).dot(c.normal) * c.normal;
 
-    const Eigen::Vector3f smoothPosition = barycentricLerp(vecProj0, vecProj1, vecProj2, baryUV);
+    const Vector3 smoothPosition = barycentricLerp(vecProj0, vecProj1, vecProj2, baryUV);
     return (smoothPosition - position).dot(normal) > 0.0f ? smoothPosition : position;
 }
 
@@ -213,27 +213,27 @@ inline T saturate(const T& value)
 
 // https://github.com/DarioSamo/libgens-sonicglvl/blob/master/src/LibGens/MathGens.cpp
 
-inline Eigen::Vector3f getAabbCorner(const Eigen::AlignedBox3f& aabb, const size_t index)
+inline Vector3 getAabbCorner(const AABB& aabb, const size_t index)
 {
     switch (index)
     {
-    case 0: return Eigen::Vector3f(aabb.min().x(), aabb.min().y(), aabb.min().z());
-    case 1: return Eigen::Vector3f(aabb.min().x(), aabb.min().y(), aabb.max().z());
-    case 2: return Eigen::Vector3f(aabb.min().x(), aabb.max().y(), aabb.min().z());
-    case 3: return Eigen::Vector3f(aabb.min().x(), aabb.max().y(), aabb.max().z());
-    case 4: return Eigen::Vector3f(aabb.max().x(), aabb.min().y(), aabb.min().z());
-    case 5: return Eigen::Vector3f(aabb.max().x(), aabb.min().y(), aabb.max().z());
-    case 6: return Eigen::Vector3f(aabb.max().x(), aabb.max().y(), aabb.min().z());
-    case 7: return Eigen::Vector3f(aabb.max().x(), aabb.max().y(), aabb.max().z());
+    case 0: return Vector3(aabb.min().x(), aabb.min().y(), aabb.min().z());
+    case 1: return Vector3(aabb.min().x(), aabb.min().y(), aabb.max().z());
+    case 2: return Vector3(aabb.min().x(), aabb.max().y(), aabb.min().z());
+    case 3: return Vector3(aabb.min().x(), aabb.max().y(), aabb.max().z());
+    case 4: return Vector3(aabb.max().x(), aabb.min().y(), aabb.min().z());
+    case 5: return Vector3(aabb.max().x(), aabb.min().y(), aabb.max().z());
+    case 6: return Vector3(aabb.max().x(), aabb.max().y(), aabb.min().z());
+    case 7: return Vector3(aabb.max().x(), aabb.max().y(), aabb.max().z());
 
     default:
-        return Eigen::Vector3f();
+        return Vector3();
     }
 }
 
-inline Eigen::AlignedBox3f getAabbHalf(const Eigen::AlignedBox3f& aabb, const size_t axis, const size_t side)
+inline AABB getAabbHalf(const AABB& aabb, const size_t axis, const size_t side)
 {
-    Eigen::AlignedBox3f result = aabb;
+    AABB result = aabb;
 
     switch (axis)
     {
@@ -250,15 +250,15 @@ inline Eigen::AlignedBox3f getAabbHalf(const Eigen::AlignedBox3f& aabb, const si
         else if (side == 1) result.min().z() = result.center().z();
         break;
     default:
-        result.min() = Eigen::Vector3f();
-        result.max() = Eigen::Vector3f();
+        result.min() = Vector3();
+        result.max() = Vector3();
         break;
     }
 
     return result;
 }
 
-inline size_t relativeCorner(const Eigen::Vector3f& left, const Eigen::Vector3f& right)
+inline size_t relativeCorner(const Vector3& left, const Vector3& right)
 {
     if (right.x() <= left.x()) 
     {
@@ -296,22 +296,22 @@ inline float dot(const T& a, const T& b)
 
 // https://github.com/embree/embree/blob/master/tutorials/common/math/closest_point.h
 
-inline Eigen::Vector3f closestPointTriangle(const Eigen::Vector3f& p, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
+inline Vector3 closestPointTriangle(const Vector3& p, const Vector3& a, const Vector3& b, const Vector3& c)
 {
-    const Eigen::Vector3f ab = b - a;
-    const Eigen::Vector3f ac = c - a;
-    const Eigen::Vector3f ap = p - a;
+    const Vector3 ab = b - a;
+    const Vector3 ac = c - a;
+    const Vector3 ap = p - a;
 
     const float d1 = dot(ab, ap);
     const float d2 = dot(ac, ap);
     if (d1 <= 0.f && d2 <= 0.f) return a;
 
-    const Eigen::Vector3f bp = p - b;
+    const Vector3 bp = p - b;
     const float d3 = dot(ab, bp);
     const float d4 = dot(ac, bp);
     if (d3 >= 0.f && d4 <= d3) return b;
 
-    const Eigen::Vector3f cp = p - c;
+    const Vector3 cp = p - c;
     const float d5 = dot(ab, cp);
     const float d6 = dot(ac, cp);
     if (d6 >= 0.f && d5 <= d6) return c;
@@ -343,10 +343,10 @@ inline Eigen::Vector3f closestPointTriangle(const Eigen::Vector3f& p, const Eige
     return a + v * ab + w * ac;
 }
 
-inline Eigen::Vector3f fresnelSchlick(Eigen::Vector3f F0, float cosTheta)
+inline Vector3 fresnelSchlick(Vector3 F0, float cosTheta)
 {
     float p = (-5.55473f * cosTheta - 6.98316f) * cosTheta;
-    return F0 + (Eigen::Vector3f::Ones() - F0) * exp2(p);
+    return F0 + (Vector3::Ones() - F0) * exp2(p);
 }
 
 inline float ndfGGX(float cosLh, float roughness)
@@ -398,7 +398,7 @@ inline bool nearlyEqual(const float a, const float b)
     return abs(a - b) < 0.0001f;
 }
 
-inline Eigen::Array3f rgb2Hsv(const Eigen::Array3f& rgb)
+inline Color3 rgb2Hsv(const Color3& rgb)
 {
     const float r = rgb.x();
     const float g = rgb.y();
@@ -440,7 +440,7 @@ inline Eigen::Array3f rgb2Hsv(const Eigen::Array3f& rgb)
     return { h / 2, s, v };
 }
 
-inline Eigen::Array3f hsv2Rgb(const Eigen::Array3f& hsv)
+inline Color3 hsv2Rgb(const Color3& hsv)
 {
     const float h = hsv.x() * 2;
     const float s = hsv.y();

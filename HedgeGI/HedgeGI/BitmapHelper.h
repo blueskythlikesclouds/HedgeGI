@@ -54,7 +54,7 @@ void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& ba
 
         for (uint32_t i = 0; i < std::min(bitmap.arraySize, TBakePoint::BASIS_COUNT); i++)
         {
-            Eigen::Array4f color{};
+            Color4 color{};
 
             if (paintFlags & PAINT_FLAGS_COLOR)
             {

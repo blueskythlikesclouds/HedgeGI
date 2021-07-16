@@ -26,7 +26,7 @@ public:
     std::vector<std::unique_ptr<const Instance>> instances;
     std::vector<std::unique_ptr<const Light>> lights;
     std::vector<std::unique_ptr<const SHLightField>> shLightFields;
-    Eigen::AlignedBox3f aabb;
+    AABB aabb;
 
     void buildAABB();
 

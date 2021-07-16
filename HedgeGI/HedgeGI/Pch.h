@@ -30,6 +30,16 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+using Vector2 = Eigen::Vector2f;
+using Vector3 = Eigen::Vector3f;
+using Vector4 = Eigen::Vector4f;
+using Color3 = Eigen::Array3f;
+using Color4 = Eigen::Array4f;
+using Matrix3 = Eigen::Matrix3f;
+using Matrix4 = Eigen::Matrix4f;
+using Affine3 = Eigen::Affine3f;
+using AABB = Eigen::AlignedBox3f;
+
 // std
 #include <algorithm>
 #include <cstdint>

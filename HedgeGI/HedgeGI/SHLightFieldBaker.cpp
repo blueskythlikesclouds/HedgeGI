@@ -2,21 +2,21 @@
 #include "BakePoint.h"
 #include "BakingFactory.h"
 
-const Eigen::Vector3f SHLF_DIRECTIONS[6] =
+const Vector3 SHLF_DIRECTIONS[6] =
 {
-    Eigen::Vector3f(1, 0, 0),
-    Eigen::Vector3f(-1, 0, 0),
-    Eigen::Vector3f(0, 1, 0),
-    Eigen::Vector3f(0, -1, 0),
-    Eigen::Vector3f(0, 0, 1),
-    Eigen::Vector3f(0, 0, -1)
+    Vector3(1, 0, 0),
+    Vector3(-1, 0, 0),
+    Vector3(0, 1, 0),
+    Vector3(0, -1, 0),
+    Vector3(0, 0, 1),
+    Vector3(0, 0, -1)
 };
 
 struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_NONE>
 {
     uint16_t z { (uint16_t)-1 };
 
-    static Eigen::Vector3f sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
+    static Vector3 sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
     {
         return sampleDirectionSphere(u1, u2);
     }
@@ -26,9 +26,9 @@ struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_NONE>
         return true;
     }
 
-    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
+    void addSample(const Color3& color, const Vector3& tangentSpaceDirection, const Vector3& worldSpaceDirection)
     {
-        const Eigen::Vector3f direction(worldSpaceDirection.x(), worldSpaceDirection.y(), -worldSpaceDirection.z());
+        const Vector3 direction(worldSpaceDirection.x(), worldSpaceDirection.y(), -worldSpaceDirection.z());
 
         for (size_t i = 0; i < 6; i++)
         {
@@ -65,7 +65,7 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const SHLight
                 const float xNormalized = (x + 0.5f) / shlf.resolution.x() - 0.5f;
 
                 SHLightFieldPoint bakePoint {};
-                bakePoint.position = (shlf.matrix * Eigen::Vector4f(xNormalized, yNormalized, zNormalized, 1)).head<3>() / 10.0f;
+                bakePoint.position = (shlf.matrix * Vector4(xNormalized, yNormalized, zNormalized, 1)).head<3>() / 10.0f;
                 bakePoint.smoothPosition = bakePoint.position;
                 bakePoint.tangentToWorldMatrix.setIdentity();
                 bakePoint.x = (uint16_t)x;
@@ -88,7 +88,7 @@ std::unique_ptr<Bitmap> SHLightFieldBaker::paint(const std::vector<SHLightFieldP
     {
         for (uint32_t i = 0; i < 6; i++)
         {
-            Eigen::Array4f color;
+            Color4 color;
             color.head<3>() = bakePoint.colors[i];
             color.w() = 1.0f;
 

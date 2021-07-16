@@ -42,10 +42,10 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     bitmap->width = (uint32_t)metadata.width;
     bitmap->height = (uint32_t)metadata.height;
     bitmap->arraySize = bitmap->type == BITMAP_TYPE_3D ? (uint32_t)metadata.depth : (uint32_t)metadata.arraySize;
-    bitmap->data = std::make_unique<Eigen::Array4f[]>(bitmap->width * bitmap->height * bitmap->arraySize);
+    bitmap->data = std::make_unique<Color4[]>(bitmap->width * bitmap->height * bitmap->arraySize);
 
     for (size_t i = 0; i < bitmap->arraySize; i++)
-        memcpy(&bitmap->data[bitmap->width * bitmap->height * i], scratchImage->GetImage(0, i, 0)->pixels, bitmap->width * bitmap->height * sizeof(Eigen::Vector4f));
+        memcpy(&bitmap->data[bitmap->width * bitmap->height * i], scratchImage->GetImage(0, i, 0)->pixels, bitmap->width * bitmap->height * sizeof(Vector4));
 
     return bitmap;
 }
@@ -64,7 +64,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
         HlHHMaterialParameter* parameter = (HlHHMaterialParameter*)hlOff32Get(&parameters[i]);
         char* name = (char*)hlOff32Get(&parameter->nameOffset);
         float* valuePtr = (float*)hlOff32Get(&parameter->valuesOffset);
-        const Eigen::Array4f value(valuePtr[0], valuePtr[1], valuePtr[2], valuePtr[3]);
+        const Color4 value(valuePtr[0], valuePtr[1], valuePtr[2], valuePtr[3]);
 
         if (strcmp(name, "diffuse") == 0) newMaterial->parameters.diffuse = value;
         else if (strcmp(name, "specular") == 0) newMaterial->parameters.specular = value;
@@ -140,7 +140,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
     return newMaterial;
 }
 
-std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Eigen::Affine3f& transformation,
+std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Affine3& transformation,
                                                const Scene& scene)
 {
     std::unique_ptr<Mesh> newMesh = std::make_unique<Mesh>();
@@ -257,7 +257,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Eigen::Affi
         }
     }
 
-    Eigen::Affine3f rotation;
+    Affine3 rotation;
     rotation = transformation.rotation();
 
     for (size_t i = 0; i < newMesh->vertexCount; i++)
@@ -333,7 +333,7 @@ std::unique_ptr<Instance> SceneFactory::createInstance(HlHHTerrainInstanceInfoV0
     newInstance->name = (const char*)(instance ?
         hlOff32Get(&instance->instanceInfoNameOffset) : hlOff32Get(&model->nameOffset));
 
-    Eigen::Matrix4f transformationMatrix;
+    Matrix4 transformationMatrix;
 
     if (instance != nullptr)
     {
@@ -347,10 +347,10 @@ std::unique_ptr<Instance> SceneFactory::createInstance(HlHHTerrainInstanceInfoV0
     }
     else
     {
-        transformationMatrix = Eigen::Matrix4f::Identity();
+        transformationMatrix = Matrix4::Identity();
     }
 
-    Eigen::Affine3f transformationAffine;
+    Affine3 transformationAffine;
     transformationAffine = transformationMatrix;
 
     auto addMesh = [&transformationAffine, &scene, &newInstance](HlHHMesh* srcMesh, const MeshType type)
@@ -427,11 +427,11 @@ std::unique_ptr<Light> SceneFactory::createLight(HlHHLightV1* light)
 
 std::unique_ptr<SHLightField> SceneFactory::createSHLightField(HlHHSHLightField* shlf)
 {
-    Eigen::Affine3f affine =
+    Affine3 affine =
         Eigen::Translation3f(shlf->position.x, shlf->position.y, shlf->position.z) *
-        Eigen::AngleAxisf(shlf->rotation.x, Eigen::Vector3f::UnitX()) *
-        Eigen::AngleAxisf(shlf->rotation.y, Eigen::Vector3f::UnitY()) *
-        Eigen::AngleAxisf(shlf->rotation.z, Eigen::Vector3f::UnitZ()) *
+        Eigen::AngleAxisf(shlf->rotation.x, Vector3::UnitX()) *
+        Eigen::AngleAxisf(shlf->rotation.y, Vector3::UnitY()) *
+        Eigen::AngleAxisf(shlf->rotation.z, Vector3::UnitZ()) *
         Eigen::Scaling(shlf->scale.x, shlf->scale.y, shlf->scale.z);
 
     std::unique_ptr<SHLightField> newSHLightField = std::make_unique<SHLightField>();

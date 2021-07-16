@@ -1,9 +1,9 @@
 ﻿#include "Mesh.h"
 #include "Scene.h"
 
-Eigen::Matrix3f Vertex::getTangentToWorldMatrix() const
+Matrix3 Vertex::getTangentToWorldMatrix() const
 {
-    Eigen::Matrix3f tangentToWorld;
+    Matrix3 tangentToWorld;
     tangentToWorld <<
         tangent[0], binormal[0], normal[0],
         tangent[1], binormal[1], normal[1],
@@ -36,8 +36,8 @@ void Mesh::generateTangents() const
     for (uint32_t i = 0; i < vertexCount; i++)
     {
         Vertex& vertex = vertices[i];
-        vertex.tangent = Eigen::Vector3f::Zero();
-        vertex.binormal = Eigen::Vector3f::Zero();
+        vertex.tangent = Vector3::Zero();
+        vertex.binormal = Vector3::Zero();
     }
 
     for (uint32_t i = 0; i < triangleCount; i++)
@@ -47,15 +47,15 @@ void Mesh::generateTangents() const
         Vertex& b = vertices[triangle.b];
         Vertex& c = vertices[triangle.c];
 
-        const Eigen::Vector3f e1 = c.position - a.position;
-        const Eigen::Vector3f e2 = b.position - a.position;
+        const Vector3 e1 = c.position - a.position;
+        const Vector3 e2 = b.position - a.position;
 
-        const Eigen::Vector2f uv1 = c.vPos - a.vPos;
-        const Eigen::Vector2f uv2 = b.vPos - a.vPos;
+        const Vector2 uv1 = c.vPos - a.vPos;
+        const Vector2 uv2 = b.vPos - a.vPos;
 
         float r = 1.0f / (uv1[0] * uv2[1] - uv1[1] * uv2[0]);
-        const Eigen::Vector3f tangent = (e1 * uv2[1] - e2 * uv1[1]) * r;
-        const Eigen::Vector3f binormal = (e2 * uv1[0] - e1 * uv2[0]) * r;
+        const Vector3 tangent = (e1 * uv2[1] - e2 * uv1[1]) * r;
+        const Vector3 binormal = (e2 * uv1[0] - e1 * uv2[0]) * r;
 
         a.tangent += tangent; b.tangent += tangent; c.tangent += tangent;
         a.binormal += binormal; b.binormal += binormal; c.binormal += binormal;
@@ -86,7 +86,7 @@ void Mesh::read(const FileStream& file, const Scene& scene)
     if (index != (uint32_t)-1)
         material = scene.materials[index].get();
 
-    aabb = file.read<Eigen::AlignedBox3f>();
+    aabb = file.read<AABB>();
 }
 
 void Mesh::write(const FileStream& file, const Scene& scene) const

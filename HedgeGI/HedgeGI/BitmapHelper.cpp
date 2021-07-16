@@ -18,7 +18,7 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 
     const size_t bitmapSize = bitmap.width * bitmap.height;
 
-    std::for_each(std::execution::par_unseq, &dilated->data[0], &dilated->data[bitmapSize * bitmap.arraySize], [&](Eigen::Array4f& outputColor)
+    std::for_each(std::execution::par_unseq, &dilated->data[0], &dilated->data[bitmapSize * bitmap.arraySize], [&](Color4& outputColor)
     {
         const size_t i = std::distance(&dilated->data[0], &outputColor);
 
@@ -28,7 +28,7 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
         const uint32_t x = (uint32_t)(currentBitmap % bitmap.height);
         const uint32_t y = (uint32_t)(currentBitmap / bitmap.height);
 
-        Eigen::Array4f resultColor = bitmap.pickColor(x, y, arrayIndex);
+        Color4 resultColor = bitmap.pickColor(x, y, arrayIndex);
         if (resultColor.maxCoeff() > 0.0f)
         {
             outputColor = resultColor;
@@ -43,7 +43,7 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
         {
             for (auto& dy : indices)
             {
-                const Eigen::Array4f color = bitmap.pickColor(x + dx, y + dy, arrayIndex);
+                const Color4 color = bitmap.pickColor(x + dx, y + dy, arrayIndex);
                 if (color.maxCoeff() <= 0.0f)
                     continue;
 
@@ -77,7 +77,7 @@ std::unique_ptr<Bitmap> BitmapHelper::makeEncodeReady(const Bitmap& bitmap, cons
             {
                 const size_t index = bitmap.getColorIndex(x, y, i);
 
-                Eigen::Array4f color = bitmap.data[index];
+                Color4 color = bitmap.data[index];
 
                 if (encodeReadyFlags & ENCODE_READY_FLAGS_SRGB) color.head<3>() = color.head<3>().pow(1.0f / 2.2f);
                 if (encodeReadyFlags & ENCODE_READY_FLAGS_SQRT) color.head<3>() = color.head<3>().sqrt();
@@ -104,7 +104,7 @@ std::unique_ptr<Bitmap> BitmapHelper::combine(const Bitmap& lightMap, const Bitm
             {
                 const size_t index = bitmap->getColorIndex(x, y, i);
 
-                Eigen::Array4f color = lightMap.data[index];
+                Color4 color = lightMap.data[index];
                 color.w() = shadowMap.data[index].head<3>().sum() / 3.0f;
 
                 bitmap->data[index] = color;

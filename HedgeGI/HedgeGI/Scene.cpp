@@ -121,7 +121,7 @@ void Scene::read(const FileStream& file)
         shLightFields.push_back(std::move(shlf));
     }
 
-    aabb = file.read<Eigen::AlignedBox3f>();
+    aabb = file.read<AABB>();
 }
 
 void Scene::write(const FileStream& file) const

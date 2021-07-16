@@ -4,10 +4,10 @@
 #include "Instance.h"
 #include "Mesh.h"
 
-void SeamOptimizer::blend(const uint32_t stepCount, const Eigen::Vector2f& startA, const Eigen::Vector2f& endA,
-    const Eigen::Vector2f& startB, const Eigen::Vector2f& endB, const Bitmap& bitmap)
+void SeamOptimizer::blend(const uint32_t stepCount, const Vector2& startA, const Vector2& endA,
+    const Vector2& startB, const Vector2& endB, const Bitmap& bitmap)
 {
-    const Eigen::Vector2f factor =
+    const Vector2 factor =
     {
         0.5f * (1.0f / (float)bitmap.width),
         0.5f * (1.0f / (float)bitmap.height),
@@ -17,18 +17,18 @@ void SeamOptimizer::blend(const uint32_t stepCount, const Eigen::Vector2f& start
     {
         const float lerpFactor = (i + 0.5f) / stepCount;
 
-        const Eigen::Vector2f a = lerp(startA, endA, lerpFactor);
-        const Eigen::Vector2f b = lerp(startB, endB, lerpFactor);
+        const Vector2 a = lerp(startA, endA, lerpFactor);
+        const Vector2 b = lerp(startB, endB, lerpFactor);
 
         for (size_t j = 0; j < _countof(BAKE_POINT_OFFSETS); j++)
         {
-            const Eigen::Vector2f offsetA = a + BAKE_POINT_OFFSETS[j].cwiseProduct(factor);
-            const Eigen::Vector2f offsetB = b + BAKE_POINT_OFFSETS[j].cwiseProduct(factor);
+            const Vector2 offsetA = a + BAKE_POINT_OFFSETS[j].cwiseProduct(factor);
+            const Vector2 offsetB = b + BAKE_POINT_OFFSETS[j].cwiseProduct(factor);
 
             for (uint32_t k = 0; k < bitmap.arraySize; k++)
             {
-                const Eigen::Array4f color = (bitmap.pickColor(offsetA, k) + bitmap.pickColor(offsetB, k)) / 2.0f;
-                //const Eigen::Array4f color { 1, 0, 0, 1 };
+                const Color4 color = (bitmap.pickColor(offsetA, k) + bitmap.pickColor(offsetB, k)) / 2.0f;
+                //const Color4 color { 1, 0, 0, 1 };
                 bitmap.putColor(color, offsetA, k);
                 bitmap.putColor(color, offsetB, k);
             }
@@ -76,14 +76,14 @@ void SeamOptimizer::compareAndBlend(const Mesh& mA, const Mesh& mB, const Triang
     }
 }
 
-uint32_t SeamOptimizer::computeStepCount(const Eigen::Vector2f& p1, const Eigen::Vector2f& p2, const uint32_t width, const uint32_t height)
+uint32_t SeamOptimizer::computeStepCount(const Vector2& p1, const Vector2& p2, const uint32_t width, const uint32_t height)
 {
     const float x = abs(p1.x() - p2.x()) * width;
     const float y = abs(p1.y() - p2.y()) * height;
     return (uint32_t)ceilf(sqrtf(x * x + y * y));
 }
 
-int32_t SeamOptimizer::findVertex(const Eigen::Vector3f& position, const Eigen::Vector3f& normal, const Vertex& a, const Vertex& b, const Vertex& c)
+int32_t SeamOptimizer::findVertex(const Vector3& position, const Vector3& normal, const Vertex& a, const Vertex& b, const Vertex& c)
 {
     if (nearlyEqual(a.position, position) && a.normal.dot(normal) > 0.9f) return 0;
     if (nearlyEqual(b.position, position) && b.normal.dot(normal) > 0.9f) return 1;
@@ -116,7 +116,7 @@ SeamOptimizer::~SeamOptimizer() = default;
 std::unique_ptr<Bitmap> SeamOptimizer::optimize(const Bitmap& bitmap) const
 {
     std::unique_ptr<Bitmap> optimized = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
-    memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Eigen::Vector4f));
+    memcpy(optimized->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Vector4));
 
     std::list<const SeamNode*> list;
     for (auto& node : nodes)

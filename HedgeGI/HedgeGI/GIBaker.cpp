@@ -5,7 +5,7 @@
 
 struct GIPoint : BakePoint<1, BAKE_POINT_FLAGS_ALL>
 {
-    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
+    void addSample(const Color3& color, const Vector3& tangentSpaceDirection, const Vector3& worldSpaceDirection)
     {
         colors[0] += color;
     }

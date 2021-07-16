@@ -5,15 +5,15 @@ class Scene;
 
 struct Vertex
 {
-    Eigen::Vector3f position;
-    Eigen::Vector3f normal;
-    Eigen::Vector3f tangent;
-    Eigen::Vector3f binormal;
-    Eigen::Vector2f uv;
-    Eigen::Vector2f vPos;
-    Eigen::Array4f color;
+    Vector3 position;
+    Vector3 normal;
+    Vector3 tangent;
+    Vector3 binormal;
+    Vector2 uv;
+    Vector2 vPos;
+    Color4 color;
 
-    Eigen::Matrix3f getTangentToWorldMatrix() const;
+    Matrix3 getTangentToWorldMatrix() const;
 };
 
 struct Triangle
@@ -40,7 +40,7 @@ public:
     std::unique_ptr<Vertex[]> vertices;
     std::unique_ptr<Triangle[]> triangles;
     const Material* material{};
-    Eigen::AlignedBox3f aabb;
+    AABB aabb;
 
     void buildAABB();
     RTCGeometry createRTCGeometry() const;

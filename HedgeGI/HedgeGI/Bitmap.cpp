@@ -1,18 +1,18 @@
 ﻿#include "Bitmap.h"
 #include "D3D11Device.h"
 
-void Bitmap::transformToLightMap(Eigen::Array4f* color)
+void Bitmap::transformToLightMap(Color4* color)
 {
     color->w() = 1.0f;
 }
 
-void Bitmap::transformToShadowMap(Eigen::Array4f* color)
+void Bitmap::transformToShadowMap(Color4* color)
 {
     color->head<3>() = color->w();
     color->w() = 1.0f;
 }
 
-void Bitmap::transformToLinearSpace(Eigen::Array4f* color)
+void Bitmap::transformToLinearSpace(Color4* color)
 {
     color->head<3>() = color->head<3>().pow(2.2f);
 }
@@ -20,10 +20,10 @@ void Bitmap::transformToLinearSpace(Eigen::Array4f* color)
 Bitmap::Bitmap() = default;
 
 Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize, const BitmapType type)
-    : type(type), width(width), height(height), arraySize(arraySize), data(std::make_unique<Eigen::Array4f[]>(width * height * arraySize))
+    : type(type), width(width), height(height), arraySize(arraySize), data(std::make_unique<Color4[]>(width * height * arraySize))
 {
     for (size_t i = 0; i < width * height * arraySize; i++)
-        data[i] = Eigen::Vector4f::Zero();
+        data[i] = Vector4::Zero();
 }
 
 float* Bitmap::getColors(const size_t index) const
@@ -37,14 +37,14 @@ size_t Bitmap::getColorIndex(const size_t x, const size_t y, const size_t arrayI
     return dataSize * arrayIndex + width * y + x;
 }
 
-void Bitmap::getPixelCoords(const Eigen::Vector2f& uv, uint32_t& x, uint32_t& y) const
+void Bitmap::getPixelCoords(const Vector2& uv, uint32_t& x, uint32_t& y) const
 {
-    const Eigen::Vector2f clamped = clampUV(uv);
+    const Vector2 clamped = clampUV(uv);
     x = std::max(0u, std::min(width - 1, (uint32_t)std::roundf(clamped[0] * width)));
     y = std::max(0u, std::min(height - 1, (uint32_t)std::roundf(clamped[1] * height)));
 }
 
-Eigen::Array4f Bitmap::pickColor(const Eigen::Vector2f& uv, const uint32_t arrayIndex) const
+Color4 Bitmap::pickColor(const Vector2& uv, const uint32_t arrayIndex) const
 {
     uint32_t x, y;
     getPixelCoords(uv, x, y);
@@ -52,12 +52,12 @@ Eigen::Array4f Bitmap::pickColor(const Eigen::Vector2f& uv, const uint32_t array
     return data[width * height * arrayIndex + y * width + x];
 }
 
-Eigen::Array4f Bitmap::pickColor(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
+Color4 Bitmap::pickColor(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
 {
     return data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))];
 }
 
-void Bitmap::putColor(const Eigen::Array4f& color, const Eigen::Vector2f& uv, const uint32_t arrayIndex) const
+void Bitmap::putColor(const Color4& color, const Vector2& uv, const uint32_t arrayIndex) const
 {
     uint32_t x, y;
     getPixelCoords(uv, x, y);
@@ -65,7 +65,7 @@ void Bitmap::putColor(const Eigen::Array4f& color, const Eigen::Vector2f& uv, co
     data[width * height * arrayIndex + y * width + x] = color;
 }
 
-void Bitmap::putColor(const Eigen::Array4f& color, const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
+void Bitmap::putColor(const Color4& color, const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
 {
     data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))] = color;
 }
@@ -77,7 +77,7 @@ void Bitmap::read(const FileStream& file)
     width = file.read<uint32_t>();
     height = file.read<uint32_t>();
     arraySize = file.read<uint32_t>();
-    data = std::make_unique<Eigen::Array4f[]>(width * height * arraySize);
+    data = std::make_unique<Color4[]>(width * height * arraySize);
     file.read(data.get(), width * height * arraySize);
 }
 
@@ -168,9 +168,9 @@ DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) con
 
     for (size_t i = 0; i < arraySize; i++)
     {
-        Eigen::Array4f* const pixels = (Eigen::Array4f*)scratchImage.GetImages()[i].pixels;
+        Color4* const pixels = (Color4*)scratchImage.GetImages()[i].pixels;
 
-        memcpy(pixels, &data[i * width * height], sizeof(Eigen::Array4f) * width * height);
+        memcpy(pixels, &data[i * width * height], sizeof(Color4) * width * height);
 
         if (transformer != nullptr)
         {

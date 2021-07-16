@@ -12,12 +12,12 @@ class Light
 {
 public:
     LightType type{};
-    Eigen::Vector3f positionOrDirection;
-    Eigen::Array3f color;
+    Vector3 positionOrDirection;
+    Color3 color;
     float innerRange{};
     float outerRange{};
 
-    Eigen::Matrix3f getTangentToWorldMatrix() const;
+    Matrix3 getTangentToWorldMatrix() const;
 
     void read(const FileStream& file);
     void write(const FileStream& file) const;

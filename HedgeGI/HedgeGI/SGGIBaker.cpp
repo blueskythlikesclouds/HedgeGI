@@ -3,30 +3,30 @@
 #include "BitmapHelper.h"
 #include "SGGIBaker.h"
 
-const std::array<Eigen::Vector3f, 4> SG_DIRECTIONS =
+const std::array<Vector3, 4> SG_DIRECTIONS =
 {
-    Eigen::Vector3f(0.0f, 0.57735002f, 1.0f),
-    Eigen::Vector3f(0.0f, 0.57735002f, -1.0f),
-    Eigen::Vector3f(1.0f, 0.57735002f, 0.0f),
-    Eigen::Vector3f(-1.0f, 0.57735002f, 0.0f)
+    Vector3(0.0f, 0.57735002f, 1.0f),
+    Vector3(0.0f, 0.57735002f, -1.0f),
+    Vector3(1.0f, 0.57735002f, 0.0f),
+    Vector3(-1.0f, 0.57735002f, 0.0f)
 };
 
 const float SG_INTEGRAL = 0.64f;
 
 struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
 {
-    static Eigen::Vector3f sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
+    static Vector3 sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
     {
         return sampleDirectionHemisphere(u1, u2);
     }
 
-    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection)
+    void addSample(const Color3& color, const Vector3& tangentSpaceDirection, const Vector3& worldSpaceDirection)
     {
-        const Eigen::Vector3f direction(worldSpaceDirection.x(), worldSpaceDirection.y(), -worldSpaceDirection.z());
+        const Vector3 direction(worldSpaceDirection.x(), worldSpaceDirection.y(), -worldSpaceDirection.z());
 
         for (size_t i = 0; i < 4; i++)
         {
-            const Eigen::Vector3f sgDirection(SG_DIRECTIONS[i].x(), direction.y() * SG_DIRECTIONS[i].y(), SG_DIRECTIONS[i].z());
+            const Vector3 sgDirection(SG_DIRECTIONS[i].x(), direction.y() * SG_DIRECTIONS[i].y(), SG_DIRECTIONS[i].z());
 
             const float cosTheta = direction.dot(sgDirection.normalized());
             if (cosTheta <= 0.0f)

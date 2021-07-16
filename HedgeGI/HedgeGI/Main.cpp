@@ -204,7 +204,7 @@ int32_t main(int32_t argc, const char* argv[])
             float radius = 0.0f;
 
             for (size_t j = 0; j < 8; j++)
-                radius = std::max<float>(radius, (instance->aabb.center() - instance->aabb.corner((Eigen::AlignedBox3f::CornerType)j)).norm());
+                radius = std::max<float>(radius, (instance->aabb.center() - instance->aabb.corner((AABB::CornerType)j)).norm());
 
             const uint16_t resolution = std::max<uint16_t>(bakeParams.resolutionMinimum, std::min<uint16_t>(bakeParams.resolutionMaximum, 
                 resolutions.find(instance->name) != resolutions.end() ? resolutions[instance->name] :

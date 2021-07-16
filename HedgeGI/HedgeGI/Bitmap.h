@@ -15,13 +15,13 @@ public:
     uint32_t width{};
     uint32_t height{};
     uint32_t arraySize{};
-    std::unique_ptr<Eigen::Array4f[]> data;
+    std::unique_ptr<Color4[]> data;
 
-    typedef void Transformer(Eigen::Array4f* color);
+    typedef void Transformer(Color4* color);
 
-    static void transformToLightMap(Eigen::Array4f* color);
-    static void transformToShadowMap(Eigen::Array4f* color);
-    static void transformToLinearSpace(Eigen::Array4f* color);
+    static void transformToLightMap(Color4* color);
+    static void transformToShadowMap(Color4* color);
+    static void transformToLinearSpace(Color4* color);
 
     Bitmap();
     Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1, BitmapType type = BITMAP_TYPE_2D);
@@ -29,13 +29,13 @@ public:
     float* getColors(size_t index) const;
     size_t getColorIndex(size_t x, size_t y, size_t arrayIndex = 0) const;
 
-    void getPixelCoords(const Eigen::Vector2f& uv, uint32_t& x, uint32_t& y) const;
+    void getPixelCoords(const Vector2& uv, uint32_t& x, uint32_t& y) const;
 
-    Eigen::Array4f pickColor(const Eigen::Vector2f& uv, uint32_t arrayIndex = 0) const;
-    Eigen::Array4f pickColor(uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
+    Color4 pickColor(const Vector2& uv, uint32_t arrayIndex = 0) const;
+    Color4 pickColor(uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
 
-    void putColor(const Eigen::Array4f& color, const Eigen::Vector2f& uv, uint32_t arrayIndex = 0) const;
-    void putColor(const Eigen::Array4f& color, uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
+    void putColor(const Color4& color, const Vector2& uv, uint32_t arrayIndex = 0) const;
+    void putColor(const Color4& color, uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
 
     void read(const FileStream& file);
     void write(const FileStream& file) const;

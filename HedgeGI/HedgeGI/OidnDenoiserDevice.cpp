@@ -27,8 +27,8 @@ std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool d
     for (size_t i = 0; i < bitmap.arraySize; i++)
     {
         OIDNFilter filter = oidnNewFilter(device, "RT");
-        oidnSetSharedFilterImage(filter, "color", bitmap.getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Eigen::Array4f), 0);
-        oidnSetSharedFilterImage(filter, "output", denoised->getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Eigen::Array4f), 0);
+        oidnSetSharedFilterImage(filter, "color", bitmap.getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
+        oidnSetSharedFilterImage(filter, "output", denoised->getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
         oidnSetFilter1b(filter, "hdr", true);
         oidnCommitFilter(filter);
         oidnExecuteFilter(filter);

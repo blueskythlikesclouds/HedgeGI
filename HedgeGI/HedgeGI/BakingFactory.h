@@ -20,7 +20,7 @@ struct BakeParams
 {
     TargetEngine targetEngine;
 
-    Eigen::Array3f environmentColor;
+    Color3 environmentColor;
 
     uint32_t lightBounceCount{};
     uint32_t lightSampleCount{};
@@ -62,7 +62,7 @@ class BakingFactory
     static std::mutex mutex;
 
 public:
-    static Eigen::Array4f pathTrace(const RaytracingContext& raytracingContext, const Eigen::Vector3f& position, const Eigen::Vector3f& direction, const Light& sunLight, const BakeParams& bakeParams);
+    static Color4 pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams);
 
     template <typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
@@ -84,7 +84,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
     }
 
     const uint32_t lightSampleCount = bakeParams.lightSampleCount * TBakePoint::BASIS_COUNT;
-    const Eigen::Matrix3f lightTangentToWorldMatrix = sunLight->getTangentToWorldMatrix();
+    const Matrix3 lightTangentToWorldMatrix = sunLight->getTangentToWorldMatrix();
 
     std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](TBakePoint& bakePoint)
     {
@@ -97,9 +97,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
         for (uint32_t i = 0; i < lightSampleCount; i++)
         {
-            const Eigen::Vector3f tangentSpaceDirection = TBakePoint::sampleDirection(i, lightSampleCount, Random::next(), Random::next()).normalized();
-            const Eigen::Vector3f worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
-            const Eigen::Array4f radiance = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, *sunLight, bakeParams);
+            const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, lightSampleCount, Random::next(), Random::next()).normalized();
+            const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
+            const Color4 radiance = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, *sunLight, bakeParams);
 
             faceFactor += radiance[3];
             bakePoint.addSample(radiance.head<3>(), tangentSpaceDirection, worldSpaceDirection);
@@ -127,8 +127,8 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
                 for (uint32_t i = 0; i < bakeParams.aoSampleCount; i++)
                 {
-                    const Eigen::Vector3f tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.aoSampleCount, Random::next(), Random::next()).normalized();
-                    const Eigen::Vector3f worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
+                    const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.aoSampleCount, Random::next(), Random::next()).normalized();
+                    const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
 
                     RTCIntersectContext context {};
                     rtcInitIntersectContext(&context);
@@ -150,7 +150,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
                         continue;
 
-                    const Eigen::Vector2f baryUV { query.hit.v, query.hit.u };
+                    const Vector2 baryUV { query.hit.v, query.hit.u };
 
                     const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
                     const Triangle& triangle = mesh.triangles[query.hit.primID];
@@ -158,7 +158,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     const Vertex& b = mesh.vertices[triangle.b];
                     const Vertex& c = mesh.vertices[triangle.c];
 
-                    const Eigen::Vector3f triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
+                    const Vector3 triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
 
                     if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(worldSpaceDirection) >= 0.0f)
                         continue;
@@ -189,13 +189,13 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
             for (uint32_t i = 0; i < shadowSampleCount; i++)
             {
-                Eigen::Vector3f direction;
+                Vector3 direction;
 
                 if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SOFT_SHADOW) != 0)
                 {
-                    const Eigen::Vector2f vogelDiskSample = sampleVogelDisk(i, bakeParams.shadowSampleCount, phi);
+                    const Vector2 vogelDiskSample = sampleVogelDisk(i, bakeParams.shadowSampleCount, phi);
 
-                    direction = (lightTangentToWorldMatrix * Eigen::Vector3f(
+                    direction = (lightTangentToWorldMatrix * Vector3(
                         vogelDiskSample[0] * bakeParams.shadowSearchRadius,
                         vogelDiskSample[1] * bakeParams.shadowSearchRadius, 1)).normalized();
                 }
@@ -204,7 +204,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     direction = sunLight->positionOrDirection;
                 }
 
-                Eigen::Vector3f position = bakePoint.smoothPosition;
+                Vector3 position = bakePoint.smoothPosition;
 
                 float shadow = 0;
                 size_t depth = 0;
@@ -236,7 +236,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     const Vertex& a = mesh.vertices[triangle.a];
                     const Vertex& b = mesh.vertices[triangle.b];
                     const Vertex& c = mesh.vertices[triangle.c];
-                    const Eigen::Vector2f hitUV = barycentricLerp(a.uv, b.uv, c.uv, { query.hit.v, query.hit.u });
+                    const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, { query.hit.v, query.hit.u });
 
                     const float alpha = mesh.type != MESH_TYPE_OPAQUE && mesh.material && mesh.material->textures.diffuse ? 
                         mesh.material->textures.diffuse->pickColor(hitUV)[3] : 1;

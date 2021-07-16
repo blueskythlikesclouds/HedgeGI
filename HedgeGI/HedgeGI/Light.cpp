@@ -1,13 +1,13 @@
 ﻿#include "Light.h"
 
-Eigen::Matrix3f Light::getTangentToWorldMatrix() const
+Matrix3 Light::getTangentToWorldMatrix() const
 {
-    const Eigen::Vector3f t1 = positionOrDirection.cross(Eigen::Vector3f(0, 0, 1));
-    const Eigen::Vector3f t2 = positionOrDirection.cross(Eigen::Vector3f(0, 1, 0));
-    const Eigen::Vector3f tangent = (t1.norm() > t2.norm() ? t1 : t2).normalized();
-    const Eigen::Vector3f binormal = tangent.cross(positionOrDirection).normalized();
+    const Vector3 t1 = positionOrDirection.cross(Vector3(0, 0, 1));
+    const Vector3 t2 = positionOrDirection.cross(Vector3(0, 1, 0));
+    const Vector3 tangent = (t1.norm() > t2.norm() ? t1 : t2).normalized();
+    const Vector3 binormal = tangent.cross(positionOrDirection).normalized();
 
-    Eigen::Matrix3f tangentToWorld;
+    Matrix3 tangentToWorld;
     tangentToWorld <<
         tangent[0], binormal[0], positionOrDirection[0],
         tangent[1], binormal[1], positionOrDirection[1],
@@ -19,8 +19,8 @@ Eigen::Matrix3f Light::getTangentToWorldMatrix() const
 void Light::read(const FileStream& file)
 {
     type = (LightType)file.read<uint32_t>();
-    positionOrDirection = file.read<Eigen::Vector3f>();
-    color = file.read<Eigen::Vector3f>();
+    positionOrDirection = file.read<Vector3>();
+    color = file.read<Vector3>();
 
     if (type != LIGHT_TYPE_POINT)
         return;

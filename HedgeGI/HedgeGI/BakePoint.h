@@ -19,28 +19,28 @@ struct BakePoint
     static constexpr uint32_t BASIS_COUNT = BasisCount;
     static constexpr size_t FLAGS = Flags;
 
-    Eigen::Vector3f position;
-    Eigen::Vector3f smoothPosition;
-    Eigen::Matrix3f tangentToWorldMatrix;
+    Vector3 position;
+    Vector3 smoothPosition;
+    Matrix3 tangentToWorldMatrix;
 
-    Eigen::Array3f colors[BasisCount];
+    Color3 colors[BasisCount];
     float shadow{};
 
     uint16_t x{ (uint16_t)-1 };
     uint16_t y{ (uint16_t)-1 };
 
-    static Eigen::Vector3f sampleDirection(size_t index, size_t sampleCount, float u1, float u2);
+    static Vector3 sampleDirection(size_t index, size_t sampleCount, float u1, float u2);
 
     bool valid() const;
     void discard();
 
     void begin();
-    void addSample(const Eigen::Array3f& color, const Eigen::Vector3f& tangentSpaceDirection, const Eigen::Vector3f& worldSpaceDirection) = delete;
+    void addSample(const Color3& color, const Vector3& tangentSpaceDirection, const Vector3& worldSpaceDirection) = delete;
     void end(uint32_t sampleCount);
 };
 
 template <uint32_t BasisCount, size_t Flags>
-Eigen::Vector3f BakePoint<BasisCount, Flags>::sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
+Vector3 BakePoint<BasisCount, Flags>::sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
 {
     return sampleCosineWeightedHemisphere(u1, u2);
 }
@@ -62,7 +62,7 @@ template <uint32_t BasisCount, size_t Flags>
 void BakePoint<BasisCount, Flags>::begin()
 {
     for (uint32_t i = 0; i < BasisCount; i++)
-        colors[i] = Eigen::Array3f::Zero();
+        colors[i] = Color3::Zero();
 
     shadow = 0.0f;
 }
@@ -75,7 +75,7 @@ void BakePoint<BasisCount, Flags>::end(const uint32_t sampleCount)
 }
 
 // Thanks Mr F
-static const Eigen::Vector2f BAKE_POINT_OFFSETS[] =
+static const Vector2 BAKE_POINT_OFFSETS[] =
 {
     {-2, -2},
     {2, -2},
@@ -123,9 +123,9 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                 const Vertex& b = mesh->vertices[triangle.b];
                 const Vertex& c = mesh->vertices[triangle.c];
 
-                Eigen::Vector3f aVPos(a.vPos[0] + offset.x() * factor, a.vPos[1] + offset.y() * factor, 0);
-                Eigen::Vector3f bVPos(b.vPos[0] + offset.x() * factor, b.vPos[1] + offset.y() * factor, 0);
-                Eigen::Vector3f cVPos(c.vPos[0] + offset.x() * factor, c.vPos[1] + offset.y() * factor, 0);
+                Vector3 aVPos(a.vPos[0] + offset.x() * factor, a.vPos[1] + offset.y() * factor, 0);
+                Vector3 bVPos(b.vPos[0] + offset.x() * factor, b.vPos[1] + offset.y() * factor, 0);
+                Vector3 cVPos(c.vPos[0] + offset.x() * factor, c.vPos[1] + offset.y() * factor, 0);
 
                 const float xMin = std::min(a.vPos[0], std::min(b.vPos[0], c.vPos[0]));
                 const float xMax = std::max(a.vPos[0], std::max(b.vPos[0], c.vPos[0]));
@@ -142,8 +142,8 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                 {
                     for (uint16_t y = yBegin; y <= yEnd; y++)
                     {
-                        const Eigen::Vector3f vPos(x / (float)size, y / (float)size, 0);
-                        const Eigen::Vector2f baryUV = getBarycentricCoords(vPos, aVPos, bVPos, cVPos);
+                        const Vector3 vPos(x / (float)size, y / (float)size, 0);
+                        const Vector2 baryUV = getBarycentricCoords(vPos, aVPos, bVPos, cVPos);
 
                         if (baryUV[0] < 0 || baryUV[0] > 1 ||
                             baryUV[1] < 0 || baryUV[1] > 1 ||
@@ -151,13 +151,13 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                             1 - baryUV[0] - baryUV[1] > 1)
                             continue;
 
-                        const Eigen::Vector3f position = barycentricLerp(a.position, b.position, c.position, baryUV);
-                        const Eigen::Vector3f smoothPosition = getSmoothPosition(a, b, c, baryUV);
-                        const Eigen::Vector3f normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
-                        const Eigen::Vector3f tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
-                        const Eigen::Vector3f binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
+                        const Vector3 position = barycentricLerp(a.position, b.position, c.position, baryUV);
+                        const Vector3 smoothPosition = getSmoothPosition(a, b, c, baryUV);
+                        const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
+                        const Vector3 tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
+                        const Vector3 binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
 
-                        Eigen::Matrix3f tangentToWorld;
+                        Matrix3 tangentToWorld;
                         tangentToWorld <<
                             tangent[0], binormal[0], normal[0],
                             tangent[1], binormal[1], normal[1],
