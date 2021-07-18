@@ -289,60 +289,104 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         if (material == nullptr || material->type == MATERIAL_TYPE_COMMON)
         {
-            context = {};
-            rtcInitIntersectContext(&context);
-
             // Check for shadow intersection
-            RTCRay ray {};
-            ray.dir_x = -sunLight.positionOrDirection[0];
-            ray.dir_y = -sunLight.positionOrDirection[1];
-            ray.dir_z = -sunLight.positionOrDirection[2];
-            ray.org_x = hitPosition[0];
-            ray.org_y = hitPosition[1];
-            ray.org_z = hitPosition[2];
-            ray.tnear = bakeParams.shadowBias;
-            ray.tfar = INFINITY;
-            rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
+            Vector3 shadowPosition = hitPosition;
+            bool receiveLight = true;
+            size_t shadowDepth = 0;
 
-            const Vector3 viewDirection = (rayPosition - hitPosition).normalized();
-            const float cosLightDirection = saturate(hitNormal.dot(-sunLight.positionOrDirection));
-
-            Color3 directLighting;
-
-            if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+            do
             {
-                directLighting = diffuse.head<3>();
+                context = {};
+                rtcInitIntersectContext(&context);
 
-                if (glossLevel > 0.0f)
+                RTCRayHit shadowQuery {};
+                shadowQuery.ray.dir_x = -sunLight.positionOrDirection[0];
+                shadowQuery.ray.dir_y = -sunLight.positionOrDirection[1];
+                shadowQuery.ray.dir_z = -sunLight.positionOrDirection[2];
+                shadowQuery.ray.org_x = shadowPosition[0];
+                shadowQuery.ray.org_y = shadowPosition[1];
+                shadowQuery.ray.org_z = shadowPosition[2];
+                shadowQuery.ray.tnear = bakeParams.shadowBias;
+                shadowQuery.ray.tfar = INFINITY;
+                shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+                rtcIntersect1(raytracingContext.rtcScene, &context, &shadowQuery);
+
+                if (shadowQuery.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+                    break;
+
+                const Mesh& shadowMesh = *raytracingContext.scene->meshes[shadowQuery.hit.geomID];
+                if (shadowMesh.type == MESH_TYPE_OPAQUE)
                 {
-                    const Vector3 halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
-                    directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
+                    receiveLight = false;
+                    break;
+                }
+
+                const Triangle& shadowTriangle = shadowMesh.triangles[shadowQuery.hit.primID];
+                const Vertex& shadowA = shadowMesh.vertices[shadowTriangle.a];
+                const Vertex& shadowB = shadowMesh.vertices[shadowTriangle.b];
+                const Vertex& shadowC = shadowMesh.vertices[shadowTriangle.c];
+                const Vector2 shadowHitUV = barycentricLerp(shadowA.uv, shadowB.uv, shadowC.uv, { shadowQuery.hit.v, shadowQuery.hit.u });
+
+                const float alpha = shadowMesh.material && shadowMesh.material->textures.diffuse ?
+                    shadowMesh.material->textures.diffuse->pickColor(shadowHitUV)[3] : 1;
+
+                if (alpha > 0.5f)
+                {
+                    receiveLight = false;
+                    break;
+                }
+
+                shadowPosition = barycentricLerp(shadowA.position, shadowB.position, shadowC.position, { shadowQuery.hit.v, shadowQuery.hit.u });
+            } while (receiveLight && ++shadowDepth < 8);
+
+            if (receiveLight)
+            {
+                const float cosLightDirection = saturate(hitNormal.dot(-sunLight.positionOrDirection));
+
+                if (cosLightDirection > 0)
+                {
+                    const Vector3 viewDirection = (rayPosition - hitPosition).normalized();
+
+                    Color3 directLighting;
+
+                    if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+                    {
+                        directLighting = diffuse.head<3>();
+
+                        if (glossLevel > 0.0f)
+                        {
+                            const Vector3 halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+                            directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
+                        }
+                    }
+                    else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+                    {
+                        const Vector3 halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+                        const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
+
+                        const float metalness = specular.x() > 0.225f;
+                        const float roughness = std::max(0.01f, 1 - specular.y());
+
+                        const Color3 F0 = lerp<Color3>(Color3(specular.x()), diffuse.head<3>(), metalness);
+                        const Color3 F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
+                        const float D = ndfGGX(cosHalfwayDirection, roughness);
+                        const float Vis = visSchlick(roughness, saturate(viewDirection.dot(hitNormal)), cosLightDirection);
+
+                        const Color3 kd = lerp<Color3>(Color3::Ones() - F, Color3::Zero(), metalness);
+
+                        directLighting = kd * (diffuse.head<3>() / PI);
+                        directLighting += (D * Vis) * F;
+                    }
+
+                    directLighting *= cosLightDirection * sunLight.color;
+                    if (shouldApplyBakeParam)
+                        directLighting *= bakeParams.lightStrength;
+
+                    radiance += throughput * directLighting;
                 }
             }
-            else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
-            {
-                const Vector3 halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
-                const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
-
-                const float metalness = specular.x() > 0.225f;
-                const float roughness = std::max(0.01f, 1 - specular.y());
-
-                const Color3 F0 = lerp<Color3>(Color3(specular.x()), diffuse.head<3>(), metalness);
-                const Color3 F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
-                const float D = ndfGGX(cosHalfwayDirection, roughness);
-                const float Vis = visSchlick(roughness, saturate(viewDirection.dot(hitNormal)), cosLightDirection);
-
-                const Color3 kd = lerp<Color3>(Color3::Ones() - F, Color3::Zero(), metalness);
-
-                directLighting = kd * (diffuse.head<3>() / PI);
-                directLighting += (D * Vis) * F;
-            }
-
-            directLighting *= cosLightDirection * sunLight.color * (ray.tfar > 0);
-            if (shouldApplyBakeParam)
-                directLighting *= bakeParams.lightStrength;
-
-            radiance += throughput * directLighting;
         }
         else if (material->type == MATERIAL_TYPE_IGNORE_LIGHT)
         {
