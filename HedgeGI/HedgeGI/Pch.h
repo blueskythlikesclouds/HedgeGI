@@ -36,10 +36,12 @@ using Vector3 = Eigen::AlignedVector3<float>;
 using Vector4 = Eigen::Vector4f;
 using Color3 = Eigen::Array3f;
 using Color4 = Eigen::Array4f;
+using Color4i = Eigen::Array4<uint8_t>;
 using Matrix3 = Eigen::Matrix3f;
 using Matrix4 = Eigen::Matrix4f;
 using Affine3 = Eigen::Affine3f;
 using AABB = Eigen::AlignedBox3f;
+using Quaternion = Eigen::Quaternionf;
 
 // std
 #include <algorithm>
@@ -56,6 +58,10 @@ using AABB = Eigen::AlignedBox3f;
 
 // Other
 #include <INIReader.h>
+
+// OpenGL
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 
 #undef min
 #undef max

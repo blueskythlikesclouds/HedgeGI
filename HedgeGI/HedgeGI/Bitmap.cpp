@@ -69,6 +69,11 @@ void Bitmap::putColor(const Color4& color, const uint32_t x, const uint32_t y, c
     data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))] = color;
 }
 
+void Bitmap::clear() const
+{
+    memset(data.get(), 0, sizeof(Color4) * width * height * arraySize);
+}
+
 void Bitmap::read(const FileStream& file)
 {
     type = file.read<BitmapType>();

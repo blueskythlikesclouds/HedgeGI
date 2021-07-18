@@ -25,8 +25,8 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
         const size_t currentBitmap = i % bitmapSize;
 
         const uint32_t arrayIndex = (uint32_t)(i / bitmapSize);
-        const uint32_t x = (uint32_t)(currentBitmap % bitmap.height);
-        const uint32_t y = (uint32_t)(currentBitmap / bitmap.height);
+        const uint32_t x = (uint32_t)(currentBitmap % bitmap.width);
+        const uint32_t y = (uint32_t)(currentBitmap / bitmap.width);
 
         Color4 resultColor = bitmap.pickColor(x, y, arrayIndex);
         if (resultColor.maxCoeff() > 0.0f)

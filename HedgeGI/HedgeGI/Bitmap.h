@@ -37,6 +37,8 @@ public:
     void putColor(const Color4& color, const Vector2& uv, uint32_t arrayIndex = 0) const;
     void putColor(const Color4& color, uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
 
+    void clear() const;
+
     void read(const FileStream& file);
     void write(const FileStream& file) const;
 

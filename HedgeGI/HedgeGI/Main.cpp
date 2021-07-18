@@ -9,10 +9,12 @@
 #include "SGGIBaker.h"
 #include "LightField.h"
 #include <fstream>
+#include <future>
 
 #include "LightFieldBaker.h"
 #include "SeamOptimizer.h"
 #include "SHLightFieldBaker.h"
+#include "Viewport.h"
 
 enum Game
 {
@@ -157,8 +159,18 @@ int32_t main(int32_t argc, const char* argv[])
     const std::string directoryPath = getDirectoryPath(argv[0]);
     bakeParams.load((!directoryPath.empty() ? directoryPath + "/" : "") + "HedgeGI.ini");
 
+    // Viewport test
+    if (false)
+    {
+        Viewport viewport;
+        while (viewport.isOpen())
+            viewport.update(raytracingContext, bakeParams);
+
+        return 0;
+    }
+
     // GI Test
-    if (!generateLightField)
+    else if (!generateLightField)
     {
         phmap::parallel_flat_hash_map<std::string, uint16_t> resolutions;
         std::ifstream stream(path + ".txt");

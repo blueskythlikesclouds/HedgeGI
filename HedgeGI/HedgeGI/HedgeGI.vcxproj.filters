@@ -63,6 +63,12 @@
     <ClCompile Include="SeamOptimizer.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Dependencies\glad\src\glad.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="Viewport.cpp">
+      <Filter>Viewport</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -147,6 +153,9 @@
     <ClInclude Include="SeamOptimizer.h">
       <Filter>Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="Viewport.h">
+      <Filter>Viewport</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scene">
@@ -175,6 +184,12 @@
     </Filter>
     <Filter Include="Utilities">
       <UniqueIdentifier>{c66fe44a-b61b-4f92-829c-b97bdb490f6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies">
+      <UniqueIdentifier>{db8feea6-5593-4d28-8818-607a9a41bfe6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Viewport">
+      <UniqueIdentifier>{2960306b-f0d9-4be6-a66f-86219aaa9e32}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -376,3 +376,47 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
     return { radiance[0], radiance[1], radiance[2], faceFactor };
 }
+
+void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap,
+    const Matrix4& view, const Matrix4& proj, const BakeParams& bakeParams)
+{
+    const Light* sunLight = nullptr;
+    for (auto& light : raytracingContext.scene->lights)
+    {
+        if (light->type != LIGHT_TYPE_DIRECTIONAL)
+            continue;
+
+        sunLight = light.get();
+        break;
+    }
+
+    const Matrix4 invView = view.inverse();
+    const Matrix4 invProj = proj.inverse();
+
+    std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[bitmap.width * bitmap.height], [&](Color4& outputColor)
+    {
+        // Skip this pixel randomly
+        //if (Random::next() > 0.25f)
+        //    return;
+
+        const size_t i = std::distance(&bitmap.data[0], &outputColor);
+        const size_t x = i % bitmap.width;
+        const size_t y = i / bitmap.height;
+
+        const float xNormalized = (x + Random::next()) / bitmap.width * 2 - 1;
+        const float yNormalized = (y + Random::next()) / bitmap.height * 2 - 1;
+
+        const Vector3 position = affineMul(mulInvProj({ xNormalized, yNormalized, 0, 1 }, invProj), invView);
+        const Vector3 borderPos = affineMul(mulInvProj({ xNormalized, yNormalized, 1, 1 }, invProj), invView);
+        const Vector3 direction = (borderPos - position).normalized();
+
+        const Color3 result = pathTrace(raytracingContext, position, direction, *sunLight, bakeParams).head<3>();
+
+        uint32_t* count = (uint32_t*)&outputColor[3];
+
+        outputColor.head<3>() *= (float)*count;
+        outputColor.head<3>() += result;
+        *count += 1;
+        outputColor.head<3>() /= (float)*count;
+    });
+}

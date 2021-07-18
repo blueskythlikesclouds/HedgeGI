@@ -67,6 +67,8 @@ public:
     template <typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
 
+    static void bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, const Matrix4& view, const Matrix4& proj, const BakeParams& bakeParams);
+
     static std::lock_guard<std::mutex> lock()
     {
         return std::lock_guard(mutex);
