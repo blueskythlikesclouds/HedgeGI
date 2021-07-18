@@ -70,6 +70,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
         else if (strcmp(name, "specular") == 0) newMaterial->parameters.specular = value;
         else if (strcmp(name, "ambient") == 0) newMaterial->parameters.ambient = value;
         else if (strcmp(name, "power_gloss_level") == 0) newMaterial->parameters.powerGlossLevel = value;
+        else if (strcmp(name, "opacity_reflection_refraction_spectype") == 0) newMaterial->parameters.opacityReflectionRefractionSpecType = value;
         else if (strcmp(name, "mrgLuminanceRange") == 0) newMaterial->parameters.luminanceRange = value;
         else if (strcmp(name, "Luminance") == 0) newMaterial->parameters.luminance = value;
         else if (strcmp(name, "PBRFactor") == 0) newMaterial->parameters.pbrFactor = value;

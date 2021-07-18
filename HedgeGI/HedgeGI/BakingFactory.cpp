@@ -141,7 +141,10 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             if (material->type == MATERIAL_TYPE_COMMON)
             {
                 if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
-                    diffuse *= material->parameters.diffuse;
+                {
+                    diffuse.head<3>() *= material->parameters.diffuse.head<3>();
+                    diffuse.w() *= material->parameters.opacityReflectionRefractionSpecType.x();
+                }
 
                 if (material->textures.diffuse != nullptr)
                 {
@@ -166,7 +169,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 if (material->textures.diffuseBlend == nullptr || bakeParams.targetEngine == TARGET_ENGINE_HE2)
                     diffuse *= hitColor;
 
-                if (material->textures.alpha != nullptr)
+                if (bakeParams.targetEngine == TARGET_ENGINE_HE2 && material->textures.alpha != nullptr)
                     diffuse.w() *= material->textures.alpha->pickColor(hitUV).x();
 
                 // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.

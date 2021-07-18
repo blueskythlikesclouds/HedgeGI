@@ -25,6 +25,7 @@ public:
         Color4 specular { 1, 1, 1, 1 };
         Color4 ambient { 1, 1, 1, 1 };
         Color4 powerGlossLevel { 0, 0, 0, 0 };
+        Color4 opacityReflectionRefractionSpecType { 1, 0, 0, 0 };
         Color4 luminanceRange { 0, 0, 0, 0 };
         Color4 luminance { 1, 1, 1, 1 };
         Color4 pbrFactor { 0.04, 0.5, 0, 0 };
