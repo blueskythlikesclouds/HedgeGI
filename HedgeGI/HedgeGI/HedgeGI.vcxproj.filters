@@ -69,6 +69,27 @@
     <ClCompile Include="Viewport.cpp">
       <Filter>Viewport</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Dependencies\imgui\backends\imgui_impl_opengl3.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\imgui\imgui.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\imgui\imgui_demo.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\imgui\imgui_draw.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\imgui\imgui_tables.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\imgui\imgui_widgets.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />

@@ -451,58 +451,12 @@ inline Color3 hsv2Rgb(const Color3& hsv)
     return { r, g, b };
 }
 
-inline Vector3 mulInvProj(const Vector4& value, const Matrix4& invProj)
-{
-    const Vector4 invValue = invProj * value;
-    return invValue.head<3>() / invValue.w();
-}
-
-inline Vector3 affineMul(const Vector3& v, const Matrix4& m)
+inline Vector3 transform(const Vector3& v, const Matrix4& m)
 {
     return (m * Vector4(v.x(), v.y(), v.z(), 1.0f)).head<3>();
 }
 
-template<typename T>
-inline bool equals(const T& lhs, const T& rhs)
+inline Vector3 transformNormal(const Vector3& v, const Matrix4& m)
 {
-    return memcmp(&lhs, &rhs, sizeof(T)) == 0;
-}
-
-inline float clamp(const float value, const float min, const float max)
-{
-    return value > max ? max : value < min ? min : value;
-}
-
-namespace Eigen
-{
-    template<typename Scalar>
-    Matrix<Scalar, 4, 4> CreatePerspective(const Scalar fieldOfView, const Scalar aspectRatio, const Scalar zNear, const Scalar zFar)
-    {
-        const Scalar yScale = (Scalar)1 / std::tan(fieldOfView / (Scalar)2);
-        const Scalar xScale = yScale / aspectRatio;
-
-        Matrix<Scalar, 4, 4> matrix;
-
-        matrix <<
-            xScale, 0, 0, 0,
-            0, yScale, 0, 0,
-            0, 0, -(zFar + zNear) / (zFar - zNear), -2 * zNear * zFar / (zFar - zNear),
-            0, 0, -1, 0;
-
-        return matrix;
-    }
-
-    template<typename Derived>
-    Matrix<typename Derived::Scalar, 4, 4> CreateLookAt(Derived const& position, Derived const& target, Derived const& up)
-    {
-        Matrix<typename Derived::Scalar, 4, 4> matrix;
-        Matrix<typename Derived::Scalar, 3, 3> rotation;
-        rotation.col(2) = (position - target).normalized();
-        rotation.col(0) = up.cross(rotation.col(2)).normalized();
-        rotation.col(1) = rotation.col(2).cross(rotation.col(0));
-        matrix.template topLeftCorner<3, 3>() = rotation.transpose();
-        matrix.template topRightCorner<3, 1>() = -rotation.transpose() * position;
-        matrix.row(3) << 0, 0, 0, 1;
-        return matrix;
-    }
+    return (m * Vector4(v.x(), v.y(), v.z(), 0.0f)).head<3>();
 }

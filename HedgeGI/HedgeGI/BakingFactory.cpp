@@ -53,7 +53,7 @@ void BakeParams::load(const std::string& filePath)
 
 std::mutex BakingFactory::mutex;
 
-Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams)
+Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams, bool tracingFromEye)
 {
     RTCIntersectContext context{};
     rtcInitIntersectContext(&context);
@@ -77,6 +77,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
     for (uint32_t i = 0; i < bakeParams.lightBounceCount; i++)
     {
+        const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
+
         const Vector3 rayPosition(query.ray.org_x, query.ray.org_y, query.ray.org_z);
         const Vector3 rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
 
@@ -274,7 +276,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             }
         }
 
-        if (!nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f))
+        if (shouldApplyBakeParam && (!nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f)))
         {
             Color3 hsv = rgb2Hsv(diffuse.head<3>());
             hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
@@ -333,7 +335,9 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 directLighting += (D * Vis) * F;
             }
 
-            directLighting *= cosLightDirection * (sunLight.color * bakeParams.lightStrength) * (ray.tfar > 0);
+            directLighting *= cosLightDirection * sunLight.color * (ray.tfar > 0);
+            if (shouldApplyBakeParam)
+                directLighting *= bakeParams.lightStrength;
 
             radiance += throughput * directLighting;
         }
@@ -378,7 +382,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 }
 
 void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap,
-    const Matrix4& view, const Matrix4& proj, const BakeParams& bakeParams)
+    const Vector3& position, const Quaternion& rotation, float fieldOfView, float aspectRatio, const BakeParams& bakeParams)
 {
     const Light* sunLight = nullptr;
     for (auto& light : raytracingContext.scene->lights)
@@ -390,15 +394,10 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         break;
     }
 
-    const Matrix4 invView = view.inverse();
-    const Matrix4 invProj = proj.inverse();
+    const float tanFovy = tanf(fieldOfView / 2);
 
     std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[bitmap.width * bitmap.height], [&](Color4& outputColor)
     {
-        // Skip this pixel randomly
-        //if (Random::next() > 0.25f)
-        //    return;
-
         const size_t i = std::distance(&bitmap.data[0], &outputColor);
         const size_t x = i % bitmap.width;
         const size_t y = i / bitmap.height;
@@ -406,11 +405,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const float xNormalized = (x + Random::next()) / bitmap.width * 2 - 1;
         const float yNormalized = (y + Random::next()) / bitmap.height * 2 - 1;
 
-        const Vector3 position = affineMul(mulInvProj({ xNormalized, yNormalized, 0, 1 }, invProj), invView);
-        const Vector3 borderPos = affineMul(mulInvProj({ xNormalized, yNormalized, 1, 1 }, invProj), invView);
-        const Vector3 direction = (borderPos - position).normalized();
+        const Vector3 rayDirection = (rotation * Vector3(xNormalized * tanFovy * aspectRatio, yNormalized * tanFovy, -1)).normalized();
 
-        const Color3 result = pathTrace(raytracingContext, position, direction, *sunLight, bakeParams).head<3>();
+        const Color3 result = pathTrace(raytracingContext, position, rayDirection, *sunLight, bakeParams, true).head<3>();
 
         uint32_t* count = (uint32_t*)&outputColor[3];
 
