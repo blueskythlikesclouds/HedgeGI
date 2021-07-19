@@ -40,7 +40,7 @@ void Viewport::cursorPosCallback(GLFWwindow* window, const double cursorX, const
 
 Viewport::Viewport() : cameraRotation(Quaternion::Identity()),
     previousCursorX(0), previousCursorY(0), previousAverageLuminance(0), time(0), elapsedTime(0),
-    dirty(false), focused(false), enableBakeParamsWindow(true)
+    dirty(false), focused(false), enableBakeParamsWindow(true), texture(0), framebuffer(0)
 {
     glfwInit();
 
@@ -60,15 +60,20 @@ Viewport::Viewport() : cameraRotation(Quaternion::Identity()),
     glfwSetCursorPosCallback(window, cursorPosCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
 
+    glGenFramebuffers(1, &framebuffer);
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-
+    
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init();
 }
 
 Viewport::~Viewport()
 {
+    glDeleteTextures(1, &texture);
+    glDeleteFramebuffers(1, &framebuffer);
+
     ImGui_ImplGlfw_Shutdown();
     glfwTerminate();
     ImGui_ImplOpenGL3_Shutdown();
@@ -92,6 +97,13 @@ void Viewport::update(const RaytracingContext& raytracingContext, BakeParams& ba
     {
         bitmap = std::make_unique<Bitmap>(bitmapWidth, bitmapHeight);
         pixels = std::make_unique<Color4i[]>(bitmap->width * bitmap->height);
+
+        glDeleteTextures(1, &texture);
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap->width, bitmap->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
     }
 
     if (!focused)
@@ -118,9 +130,6 @@ void Viewport::update(const RaytracingContext& raytracingContext, BakeParams& ba
         bitmap->clear();
 
     dirty = true;
-
-    glViewport(0, 0, width, height);
-    glPixelZoom((float)width / bitmap->width, (float)height / bitmap->height);
 
     BakingFactory::bake(raytracingContext, *bitmap, cameraPosition, cameraRotation, PI / 4.0f, (float)width / height, bakeParams);
 
@@ -155,8 +164,14 @@ void Viewport::update(const RaytracingContext& raytracingContext, BakeParams& ba
         }
     }
 
-    glDrawPixels(bitmap->width, bitmap->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
-    glPixelZoom(1, 1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bitmap->width, bitmap->height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.get());
+
+    glViewport(0, 0, width, height);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, bitmap->width, bitmap->height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();

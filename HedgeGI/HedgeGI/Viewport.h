@@ -33,6 +33,9 @@ class Viewport
 
     bool enableBakeParamsWindow;
 
+    GLuint texture;
+    GLuint framebuffer;
+
     static void keyCallback(GLFWwindow* window, int key, int scanCode, int action, int mods);
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void cursorPosCallback(GLFWwindow* window, double cursorX, double cursorY);
