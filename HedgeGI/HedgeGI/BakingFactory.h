@@ -62,7 +62,11 @@ class BakingFactory
     static std::mutex mutex;
 
 public:
+    template <TargetEngine targetEngine, bool tracingFromEye>
     static Color4 pathTrace(const RaytracingContext& raytracingContext, 
+        const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams);
+
+    static Color4 pathTrace(const RaytracingContext& raytracingContext,
         const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams, bool tracingFromEye = false);
 
     template <typename TBakePoint>

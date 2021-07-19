@@ -48,6 +48,23 @@ inline T lerp(const T& a, const T& b, float factor)
     return a + (b - a) * factor;
 }
 
+inline float saturate(const float value)
+{
+    return std::min(1.0f, std::max(0.0f, value));
+}
+
+template<typename T>
+inline T saturate(const T& value)
+{
+    return value.cwiseMax(0).cwiseMin(1);
+}
+
+template<typename T>
+inline T square(const T& value)
+{
+    return value * value;
+}
+
 // https://github.com/TheRealMJP/BakingLab/blob/master/SampleFramework11/v1.02/Shaders/Sampling.hlsl
 
 inline Vector2 squareToConcentricDiskMapping(const float x, const float y)
@@ -147,6 +164,29 @@ inline Vector3 sampleDirectionSphere(const float u1, const float u2)
     return { x, y, z };
 }
 
+inline Vector3 sampleGGXMicrofacet(float roughness, float u1, float u2)
+{
+    const float theta = atan2(roughness * sqrt(u1), sqrt(1 - u1));
+    const float phi = 2 * PI * u2;
+
+    return
+    {
+        sin(theta) * cos(phi),
+        sin(theta) * sin(phi),
+        cos(theta)
+    };
+}
+
+inline float computeGGXPdf(const Vector3& n, const Vector3& h, const Vector3& v, float roughness)
+{
+    float nDotH = saturate(n.dot(h));
+    float hDotV = saturate(h.dot(v));
+    float m2 = roughness * roughness;
+    float d = m2 / (PI * square(nDotH * nDotH * (m2 - 1) + 1));
+    float pM = d * nDotH;
+    return pM / (4 * hDotV);
+}
+
 const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
 
 inline Vector3 sampleSphere(const size_t index, const size_t sampleCount)
@@ -183,17 +223,6 @@ inline Vector3 getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex&
 
     const Vector3 smoothPosition = barycentricLerp(vecProj0, vecProj1, vecProj2, baryUV);
     return (smoothPosition - position).dot(normal) > 0.0f ? smoothPosition : position;
-}
-
-inline float saturate(const float value)
-{
-    return std::min(1.0f, std::max(0.0f, value));
-}
-
-template<typename T>
-inline T saturate(const T& value)
-{
-    return value.cwiseMax(0).cwiseMin(1);
 }
 
 // https://github.com/DarioSamo/libgens-sonicglvl/blob/master/src/LibGens/MathGens.cpp
@@ -459,4 +488,13 @@ inline Vector3 transform(const Vector3& v, const Matrix4& m)
 inline Vector3 transformNormal(const Vector3& v, const Matrix4& m)
 {
     return (m * Vector4(v.x(), v.y(), v.z(), 0.0f)).head<3>();
+}
+
+inline Vector2 approxEnvBRDF(float cosLo, float roughness)
+{
+    Vector4 c0 = Vector4(-1, -0.0275, -0.572, 0.022);
+    Vector4 c1 = Vector4(1, 0.0425, 1.04, -0.04);
+    Vector4 r = roughness * c0 + c1;
+    float a004 = std::min<float>(r.x() * r.x(), exp2(-9.28 * cosLo)) * r.x() + r.y();
+    return Vector2(-1.04, 1.04) * a004 + Vector2(r.z(), r.w());
 }
