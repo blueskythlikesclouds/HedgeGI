@@ -449,8 +449,13 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const size_t x = i % bitmap.width;
         const size_t y = i / bitmap.height;
 
-        const float xNormalized = (x + Random::next()) / bitmap.width * 2 - 1;
-        const float yNormalized = (y + Random::next()) / bitmap.height * 2 - 1;
+        const float u1 = 2.0f * Random::next();
+        const float u2 = 2.0f * Random::next();
+        const float dx = u1 < 1 ? sqrtf(u1) - 1.0f : 1.0f - sqrtf(2.0f - u1);
+        const float dy = u2 < 1 ? sqrtf(u2) - 1.0f : 1.0f - sqrtf(2.0f - u2);
+
+        const float xNormalized = (x + 0.5f + dx) / bitmap.width * 2 - 1;
+        const float yNormalized = (y + 0.5f + dy) / bitmap.height * 2 - 1;
 
         const Vector3 rayDirection = (rotation * Vector3(xNormalized * tanFovy * aspectRatio * aspectRatio, yNormalized * tanFovy, -1)).normalized();
 
