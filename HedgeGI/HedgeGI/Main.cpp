@@ -64,6 +64,7 @@ int32_t main(int32_t argc, const char* argv[])
     const char* inputDirectoryPath = nullptr;
     bool generateLightField = false;
     bool isPbrMod = false;
+    bool ui = false;
 
     for (size_t i = 1; i < argc; i++)
     {
@@ -72,6 +73,9 @@ int32_t main(int32_t argc, const char* argv[])
 
         else if (strcmp(argv[i], "--pbr") == 0)
             isPbrMod = true;
+
+        else if (strcmp(argv[i], "--ui") == 0)
+            ui = true;
 
         else if (inputDirectoryPath == nullptr)
             inputDirectoryPath = argv[i];
@@ -160,7 +164,7 @@ int32_t main(int32_t argc, const char* argv[])
     bakeParams.load((!directoryPath.empty() ? directoryPath + "/" : "") + "HedgeGI.ini");
 
     // Viewport test
-    if (false)
+    if (ui)
     {
         Viewport viewport;
         while (viewport.isOpen())
