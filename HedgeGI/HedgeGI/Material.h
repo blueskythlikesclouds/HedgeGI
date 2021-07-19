@@ -32,6 +32,7 @@ public:
         Color4 pbrFactor2 { 0.04, 0.5, 0, 0 };
         Color4 emissionParam { 0, 0, 0, 1 };
         Color4 emissive { 0, 0, 0, 0 };
+        bool doubleSided{};
     } parameters{};
 
     struct Textures

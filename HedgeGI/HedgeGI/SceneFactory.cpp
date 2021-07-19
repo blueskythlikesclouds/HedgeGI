@@ -79,6 +79,8 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
         else if (strcmp(name, "emissive") == 0) newMaterial->parameters.emissive = value;
     }
 
+    newMaterial->parameters.doubleSided = material->noBackfaceCulling;
+
     HL_OFF32(HlHHTextureV1)* textures = (HL_OFF32(HlHHTextureV1)*)hlOff32Get(&material->texturesOffset);
 
     for (size_t i = 0; i < material->textureCount; i++)

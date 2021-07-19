@@ -105,7 +105,9 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
 
         // Break the loop if we hit a backfacing triangle on an opaque mesh.
-        if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(rayNormal) >= 0.0f)
+        const bool doubleSided = mesh.material && mesh.material->parameters.doubleSided;
+
+        if (mesh.type == MESH_TYPE_OPAQUE && !doubleSided && triNormal.dot(rayNormal) >= 0.0f)
         {
             faceFactor = (float)(i != 0);
             break;
@@ -122,7 +124,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         const Color4 hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
 
         Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
-        if (mesh.type != MESH_TYPE_OPAQUE && triNormal.dot(hitNormal) < 0)
+        if ((mesh.type != MESH_TYPE_OPAQUE || doubleSided) && triNormal.dot(hitNormal) < 0)
             hitNormal *= -1;
 
         Vector3 hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
