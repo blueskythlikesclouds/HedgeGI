@@ -38,6 +38,8 @@ void BakeParams::load(const std::string& filePath)
     diffuseStrength = reader.GetFloat("Baker", "DiffuseStrength", 1.0f);
     diffuseSaturation = reader.GetFloat("Baker", "DiffuseSaturation", 1.0f);
     lightStrength = reader.GetFloat("Baker", "LightStrength", 1.0f);
+    emissionStrength = reader.GetFloat("Baker", "EmissionStrength", 1.0f);
+
     resolutionBase = reader.GetFloat("Baker", "ResolutionBase", 2.0f);
     resolutionBias = reader.GetFloat("Baker", "ResolutionBias", 3.0f);
     resolutionOverride = (uint16_t)reader.GetInteger("Baker", "ResolutionOverride", -1);
@@ -403,7 +405,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             radiance += throughput * diffuse.head<3>();
         }
 
-        radiance += throughput * emission.head<3>();
+        radiance += throughput * emission.head<3>() * bakeParams.emissionStrength;
 
         // Setup next ray
         const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);

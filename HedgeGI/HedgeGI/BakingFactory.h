@@ -39,6 +39,7 @@ struct BakeParams
     float diffuseStrength{};
     float diffuseSaturation {};
     float lightStrength{};
+    float emissionStrength {};
 
     float resolutionBase {};
     float resolutionBias {};
