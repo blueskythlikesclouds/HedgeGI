@@ -51,6 +51,7 @@ void BakeParams::load(const std::string& filePath)
     denoiserType = (DenoiserType)reader.GetInteger("Baker", "DenoiserType", DENOISER_TYPE_OPTIX);
 
     lightFieldMinCellRadius = reader.GetFloat("LightField", "MinCellRadius", 5.0f);
+    lightFieldAabbSizeMultiplier = reader.GetFloat("LightField", "AabbSizeMultiplier", 1.0f);
 }
 
 std::mutex BakingFactory::mutex;

@@ -52,6 +52,7 @@ struct BakeParams
     DenoiserType denoiserType {};
 
     float lightFieldMinCellRadius {};
+    float lightFieldAabbSizeMultiplier {};
 
     BakeParams(const TargetEngine targetEngine) : targetEngine(targetEngine) {}
 

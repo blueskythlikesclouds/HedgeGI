@@ -155,7 +155,12 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
     std::vector<LightFieldPoint> bakePoints;
     phmap::parallel_flat_hash_map<Vector3, std::vector<uint32_t>, EigenHash<Vector3>> corners;
 
-    createBakePointsRecursively(raytracingContext, *lightField, 0, raytracingContext.scene->aabb, bakePoints, corners, bakeParams);
+    lightField->aabb = raytracingContext.scene->aabb;
+    const Vector3 center = lightField->aabb.center();
+    lightField->aabb.min() = (lightField->aabb.min() - center) * bakeParams.lightFieldAabbSizeMultiplier + center;
+    lightField->aabb.max() = (lightField->aabb.max() - center) * bakeParams.lightFieldAabbSizeMultiplier + center;
+
+    createBakePointsRecursively(raytracingContext, *lightField, 0, lightField->aabb, bakePoints, corners, bakeParams);
 
     printf("Baking points...\n");
 
@@ -207,7 +212,6 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
         probe.shadow = (uint8_t)(saturate(bakePoint.shadow) * 255.0f);
     }
 
-    lightField->aabb = raytracingContext.scene->aabb;
     lightField->optimizeProbes();
 
     return lightField;
