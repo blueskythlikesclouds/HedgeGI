@@ -52,6 +52,7 @@ using Quaternion = Eigen::Quaternionf;
 #include <random>
 #include <unordered_set>
 #include <vector>
+#include <future>
 
 // parallel_hashmap
 #include <phmap.h>
@@ -74,6 +75,6 @@ using Quaternion = Eigen::Quaternionf;
 // HedgeGI
 #include "FileStream.h"
 #include "Math.h"
-#include "Path.h"
+#include "Util.h"
 #include "Random.h"
 #include "RaytracingDevice.h"

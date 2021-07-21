@@ -5,13 +5,13 @@
 
 void Viewport::update(const Application& application)
 {
-    if (bitmap == nullptr || bitmap->width != application.getWidth() || bitmap->height != application.getHeight())
+    if (bitmap == nullptr || bitmap->width != application.getViewportWidth() || bitmap->height != application.getViewportHeight())
     {
-        bitmap = std::make_unique<Bitmap>(application.getWidth(), application.getHeight());
+        bitmap = std::make_unique<Bitmap>(application.getViewportWidth(), application.getViewportHeight());
         framebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_RGBA, bitmap->width, bitmap->height, GL_RGBA, GL_FLOAT);
     }
 
-    else if (application.getCamera().hasChanged())
+    else if (application.isDirty() || application.getCamera().hasChanged())
     {
         bitmap->clear();
     }

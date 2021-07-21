@@ -1,6 +1,7 @@
 ﻿#include "Camera.h"
 #include "Application.h"
 #include "Input.h"
+#include "PropertyBag.h"
 
 Camera::Camera() : position(Vector3::Zero()), rotation(Quaternion::Identity())
 {
@@ -19,6 +20,31 @@ void Camera::setFieldOfView(const float fieldOfView)
     this->fieldOfView = 2.0f * atan(tan(fieldOfView / 2.0f) * (16.0f / 9.0f / aspectRatio));
 }
 
+void Camera::load(const PropertyBag& propertyBag)
+{
+    position.x() = propertyBag.get("camera.position.x()", 0.0f);
+    position.y() = propertyBag.get("camera.position.y()", 0.0f);
+    position.z() = propertyBag.get("camera.position.z()", 0.0f);
+
+    rotation.x() = propertyBag.get("camera.rotation.x()", 0.0f);
+    rotation.y() = propertyBag.get("camera.rotation.y()", 0.0f);
+    rotation.z() = propertyBag.get("camera.rotation.z()", 0.0f);
+    rotation.z() = propertyBag.get("camera.rotation.w()", 1.0f);
+    rotation.normalize();
+}
+
+void Camera::store(PropertyBag& propertyBag) const
+{
+    propertyBag.set("camera.position.x()", position.x());
+    propertyBag.set("camera.position.y()", position.y());
+    propertyBag.set("camera.position.z()", position.z());
+
+    propertyBag.set("camera.rotation.x()", rotation.x());
+    propertyBag.set("camera.rotation.y()", rotation.y());
+    propertyBag.set("camera.rotation.z()", rotation.z());
+    propertyBag.set("camera.rotation.w()", rotation.w());
+}
+
 void Camera::update(const Application& application)
 {
     history.position = position;
@@ -26,7 +52,7 @@ void Camera::update(const Application& application)
     history.aspectRatio = aspectRatio;
     history.fieldOfView = fieldOfView;
 
-    aspectRatio = (float)application.getWidth() / (float)application.getHeight();
+    aspectRatio = (float)application.getViewportWidth() / (float)application.getViewportHeight();
     setFieldOfView(PI / 4.0f);
     
     const Input& input = application.getInput();

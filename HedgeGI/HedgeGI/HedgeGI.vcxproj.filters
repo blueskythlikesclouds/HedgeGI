@@ -123,6 +123,12 @@
     <ClCompile Include="Quad.cpp">
       <Filter>Application\Rendering\Primitives</Filter>
     </ClCompile>
+    <ClCompile Include="PropertyBag.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="FileDialog.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -168,7 +174,7 @@
     <ClInclude Include="Math.h">
       <Filter>Other</Filter>
     </ClInclude>
-    <ClInclude Include="Path.h">
+    <ClInclude Include="Util.h">
       <Filter>Other</Filter>
     </ClInclude>
     <ClInclude Include="Random.h">
@@ -242,6 +248,12 @@
     </ClInclude>
     <ClInclude Include="Quad.h">
       <Filter>Application\Rendering\Primitives</Filter>
+    </ClInclude>
+    <ClInclude Include="PropertyBag.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="FileDialog.h">
+      <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

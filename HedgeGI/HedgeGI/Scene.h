@@ -5,21 +5,22 @@
 #include "Light.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "PropertyBag.h"
 #include "SHLightField.h"
 
 struct RaytracingContext
 {
     const class Scene* scene{};
     RTCScene rtcScene{};
-
-    RaytracingContext(RaytracingContext const&) = delete;
-    RaytracingContext(RaytracingContext&&) = delete;
-    ~RaytracingContext();
 };
 
 class Scene
 {
+    RTCScene rtcScene{};
+
 public:
+    ~Scene();
+
     std::vector<std::unique_ptr<const Bitmap>> bitmaps;
     std::vector<std::unique_ptr<const Material>> materials;
     std::vector<std::unique_ptr<const Mesh>> meshes;
@@ -30,8 +31,8 @@ public:
 
     void buildAABB();
 
-    RTCScene createRTCScene() const;
-    RaytracingContext createRaytracingContext() const;
+    RTCScene createRTCScene();
+    RaytracingContext getRaytracingContext();
 
     void removeUnusedBitmaps();
 

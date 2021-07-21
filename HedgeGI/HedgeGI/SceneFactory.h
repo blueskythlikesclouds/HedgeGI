@@ -23,4 +23,5 @@ public:
 
     static std::unique_ptr<Scene> createFromGenerations(const std::string& directoryPath);
     static std::unique_ptr<Scene> createFromLostWorldOrForces(const std::string& directoryPath);
+    static std::unique_ptr<Scene> create(const std::string& directoryPath);
 };

@@ -14,21 +14,44 @@ class Application
     Viewport viewport;
     const Quad quad;
 
+    std::string imGuiIniPath;
+
     float elapsedTime{};
     double currentTime{};
 
     int width {};
     int height {};
 
-    const RaytracingContext& raytracingContext;
-    const BakeParams& bakeParams;
+    int viewportX {};
+    int viewportY {};
+    int viewportWidth {};
+    int viewportHeight {};
+
+    bool showScene { true };
+    bool showViewport { true };
+    bool showSettings { true };
+
+    bool dirty {};
+
+    std::unique_ptr<Scene> scene;
+    std::future<std::unique_ptr<Scene>> futureScene;
+
+    PropertyBag propertyBag;
+    std::string propertyBagFilePath;
+
+    BakeParams bakeParams;
 
     static GLFWwindow* createGLFWwindow();
 
-    void drawFrameRateWindow() const;
+    void initializeUI();
+
+    void draw();
+    void drawFPS() const;
+
+    void destroyScene();
 
 public:
-    Application(const RaytracingContext& raytracingContext, const BakeParams& bakeParams);
+    Application();
     ~Application();
 
     const Input& getInput() const;
@@ -38,8 +61,15 @@ public:
     int getWidth() const;
     int getHeight() const;
 
-    const RaytracingContext& getRaytracingContext() const;
-    const BakeParams& getBakeParams() const;
+    int getViewportWidth() const;
+    int getViewportHeight() const;
+
+    bool isDirty() const;
+
+    const RaytracingContext getRaytracingContext() const;
+    const BakeParams getBakeParams() const;
+
+    PropertyBag& getPropertyBag();
 
     void drawQuad() const;
     

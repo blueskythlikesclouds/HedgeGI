@@ -135,6 +135,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3D11Device.cpp" />
     <ClCompile Include="ElementArray.cpp" />
+    <ClCompile Include="FileDialog.cpp" />
     <ClCompile Include="Framebuffer.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="OidnDenoiserDevice.cpp" />
@@ -154,6 +155,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pch.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="PropertyBag.cpp" />
     <ClCompile Include="Quad.cpp" />
     <ClCompile Include="RaytracingDevice.cpp" />
     <ClCompile Include="Scene.cpp" />
@@ -177,6 +179,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="D3D11Device.h" />
     <ClInclude Include="ElementArray.h" />
+    <ClInclude Include="FileDialog.h" />
     <ClInclude Include="Framebuffer.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="OidnDenoiserDevice.h" />
@@ -186,6 +189,7 @@
     <ClInclude Include="Light.h" />
     <ClInclude Include="BakingFactory.h" />
     <ClInclude Include="LightField.h" />
+    <ClInclude Include="PropertyBag.h" />
     <ClInclude Include="Quad.h" />
     <ClInclude Include="RaytracingDevice.h" />
     <ClInclude Include="SceneFactory.h" />
@@ -196,7 +200,7 @@
     <ClInclude Include="Math.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="Path.h" />
+    <ClInclude Include="Util.h" />
     <ClInclude Include="Pch.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Scene.h" />

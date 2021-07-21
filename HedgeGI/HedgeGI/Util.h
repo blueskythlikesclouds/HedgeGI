@@ -34,3 +34,32 @@ static std::string getFileNameWithoutExtension(const std::string& path)
 
     return fileName;
 }
+
+static std::string getExecutableDirectoryPath()
+{
+    WCHAR moduleFilePathWideChar[1024];
+    GetModuleFileNameW(NULL, moduleFilePathWideChar, 1024);
+
+    CHAR moduleFilePathMultiByte[1024];
+    WideCharToMultiByte(CP_UTF8, 0, moduleFilePathWideChar, -1, moduleFilePathMultiByte, 1024, 0, 0);
+
+    return getDirectoryPath(moduleFilePathMultiByte);
+}
+
+constexpr uint64_t computeHash(const char* value)
+{
+    uint64_t hash = 5381;
+
+    char c = 0;
+    while ((c = *value++) != 0)
+        hash = ((hash << 5) + hash) + c;
+
+    return hash;
+}
+
+inline std::string wideCharToMultiByte(LPCWSTR value)
+{
+    char multiByte[1024];
+    WideCharToMultiByte(CP_UTF8, 0, value, -1, multiByte, _countof(multiByte), 0, 0);
+    return std::string(multiByte);
+}

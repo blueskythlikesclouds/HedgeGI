@@ -707,3 +707,11 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
     scene->buildAABB();
     return scene;
 }
+
+std::unique_ptr<Scene> SceneFactory::create(const std::string& directoryPath)
+{
+    if (std::filesystem::exists(directoryPath + "/Stage.pfd"))
+        return createFromGenerations(directoryPath);
+
+    return createFromLostWorldOrForces(directoryPath);
+}

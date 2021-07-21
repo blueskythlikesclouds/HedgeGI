@@ -1,8 +1,9 @@
 ﻿#include "Scene.h"
 
-RaytracingContext::~RaytracingContext()
+Scene::~Scene()
 {
-    rtcReleaseScene(rtcScene);
+    if (rtcScene != nullptr)
+        rtcReleaseScene(rtcScene);
 }
 
 void Scene::buildAABB()
@@ -13,9 +14,12 @@ void Scene::buildAABB()
         aabb.extend(mesh->aabb);
 }
 
-RTCScene Scene::createRTCScene() const
+RTCScene Scene::createRTCScene()
 {
-    const RTCScene rtcScene = rtcNewScene(RaytracingDevice::get());
+    if (rtcScene != nullptr)
+        return rtcScene;
+
+    rtcScene = rtcNewScene(RaytracingDevice::get());
     for (size_t i = 0; i < meshes.size(); i++)
     {
         if (meshes[i]->type == MESH_TYPE_TRANSPARENT || meshes[i]->type == MESH_TYPE_SPECIAL)
@@ -30,7 +34,7 @@ RTCScene Scene::createRTCScene() const
     return rtcScene;
 }
 
-RaytracingContext Scene::createRaytracingContext() const
+RaytracingContext Scene::getRaytracingContext()
 {
     return { this, createRTCScene() };
 }

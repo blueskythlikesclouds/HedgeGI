@@ -495,6 +495,6 @@ inline Vector2 approxEnvBRDF(float cosLo, float roughness)
     Vector4 c0 = Vector4(-1, -0.0275, -0.572, 0.022);
     Vector4 c1 = Vector4(1, 0.0425, 1.04, -0.04);
     Vector4 r = roughness * c0 + c1;
-    float a004 = std::min<float>(r.x() * r.x(), exp2(-9.28 * cosLo)) * r.x() + r.y();
+    float a004 = std::min<float>(r.x() * r.x(), exp2(-9.28f * cosLo)) * r.x() + r.y();
     return Vector2(-1.04, 1.04) * a004 + Vector2(r.z(), r.w());
 }

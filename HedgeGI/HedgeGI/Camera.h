@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+class PropertyBag;
 class Application;
 
 class Camera
@@ -22,6 +23,9 @@ public:
 
     bool hasChanged() const;
     void setFieldOfView(float fieldOfView);
+
+    void load(const PropertyBag& propertyBag);
+    void store(PropertyBag& propertyBag) const;
 
     void update(const Application& application);
 };

@@ -81,6 +81,14 @@ int32_t main(int32_t argc, const char* argv[])
             inputDirectoryPath = argv[i];
     }
 
+    if (ui)
+    {
+        Application application;
+        application.run();
+
+        return 0;
+    }
+
 
     if (inputDirectoryPath == nullptr)
     {
@@ -156,24 +164,15 @@ int32_t main(int32_t argc, const char* argv[])
 
     std::filesystem::create_directory(outputPath);
 
-    const auto raytracingContext = scene->createRaytracingContext();
+    const auto raytracingContext = scene->getRaytracingContext();
 
     BakeParams bakeParams(game == GAME_FORCES || isPbrMod ? TARGET_ENGINE_HE2 : TARGET_ENGINE_HE1);
 
     const std::string directoryPath = getDirectoryPath(argv[0]);
     bakeParams.load((!directoryPath.empty() ? directoryPath + "/" : "") + "HedgeGI.ini");
 
-    // Viewport test
-    if (ui)
-    {
-        Application application(raytracingContext, bakeParams);
-        application.run();
-
-        return 0;
-    }
-
     // GI Test
-    else if (!generateLightField)
+    if (!generateLightField)
     {
         phmap::parallel_flat_hash_map<std::string, uint16_t> resolutions;
         std::ifstream stream(path + ".txt");
