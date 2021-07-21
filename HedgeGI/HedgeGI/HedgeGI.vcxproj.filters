@@ -67,7 +67,7 @@
       <Filter>Dependencies</Filter>
     </ClCompile>
     <ClCompile Include="Viewport.cpp">
-      <Filter>Viewport</Filter>
+      <Filter>Application</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Dependencies\imgui\backends\imgui_impl_opengl3.cpp">
       <Filter>Dependencies</Filter>
@@ -91,10 +91,37 @@
       <Filter>Dependencies</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp">
-      <Filter>Viewport</Filter>
+      <Filter>Application</Filter>
     </ClCompile>
     <ClCompile Include="Input.cpp">
-      <Filter>Viewport</Filter>
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="Application.cpp">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Application\Rendering\Textures</Filter>
+    </ClCompile>
+    <ClCompile Include="Framebuffer.cpp">
+      <Filter>Application\Rendering\Textures</Filter>
+    </ClCompile>
+    <ClCompile Include="Buffer.cpp">
+      <Filter>Application\Rendering\Buffers</Filter>
+    </ClCompile>
+    <ClCompile Include="VertexArray.cpp">
+      <Filter>Application\Rendering\Arrays</Filter>
+    </ClCompile>
+    <ClCompile Include="ElementArray.cpp">
+      <Filter>Application\Rendering\Arrays</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>Application\Rendering\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderLibrary.cpp">
+      <Filter>Application\Rendering\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="Quad.cpp">
+      <Filter>Application\Rendering\Primitives</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -181,13 +208,40 @@
       <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="Viewport.h">
-      <Filter>Viewport</Filter>
+      <Filter>Application</Filter>
     </ClInclude>
     <ClInclude Include="Camera.h">
-      <Filter>Viewport</Filter>
+      <Filter>Application</Filter>
     </ClInclude>
     <ClInclude Include="Input.h">
-      <Filter>Viewport</Filter>
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Application.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Application\Rendering\Textures</Filter>
+    </ClInclude>
+    <ClInclude Include="Framebuffer.h">
+      <Filter>Application\Rendering\Textures</Filter>
+    </ClInclude>
+    <ClInclude Include="Buffer.h">
+      <Filter>Application\Rendering\Buffers</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexArray.h">
+      <Filter>Application\Rendering\Arrays</Filter>
+    </ClInclude>
+    <ClInclude Include="ElementArray.h">
+      <Filter>Application\Rendering\Arrays</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>Application\Rendering\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderLibrary.h">
+      <Filter>Application\Rendering\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Quad.h">
+      <Filter>Application\Rendering\Primitives</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -221,8 +275,26 @@
     <Filter Include="Dependencies">
       <UniqueIdentifier>{db8feea6-5593-4d28-8818-607a9a41bfe6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Viewport">
+    <Filter Include="Application">
       <UniqueIdentifier>{2960306b-f0d9-4be6-a66f-86219aaa9e32}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application\Rendering">
+      <UniqueIdentifier>{d16e38e0-286e-4c16-a928-d4a314f73cb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application\Rendering\Textures">
+      <UniqueIdentifier>{f85918b8-2fa1-4936-9091-91a4bced1e8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application\Rendering\Buffers">
+      <UniqueIdentifier>{72514963-717f-4ece-aa61-211b939172b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application\Rendering\Arrays">
+      <UniqueIdentifier>{15c722a6-e2d7-465a-8b4d-2f71410a11f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application\Rendering\Shaders">
+      <UniqueIdentifier>{5b6cf737-d983-40ff-b8a7-f1f390d6f257}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application\Rendering\Primitives">
+      <UniqueIdentifier>{ba7fca39-4b78-4ff6-a289-733dd22d8abb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

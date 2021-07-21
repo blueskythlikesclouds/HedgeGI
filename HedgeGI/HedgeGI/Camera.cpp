@@ -1,4 +1,5 @@
 ﻿#include "Camera.h"
+#include "Application.h"
 #include "Input.h"
 
 Camera::Camera() : position(Vector3::Zero()), rotation(Quaternion::Identity())
@@ -13,12 +14,23 @@ bool Camera::hasChanged() const
         history.fieldOfView != fieldOfView;
 }
 
-void Camera::update(const Input& input, float elapsedTime)
+void Camera::setFieldOfView(const float fieldOfView)
+{
+    this->fieldOfView = 2.0f * atan(tan(fieldOfView / 2.0f) * (16.0f / 9.0f / aspectRatio));
+}
+
+void Camera::update(const Application& application)
 {
     history.position = position;
     history.rotation = rotation;
     history.aspectRatio = aspectRatio;
     history.fieldOfView = fieldOfView;
+
+    aspectRatio = (float)application.getWidth() / (float)application.getHeight();
+    setFieldOfView(PI / 4.0f);
+    
+    const Input& input = application.getInput();
+    const float elapsedTime = application.getElapsedTime();
 
     if (input.heldKeys['Q'] ^ input.heldKeys['E'])
     {

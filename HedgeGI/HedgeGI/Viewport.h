@@ -1,36 +1,17 @@
 ﻿#pragma once
 
-class Input;
-class Camera;
-struct BakeParams;
-struct RaytracingContext;
+class FramebufferTexture;
+class Application;
 class Bitmap;
+class Camera;
 
 class Viewport
 {
-    GLFWwindow* window;
-
-    std::unique_ptr<Input> input;
-    std::unique_ptr<Camera> camera;
-
     std::unique_ptr<Bitmap> bitmap;
-    std::unique_ptr<Color4i[]> pixels;
-
-    float previousAverageLuminance;
-
-    double time;
-    float elapsedTime;
-    bool focused;
-
-    bool enableBakeParamsWindow;
-
-    GLuint texture;
-    GLuint framebuffer;
+    std::unique_ptr<FramebufferTexture> framebufferTex;
 
 public:
-    Viewport();
-    ~Viewport();
+    void update(const Application& application);
 
-    void update(const RaytracingContext& raytracingContext, BakeParams& bakeParams);
-    bool isOpen() const;
+    const FramebufferTexture& getFramebufferTexture() const;
 };

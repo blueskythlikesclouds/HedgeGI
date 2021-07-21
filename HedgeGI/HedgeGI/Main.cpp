@@ -14,7 +14,7 @@
 #include "LightFieldBaker.h"
 #include "SeamOptimizer.h"
 #include "SHLightFieldBaker.h"
-#include "Viewport.h"
+#include "Application.h"
 
 enum Game
 {
@@ -166,9 +166,8 @@ int32_t main(int32_t argc, const char* argv[])
     // Viewport test
     if (ui)
     {
-        Viewport viewport;
-        while (viewport.isOpen())
-            viewport.update(raytracingContext, bakeParams);
+        Application application(raytracingContext, bakeParams);
+        application.run();
 
         return 0;
     }

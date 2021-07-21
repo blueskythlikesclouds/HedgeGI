@@ -129,9 +129,13 @@
     <ClCompile Include="..\..\Dependencies\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\Dependencies\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\Dependencies\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="BitmapHelper.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3D11Device.cpp" />
+    <ClCompile Include="ElementArray.cpp" />
+    <ClCompile Include="Framebuffer.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="OidnDenoiserDevice.cpp" />
     <ClCompile Include="OptixDenoiserDevice.cpp" />
@@ -150,21 +154,30 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pch.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="Quad.cpp" />
     <ClCompile Include="RaytracingDevice.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneFactory.cpp" />
     <ClCompile Include="SeamOptimizer.cpp" />
     <ClCompile Include="SGGIBaker.cpp" />
+    <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="ShaderLibrary.cpp" />
     <ClCompile Include="SHLightField.cpp" />
     <ClCompile Include="SHLightFieldBaker.cpp" />
     <ClCompile Include="Bitmap.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="VertexArray.cpp" />
     <ClCompile Include="Viewport.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="Buffer.h" />
     <ClInclude Include="BakePoint.h" />
     <ClInclude Include="BitmapHelper.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="D3D11Device.h" />
+    <ClInclude Include="ElementArray.h" />
+    <ClInclude Include="Framebuffer.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="OidnDenoiserDevice.h" />
     <ClInclude Include="OptixDenoiserDevice.h" />
@@ -173,6 +186,7 @@
     <ClInclude Include="Light.h" />
     <ClInclude Include="BakingFactory.h" />
     <ClInclude Include="LightField.h" />
+    <ClInclude Include="Quad.h" />
     <ClInclude Include="RaytracingDevice.h" />
     <ClInclude Include="SceneFactory.h" />
     <ClInclude Include="FileStream.h" />
@@ -188,9 +202,13 @@
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SeamOptimizer.h" />
     <ClInclude Include="SGGIBaker.h" />
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="ShaderLibrary.h" />
     <ClInclude Include="SHLightField.h" />
     <ClInclude Include="SHLightFieldBaker.h" />
     <ClInclude Include="Bitmap.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="VertexArray.h" />
     <ClInclude Include="Viewport.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

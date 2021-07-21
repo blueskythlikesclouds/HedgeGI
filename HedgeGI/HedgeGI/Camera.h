@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-class Input;
+class Application;
 
 class Camera
 {
@@ -21,5 +21,7 @@ public:
     Camera();
 
     bool hasChanged() const;
-    void update(const Input& input, float elapsedTime);
+    void setFieldOfView(float fieldOfView);
+
+    void update(const Application& application);
 };
