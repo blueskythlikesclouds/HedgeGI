@@ -1,46 +1,11 @@
 ﻿#include "Viewport.h"
 #include "BakingFactory.h"
 #include "Bitmap.h"
+#include "Input.h"
+#include "Camera.h"
 
-void Viewport::keyCallback(GLFWwindow* window, int key, int scanCode, int action, int mods)
-{
-    Viewport* viewport = (Viewport*)glfwGetWindowUserPointer(window);
-
-    if (action == GLFW_PRESS || action == GLFW_RELEASE)
-        viewport->key[key] = action == GLFW_PRESS;
-}
-
-void Viewport::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
-{
-    Viewport* viewport = (Viewport*)glfwGetWindowUserPointer(window);
-
-    if (action == GLFW_PRESS || action == GLFW_RELEASE)
-        viewport->mouse[button] = action == GLFW_PRESS;
-}
-
-void Viewport::cursorPosCallback(GLFWwindow* window, const double cursorX, const double cursorY)
-{
-    Viewport* viewport = (Viewport*)glfwGetWindowUserPointer(window);
-
-    if (viewport->mouse[GLFW_MOUSE_BUTTON_LEFT] && !viewport->focused)
-    {
-        const float pitch = (float)(cursorY - viewport->previousCursorY) * 0.25f * -viewport->elapsedTime;
-        const float yaw = (float)(cursorX - viewport->previousCursorX) * 0.25f * -viewport->elapsedTime;
-
-        const Eigen::AngleAxisf x(pitch, viewport->cameraRotation * Eigen::Vector3f::UnitX());
-        const Eigen::AngleAxisf y(yaw, Eigen::Vector3f::UnitY());
-
-        viewport->cameraRotation = (x * viewport->cameraRotation).normalized();
-        viewport->cameraRotation = (y * viewport->cameraRotation).normalized();
-    }
-
-    viewport->previousCursorX = cursorX;
-    viewport->previousCursorY = cursorY;
-}
-
-Viewport::Viewport() : cameraRotation(Quaternion::Identity()),
-    previousCursorX(0), previousCursorY(0), previousAverageLuminance(0), time(0), elapsedTime(0),
-    dirty(false), focused(false), enableBakeParamsWindow(true), texture(0), framebuffer(0)
+Viewport::Viewport() : previousAverageLuminance(0), time(0), elapsedTime(0),
+   focused(false), enableBakeParamsWindow(true), texture(0), framebuffer(0)
 {
     glfwInit();
 
@@ -49,16 +14,13 @@ Viewport::Viewport() : cameraRotation(Quaternion::Identity()),
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
     window = glfwCreateWindow(800, 450, "HedgeGI", nullptr, nullptr);
-    glfwSetWindowUserPointer(window, this);
 
     glfwMakeContextCurrent(window);
-
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
     glfwSwapInterval(1);
 
-    glfwSetKeyCallback(window, keyCallback);
-    glfwSetCursorPosCallback(window, cursorPosCallback);
-    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    input = std::make_unique<Input>(window);
+    camera = std::make_unique<Camera>();
 
     glGenFramebuffers(1, &framebuffer);
 
@@ -90,8 +52,8 @@ void Viewport::update(const RaytracingContext& raytracingContext, BakeParams& ba
     int width, height;
     glfwGetWindowSize(window, &width, &height);
 
-    const int bitmapWidth = width >> 1;
-    const int bitmapHeight = height >> 1;
+    const int bitmapWidth = width >> 2;
+    const int bitmapHeight = height >> 2;
 
     if (!bitmap || bitmap->width != bitmapWidth || bitmap->height != bitmapHeight)
     {
@@ -107,31 +69,15 @@ void Viewport::update(const RaytracingContext& raytracingContext, BakeParams& ba
     }
 
     if (!focused)
-    {
-        if (key['Q'] ^ key['E'])
-        {
-            const Eigen::AngleAxisf z((key['E'] ? -2.0f : 2.0f) * elapsedTime, cameraRotation * Eigen::Vector3f::UnitZ());
-            cameraRotation = (z * cameraRotation).normalized();
-        }
+        camera->update(*input, elapsedTime);
 
-        const float speed = key[GLFW_KEY_LEFT_SHIFT] ? 120.0f : 30.0f;
+    camera->aspectRatio = (float)width / (float)height;
+    camera->fieldOfView = PI / 4.0f;
 
-        if (key['W'] ^ key['S'])
-            cameraPosition += (cameraRotation * Eigen::Vector3f::UnitZ()).normalized() * (key['W'] ? -speed : speed) * elapsedTime;
-
-        if (key['A'] ^ key['D'])
-            cameraPosition += (cameraRotation * Eigen::Vector3f::UnitX()).normalized() * (key['A'] ? -speed : speed) * elapsedTime;
-
-        if (key[GLFW_KEY_LEFT_CONTROL] ^ key[GLFW_KEY_SPACE])
-            cameraPosition += Eigen::Vector3f::UnitY() * (key[GLFW_KEY_LEFT_CONTROL] ? -speed : speed) * elapsedTime;
-    }
-
-    if (dirty || previousCameraPosition != cameraPosition || previousCameraRotation != cameraRotation)
+    if (camera->hasChanged())
         bitmap->clear();
 
-    dirty = true;
-
-    BakingFactory::bake(raytracingContext, *bitmap, cameraPosition, cameraRotation, PI / 4.0f, (float)width / height, bakeParams);
+    BakingFactory::bake(raytracingContext, *bitmap, *camera, bakeParams);
 
     float averageLuminance = 0.0f;
 
@@ -198,7 +144,10 @@ void Viewport::update(const RaytracingContext& raytracingContext, BakeParams& ba
     {
         const BakeParams bakeParamsTmp = bakeParams;
 
-        if (ImGui::Begin("Bake Params", &enableBakeParamsWindow))
+        if (input->tappedKeys[GLFW_KEY_ESCAPE])
+            enableBakeParamsWindow ^= true;
+
+        if (enableBakeParamsWindow && ImGui::Begin("Bake Params", &enableBakeParamsWindow))
         {
             focused = ImGui::IsWindowFocused();
 
@@ -207,11 +156,13 @@ void Viewport::update(const RaytracingContext& raytracingContext, BakeParams& ba
             ImGui::InputFloat("Diffuse Saturation", &bakeParams.diffuseSaturation);
             ImGui::InputFloat("Light Strength", &bakeParams.lightStrength);
         }
+        else focused = false;
+
         ImGui::End();
 
-        dirty = memcmp(&bakeParamsTmp, &bakeParams, sizeof(BakeParams)) != 0;
+        if (memcmp(&bakeParamsTmp, &bakeParams, sizeof(BakeParams)) != 0)
+            bitmap->clear();
     }
-    
 
     ImGui::EndFrame();
     ImGui::Render();
@@ -219,9 +170,8 @@ void Viewport::update(const RaytracingContext& raytracingContext, BakeParams& ba
 
     glfwSwapBuffers(window);
 
-    previousCameraPosition = cameraPosition;
-    previousCameraRotation = cameraRotation;
     previousAverageLuminance = averageLuminance;
+    input->postUpdate();
 }
 
 bool Viewport::isOpen() const

@@ -1,5 +1,6 @@
 ﻿#include "BakingFactory.h"
 #include "Scene.h"
+#include "Camera.h"
 
 void BakeParams::load(const std::string& filePath)
 {
@@ -79,7 +80,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
     Color3 radiance(0, 0, 0);
     float faceFactor = 1.0f;
 
-    for (uint32_t i = 0; i < bakeParams.lightBounceCount; i++)
+    for (int32_t i = 0; i < bakeParams.lightBounceCount; i++)
     {
         const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
 
@@ -192,6 +193,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     context = {};
                     rtcInitIntersectContext(&context);
 
+                    i--;
                     continue;
                 }
 
@@ -268,6 +270,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     context = {};
                     rtcInitIntersectContext(&context);
 
+                    i--;
                     continue;
                 }
 
@@ -484,8 +487,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         pathTrace<TARGET_ENGINE_HE1, false>(raytracingContext, position, direction, sunLight, bakeParams);
 }
 
-void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap,
-                         const Vector3& position, const Quaternion& rotation, float fieldOfView, float aspectRatio, const BakeParams& bakeParams)
+void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, const Camera& camera, const BakeParams& bakeParams)
 {
     const Light* sunLight = nullptr;
     for (auto& light : raytracingContext.scene->lights)
@@ -497,7 +499,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         break;
     }
 
-    const float tanFovy = tanf(fieldOfView / 2);
+    const float tanFovy = tanf(camera.fieldOfView / 2);
 
     std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[bitmap.width * bitmap.height], [&](Color4& outputColor)
     {
@@ -513,9 +515,10 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const float xNormalized = (x + 0.5f + dx) / bitmap.width * 2 - 1;
         const float yNormalized = (y + 0.5f + dy) / bitmap.height * 2 - 1;
 
-        const Vector3 rayDirection = (rotation * Vector3(xNormalized * tanFovy * aspectRatio * aspectRatio, yNormalized * tanFovy, -1)).normalized();
+        const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio * camera.aspectRatio,
+            yNormalized * tanFovy, -1)).normalized();
 
-        const Color3 result = pathTrace(raytracingContext, position, rayDirection, *sunLight, bakeParams, true).head<3>();
+        const Color3 result = pathTrace(raytracingContext, camera.position, rayDirection, *sunLight, bakeParams, true).head<3>();
 
         uint32_t* count = (uint32_t*)&outputColor[3];
 

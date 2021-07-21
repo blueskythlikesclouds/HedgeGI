@@ -3,6 +3,8 @@
 #include "BakePoint.h"
 #include "Scene.h"
 
+class Camera;
+
 enum TargetEngine
 {
     TARGET_ENGINE_HE1,
@@ -74,8 +76,7 @@ public:
     template <typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
 
-    static void bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, 
-        const Vector3& position, const Quaternion& rotation, float fieldOfView, float aspectRatio, const BakeParams& bakeParams);
+    static void bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, const Camera& camera, const BakeParams& bakeParams);
 
     static std::lock_guard<std::mutex> lock()
     {

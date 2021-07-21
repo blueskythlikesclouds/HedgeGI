@@ -130,7 +130,9 @@
     <ClCompile Include="..\..\Dependencies\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\Dependencies\imgui\imgui_widgets.cpp" />
     <ClCompile Include="BitmapHelper.cpp" />
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3D11Device.cpp" />
+    <ClCompile Include="Input.cpp" />
     <ClCompile Include="OidnDenoiserDevice.cpp" />
     <ClCompile Include="OptixDenoiserDevice.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -161,7 +163,9 @@
   <ItemGroup>
     <ClInclude Include="BakePoint.h" />
     <ClInclude Include="BitmapHelper.h" />
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="D3D11Device.h" />
+    <ClInclude Include="Input.h" />
     <ClInclude Include="OidnDenoiserDevice.h" />
     <ClInclude Include="OptixDenoiserDevice.h" />
     <ClInclude Include="hl_hh_light.h" />

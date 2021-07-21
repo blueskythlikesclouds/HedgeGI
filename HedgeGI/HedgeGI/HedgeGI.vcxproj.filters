@@ -90,6 +90,12 @@
     <ClCompile Include="..\..\Dependencies\imgui\imgui_widgets.cpp">
       <Filter>Dependencies</Filter>
     </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
+      <Filter>Viewport</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -175,6 +181,12 @@
       <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="Viewport.h">
+      <Filter>Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
       <Filter>Viewport</Filter>
     </ClInclude>
   </ItemGroup>
