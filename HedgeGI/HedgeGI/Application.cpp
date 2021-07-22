@@ -23,7 +23,8 @@ GLFWwindow* Application::createGLFWwindow()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow * window = glfwCreateWindow(1600, 900, "HedgeGI", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1920, 1080, "HedgeGI", nullptr, nullptr);
+    glfwMaximizeWindow(window);
 
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -186,7 +187,7 @@ void Application::draw()
             if (ImGui::MenuItem("Exit"))
             {
                 destroyScene();
-                exit(0);
+                glfwSetWindowShouldClose(window, true);
             }
 
             ImGui::EndMenu();
