@@ -521,3 +521,16 @@ inline float getRadius(const AABB& aabb)
 
     return radius;
 }
+
+inline float computeAttenuationHE1(const float distance, const Vector4& range)
+{
+    return 1 - saturate(((1.0f / distance) - range.z()) / (range.w() - range.z()));
+}
+
+inline void computeDirectionAndAttenuationHE1(const Vector3& position, const Vector3& lightPosition, const Vector4& range, Vector3& lightDirection, float& attenuation)
+{
+    lightDirection = position - lightPosition;
+    const float distance = lightDirection.norm();
+    lightDirection /= distance;
+    attenuation = computeAttenuationHE1(distance, range);
+}

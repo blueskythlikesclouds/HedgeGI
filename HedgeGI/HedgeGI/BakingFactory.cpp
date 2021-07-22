@@ -140,7 +140,7 @@ void BakeParams::store(PropertyBag& propertyBag) const
 std::mutex BakingFactory::mutex;
 
 template <TargetEngine targetEngine, bool tracingFromEye>
-Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams)
+Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const BakeParams& bakeParams)
 {
     RTCIntersectContext context{};
     rtcInitIntersectContext(&context);
@@ -393,61 +393,79 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         if (material == nullptr || material->type == MATERIAL_TYPE_COMMON)
         {
-            // Check for shadow intersection
-            Vector3 shadowPosition = hitPosition;
-            bool receiveLight = true;
-            size_t shadowDepth = 0;
-
-            do
+            for (auto& light : raytracingContext.scene->lights)
             {
-                context = {};
-                rtcInitIntersectContext(&context);
+                Vector3 lightDirection;
+                float attenuation;
 
-                RTCRayHit shadowQuery {};
-                shadowQuery.ray.dir_x = -sunLight.positionOrDirection[0];
-                shadowQuery.ray.dir_y = -sunLight.positionOrDirection[1];
-                shadowQuery.ray.dir_z = -sunLight.positionOrDirection[2];
-                shadowQuery.ray.org_x = shadowPosition[0];
-                shadowQuery.ray.org_y = shadowPosition[1];
-                shadowQuery.ray.org_z = shadowPosition[2];
-                shadowQuery.ray.tnear = bakeParams.shadowBias;
-                shadowQuery.ray.tfar = INFINITY;
-                shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-                rtcIntersect1(raytracingContext.rtcScene, &context, &shadowQuery);
-
-                if (shadowQuery.hit.geomID == RTC_INVALID_GEOMETRY_ID)
-                    break;
-
-                const Mesh& shadowMesh = *raytracingContext.scene->meshes[shadowQuery.hit.geomID];
-                if (shadowMesh.type == MESH_TYPE_OPAQUE)
+                if (light->type == LIGHT_TYPE_POINT)
                 {
-                    receiveLight = false;
-                    break;
+                    computeDirectionAndAttenuationHE1(hitPosition, light->positionOrDirection, light->range, lightDirection, attenuation);
+                    if (attenuation == 0.0f)
+                        continue;
+                }
+                else
+                {
+                    lightDirection = light->positionOrDirection;
+                    attenuation = 1.0f;
                 }
 
-                const Triangle& shadowTriangle = shadowMesh.triangles[shadowQuery.hit.primID];
-                const Vertex& shadowA = shadowMesh.vertices[shadowTriangle.a];
-                const Vertex& shadowB = shadowMesh.vertices[shadowTriangle.b];
-                const Vertex& shadowC = shadowMesh.vertices[shadowTriangle.c];
-                const Vector2 shadowHitUV = barycentricLerp(shadowA.uv, shadowB.uv, shadowC.uv, { shadowQuery.hit.v, shadowQuery.hit.u });
+                // Check for shadow intersection
+                Vector3 shadowPosition = hitPosition;
+                bool receiveLight = true;
+                size_t shadowDepth = 0;
 
-                const float alpha = shadowMesh.material && shadowMesh.material->textures.diffuse ?
-                    shadowMesh.material->textures.diffuse->pickColor(shadowHitUV)[3] : 1;
-
-                if (alpha > 0.5f)
+                do
                 {
-                    receiveLight = false;
-                    break;
-                }
+                    context = {};
+                    rtcInitIntersectContext(&context);
 
-                shadowPosition = barycentricLerp(shadowA.position, shadowB.position, shadowC.position, { shadowQuery.hit.v, shadowQuery.hit.u });
-            } while (receiveLight && ++shadowDepth < 8);
+                    RTCRayHit shadowQuery {};
+                    shadowQuery.ray.dir_x = -lightDirection[0];
+                    shadowQuery.ray.dir_y = -lightDirection[1];
+                    shadowQuery.ray.dir_z = -lightDirection[2];
+                    shadowQuery.ray.org_x = shadowPosition[0];
+                    shadowQuery.ray.org_y = shadowPosition[1];
+                    shadowQuery.ray.org_z = shadowPosition[2];
+                    shadowQuery.ray.tnear = bakeParams.shadowBias;
+                    shadowQuery.ray.tfar = light->type == LIGHT_TYPE_POINT ? (light->positionOrDirection - shadowPosition).norm() : INFINITY;
+                    shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                    shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
-            if (receiveLight)
-            {
-                const float cosLightDirection = saturate(hitNormal.dot(-sunLight.positionOrDirection));
+                    rtcIntersect1(raytracingContext.rtcScene, &context, &shadowQuery);
+
+                    if (shadowQuery.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+                        break;
+
+                    const Mesh& shadowMesh = *raytracingContext.scene->meshes[shadowQuery.hit.geomID];
+                    if (shadowMesh.type == MESH_TYPE_OPAQUE)
+                    {
+                        receiveLight = false;
+                        break;
+                    }
+
+                    const Triangle& shadowTriangle = shadowMesh.triangles[shadowQuery.hit.primID];
+                    const Vertex& shadowA = shadowMesh.vertices[shadowTriangle.a];
+                    const Vertex& shadowB = shadowMesh.vertices[shadowTriangle.b];
+                    const Vertex& shadowC = shadowMesh.vertices[shadowTriangle.c];
+                    const Vector2 shadowHitUV = barycentricLerp(shadowA.uv, shadowB.uv, shadowC.uv, { shadowQuery.hit.v, shadowQuery.hit.u });
+
+                    const float alpha = shadowMesh.material && shadowMesh.material->textures.diffuse ?
+                        shadowMesh.material->textures.diffuse->pickColor(shadowHitUV)[3] : 1;
+
+                    if (alpha > 0.5f)
+                    {
+                        receiveLight = false;
+                        break;
+                    }
+
+                    shadowPosition = barycentricLerp(shadowA.position, shadowB.position, shadowC.position, { shadowQuery.hit.v, shadowQuery.hit.u });
+                } while (receiveLight && ++shadowDepth < 8);
+
+                if (!receiveLight)
+                    continue;
+
+                const float cosLightDirection = saturate(hitNormal.dot(-lightDirection));
 
                 if (cosLightDirection > 0)
                 {
@@ -459,13 +477,13 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
                         if (glossLevel > 0.0f)
                         {
-                            const Vector3 halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+                            const Vector3 halfwayDirection = (viewDirection - lightDirection).normalized();
                             directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
                         }
                     }
                     else if (targetEngine == TARGET_ENGINE_HE2)
                     {
-                        const Vector3 halfwayDirection = (viewDirection - sunLight.positionOrDirection).normalized();
+                        const Vector3 halfwayDirection = (viewDirection - lightDirection).normalized();
                         const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
 
                         const Color3 F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
@@ -478,9 +496,11 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                         directLighting += (D * Vis) * F;
                     }
 
-                    directLighting *= cosLightDirection * sunLight.color;
+                    directLighting *= cosLightDirection * light->color;
                     if (shouldApplyBakeParam)
                         directLighting *= bakeParams.lightStrength;
+
+                    directLighting *= attenuation;
 
                     radiance += throughput * directLighting;
                 }
@@ -555,32 +575,22 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 }
 
 Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position,
-                                const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams, bool tracingFromEye)
+                                const Vector3& direction, const BakeParams& bakeParams, bool tracingFromEye)
 {
     if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
     {
         return tracingFromEye ?
-            pathTrace<TARGET_ENGINE_HE2, true>(raytracingContext, position, direction, sunLight, bakeParams) :
-            pathTrace<TARGET_ENGINE_HE2, false>(raytracingContext, position, direction, sunLight, bakeParams);
+            pathTrace<TARGET_ENGINE_HE2, true>(raytracingContext, position, direction, bakeParams) :
+            pathTrace<TARGET_ENGINE_HE2, false>(raytracingContext, position, direction, bakeParams);
     }
 
     return tracingFromEye ?
-        pathTrace<TARGET_ENGINE_HE1, true>(raytracingContext, position, direction, sunLight, bakeParams) :
-        pathTrace<TARGET_ENGINE_HE1, false>(raytracingContext, position, direction, sunLight, bakeParams);
+        pathTrace<TARGET_ENGINE_HE1, true>(raytracingContext, position, direction, bakeParams) :
+        pathTrace<TARGET_ENGINE_HE1, false>(raytracingContext, position, direction, bakeParams);
 }
 
 void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress)
 {
-    const Light* sunLight = nullptr;
-    for (auto& light : raytracingContext.scene->lights)
-    {
-        if (light->type != LIGHT_TYPE_DIRECTIONAL)
-            continue;
-
-        sunLight = light.get();
-        break;
-    }
-
     const float tanFovy = tanf(camera.fieldOfView / 2);
 
     std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[width * height], [&](Color4& outputColor)
@@ -600,7 +610,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio,
             yNormalized * tanFovy, -1)).normalized();
 
-        const Color3 result = pathTrace(raytracingContext, camera.position, rayDirection, *sunLight, bakeParams, true).head<3>();
+        const Color3 result = pathTrace(raytracingContext, camera.position, rayDirection, bakeParams, true).head<3>();
 
         Color4& output = bitmap.data[y * width + x];
         output.head<3>() = (output.head<3>() * progress + result) / (progress + 1);

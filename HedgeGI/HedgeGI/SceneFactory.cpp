@@ -422,8 +422,10 @@ std::unique_ptr<Light> SceneFactory::createLight(HlHHLightV1* light)
         return newLight;
     }
 
-    newLight->innerRange = light->innerRange;
-    newLight->outerRange = light->outerRange;
+    newLight->range[0] = light->range.x;
+    newLight->range[1] = light->range.y;
+    newLight->range[2] = light->range.z;
+    newLight->range[3] = light->range.w;
 
     return newLight;
 }

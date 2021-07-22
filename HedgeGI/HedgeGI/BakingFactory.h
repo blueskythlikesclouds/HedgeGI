@@ -94,10 +94,10 @@ class BakingFactory
 public:
     template <TargetEngine targetEngine, bool tracingFromEye>
     static Color4 pathTrace(const RaytracingContext& raytracingContext, 
-        const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams);
+        const Vector3& position, const Vector3& direction, const BakeParams& bakeParams);
 
     static Color4 pathTrace(const RaytracingContext& raytracingContext,
-        const Vector3& position, const Vector3& direction, const Light& sunLight, const BakeParams& bakeParams, bool tracingFromEye = false);
+        const Vector3& position, const Vector3& direction, const BakeParams& bakeParams, bool tracingFromEye = false);
 
     template <typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
@@ -125,7 +125,10 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
     }
 
     const uint32_t lightSampleCount = bakeParams.lightSampleCount * TBakePoint::BASIS_COUNT;
-    const Matrix3 lightTangentToWorldMatrix = sunLight->getTangentToWorldMatrix();
+
+    Matrix3 lightTangentToWorldMatrix;
+    if (sunLight != nullptr)
+        lightTangentToWorldMatrix = sunLight->getTangentToWorldMatrix();
 
     std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](TBakePoint& bakePoint)
     {
@@ -140,7 +143,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         {
             const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, lightSampleCount, Random::next(), Random::next()).normalized();
             const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
-            const Color4 radiance = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, *sunLight, bakeParams);
+            const Color4 radiance = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams);
 
             faceFactor += radiance[3];
             bakePoint.addSample(radiance.head<3>(), tangentSpaceDirection, worldSpaceDirection);
@@ -220,7 +223,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
             }
         }
 
-        if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SHADOW) != 0)
+        if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SHADOW) != 0 && sunLight != nullptr)
         {
             const size_t shadowSampleCount = (TBakePoint::FLAGS & BAKE_POINT_FLAGS_SOFT_SHADOW) != 0 ? bakeParams.shadowSampleCount : 1;
 

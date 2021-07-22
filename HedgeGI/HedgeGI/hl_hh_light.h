@@ -13,11 +13,8 @@ typedef struct HlHHLightV1
     HlU32 type;
     HlVector3 position;
     HlVector3 color;
-    HlU32 unknown0;
-    HlU32 unknown1;
-    HlU32 unknown2;
-    float innerRange;
-    float outerRange;
+    HlU32 attribute;
+    HlVector4 range;
 }
 HlHHLightV1;
 
@@ -31,10 +28,7 @@ static HL_API void hlHHLightV1Fix(HlHHLightV1* light)
     if (light->type != HL_HH_LIGHT_TYPE_POINT)
         return;
 
-    hlSwapU32P(&light->unknown0);
-    hlSwapU32P(&light->unknown1);
-    hlSwapU32P(&light->unknown2);
-    hlSwapFloatP(&light->innerRange);
-    hlSwapFloatP(&light->outerRange);
+    hlSwapU32P(&light->attribute);
+    hlVector4Swap(&light->range);
 #endif
 }

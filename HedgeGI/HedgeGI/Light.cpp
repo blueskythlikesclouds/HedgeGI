@@ -25,8 +25,7 @@ void Light::read(const FileStream& file)
     if (type != LIGHT_TYPE_POINT)
         return;
 
-    innerRange = file.read<float>();
-    outerRange = file.read<float>();
+    range = file.read<Vector4>();
 }
 
 void Light::write(const FileStream& file) const
@@ -38,6 +37,5 @@ void Light::write(const FileStream& file) const
     if (type != LIGHT_TYPE_POINT)
         return;
 
-    file.write(innerRange);
-    file.write(outerRange);
+    file.write(range);
 }

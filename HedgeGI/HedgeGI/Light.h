@@ -14,8 +14,7 @@ public:
     LightType type{};
     Vector3 positionOrDirection;
     Color3 color;
-    float innerRange{};
-    float outerRange{};
+    Vector4 range;
 
     Matrix3 getTangentToWorldMatrix() const;
 
