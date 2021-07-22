@@ -54,101 +54,106 @@ void Application::initializeImGui()
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    {
-        // courtesy of samyuu, love ya! <3
+    imGuiIniPath = getExecutableDirectoryPath() + "/ImGui.ini";
+    io.IniFilename = imGuiIniPath.c_str();
 
-        ImGuiStyle* style = &ImGui::GetStyle();
-        style->WindowPadding = ImVec2(4.0f, 4.0f);
-        style->FrameBorderSize = 0.0f;
-        style->ItemSpacing = ImVec2(8.0f, 4.0f);
-        style->ItemInnerSpacing = ImVec2(4.0f, 4.0f);
-        style->ScrollbarSize = 14.0f;
-        style->IndentSpacing = 14.0f;
-        style->GrabMinSize = 12.0f;
-        style->FramePadding = ImVec2(8.0f, 4.0f);
+    initializeStyle();
+    initializeFonts();
+}
 
-        style->ChildRounding = 4.0f;
-        style->FrameRounding = 4.0f;
-        style->GrabRounding = 4.0f;
-        style->PopupRounding = 4.0f;
-        style->ScrollbarRounding = 4.0f;
-        style->TabRounding = 4.0f;
-        style->WindowRounding = 4.0f;
+void Application::initializeStyle()
+{
+    // courtesy of samyuu, love ya! <3
 
-        style->AntiAliasedFill = true;
-        style->AntiAliasedLines = true;
+    ImGuiStyle* style = &ImGui::GetStyle();
+    style->WindowPadding = ImVec2(4.0f, 4.0f);
+    style->FrameBorderSize = 0.0f;
+    style->ItemSpacing = ImVec2(8.0f, 4.0f);
+    style->ItemInnerSpacing = ImVec2(4.0f, 4.0f);
+    style->ScrollbarSize = 14.0f;
+    style->IndentSpacing = 14.0f;
+    style->GrabMinSize = 12.0f;
+    style->FramePadding = ImVec2(8.0f, 4.0f);
 
-        ImVec4* colors = style->Colors;
-        colors[ImGuiCol_Text] = ImVec4(0.88f, 0.88f, 0.88f, 1.00f);
-        colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-        colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.11f, 0.11f, 1.00f);
-        colors[ImGuiCol_ChildBg] = ImVec4(0.196f, 0.196f, 0.196f, 1.00f);
-        colors[ImGuiCol_PopupBg] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
-        colors[ImGuiCol_Border] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
-        colors[ImGuiCol_BorderShadow] = ImVec4(0.36f, 0.36f, 0.36f, 0.21f);
-        colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
-        colors[ImGuiCol_FrameBgHovered] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
-        colors[ImGuiCol_FrameBgActive] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
-        colors[ImGuiCol_TitleBg] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
-        colors[ImGuiCol_TitleBgActive] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
-        colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
-        colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-        colors[ImGuiCol_ScrollbarBg] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
-        colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
-        colors[ImGuiCol_CheckMark] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-        colors[ImGuiCol_SliderGrab] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
-        colors[ImGuiCol_SliderGrabActive] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
-        colors[ImGuiCol_Button] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_ButtonHovered] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
-        colors[ImGuiCol_ButtonActive] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
-        colors[ImGuiCol_Header] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
-        colors[ImGuiCol_HeaderHovered] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_HeaderActive] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
-        colors[ImGuiCol_Separator] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
-        colors[ImGuiCol_SeparatorHovered] = ImVec4(0.37f, 0.37f, 0.37f, 1.00f);
-        colors[ImGuiCol_SeparatorActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
-        colors[ImGuiCol_ResizeGrip] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
-        colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
-        colors[ImGuiCol_ResizeGripActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
-        colors[ImGuiCol_Tab] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_TabHovered] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
-        colors[ImGuiCol_TabActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-        colors[ImGuiCol_TabUnfocused] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
-        colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-        colors[ImGuiCol_DockingPreview] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
-        colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
-        colors[ImGuiCol_PlotLines] = ImVec4(0.66f, 0.66f, 0.66f, 1.00f);
-        colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.27f, 0.37f, 0.13f, 1.00f);
-        colors[ImGuiCol_PlotHistogram] = ImVec4(0.34f, 0.47f, 0.17f, 1.00f);
-        colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.41f, 0.56f, 0.20f, 0.99f);
-        colors[ImGuiCol_TextSelectedBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.27f);
-        colors[ImGuiCol_DragDropTarget] = ImVec4(0.59f, 0.59f, 0.59f, 0.98f);
-        colors[ImGuiCol_NavHighlight] = ImVec4(0.83f, 0.83f, 0.83f, 1.00f);
-        colors[ImGuiCol_NavWindowingHighlight] = ImVec4(0.83f, 0.83f, 0.83f, 1.00f);
-        colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.50f);
-        colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.50f);
-    }
+    style->ChildRounding = 4.0f;
+    style->FrameRounding = 4.0f;
+    style->GrabRounding = 4.0f;
+    style->PopupRounding = 4.0f;
+    style->ScrollbarRounding = 4.0f;
+    style->TabRounding = 4.0f;
+    style->WindowRounding = 4.0f;
 
-    {
-        WCHAR windowsDirectoryPath[MAX_PATH];
-        GetWindowsDirectory(windowsDirectoryPath, MAX_PATH);
+    style->AntiAliasedFill = true;
+    style->AntiAliasedLines = true;
 
-        ImFontConfig config {};
-        config.OversampleH = 2;
-        config.OversampleV = 2;
+    ImVec4* colors = style->Colors;
+    colors[ImGuiCol_Text] = ImVec4(0.88f, 0.88f, 0.88f, 1.00f);
+    colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+    colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.11f, 0.11f, 1.00f);
+    colors[ImGuiCol_ChildBg] = ImVec4(0.196f, 0.196f, 0.196f, 1.00f);
+    colors[ImGuiCol_PopupBg] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+    colors[ImGuiCol_Border] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+    colors[ImGuiCol_BorderShadow] = ImVec4(0.36f, 0.36f, 0.36f, 0.21f);
+    colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+    colors[ImGuiCol_FrameBgHovered] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+    colors[ImGuiCol_FrameBgActive] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+    colors[ImGuiCol_TitleBg] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+    colors[ImGuiCol_TitleBgActive] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+    colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+    colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+    colors[ImGuiCol_ScrollbarBg] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
+    colors[ImGuiCol_CheckMark] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+    colors[ImGuiCol_SliderGrab] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+    colors[ImGuiCol_SliderGrabActive] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+    colors[ImGuiCol_Button] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+    colors[ImGuiCol_ButtonHovered] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+    colors[ImGuiCol_ButtonActive] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+    colors[ImGuiCol_Header] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+    colors[ImGuiCol_HeaderHovered] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+    colors[ImGuiCol_HeaderActive] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+    colors[ImGuiCol_Separator] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+    colors[ImGuiCol_SeparatorHovered] = ImVec4(0.37f, 0.37f, 0.37f, 1.00f);
+    colors[ImGuiCol_SeparatorActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+    colors[ImGuiCol_ResizeGrip] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+    colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+    colors[ImGuiCol_ResizeGripActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+    colors[ImGuiCol_Tab] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+    colors[ImGuiCol_TabHovered] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+    colors[ImGuiCol_TabActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+    colors[ImGuiCol_TabUnfocused] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+    colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+    colors[ImGuiCol_DockingPreview] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+    colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+    colors[ImGuiCol_PlotLines] = ImVec4(0.66f, 0.66f, 0.66f, 1.00f);
+    colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.27f, 0.37f, 0.13f, 1.00f);
+    colors[ImGuiCol_PlotHistogram] = ImVec4(0.34f, 0.47f, 0.17f, 1.00f);
+    colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.41f, 0.56f, 0.20f, 0.99f);
+    colors[ImGuiCol_TextSelectedBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.27f);
+    colors[ImGuiCol_DragDropTarget] = ImVec4(0.59f, 0.59f, 0.59f, 0.98f);
+    colors[ImGuiCol_NavHighlight] = ImVec4(0.83f, 0.83f, 0.83f, 1.00f);
+    colors[ImGuiCol_NavWindowingHighlight] = ImVec4(0.83f, 0.83f, 0.83f, 1.00f);
+    colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.50f);
+    colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.50f);
+}
 
-        font = io.Fonts->AddFontFromFileTTF((wideCharToMultiByte(windowsDirectoryPath) + "\\Fonts\\segoeui.ttf").c_str(),
-            16.0f, &config, io.Fonts->GetGlyphRangesDefault());
+void Application::initializeFonts()
+{
+    ImGuiIO& io = ImGui::GetIO();
 
-        io.Fonts->Build();
-    }
+    WCHAR windowsDirectoryPath[MAX_PATH];
+    GetWindowsDirectory(windowsDirectoryPath, MAX_PATH);
 
-    {
-        imGuiIniPath = getExecutableDirectoryPath() + "/ImGui.ini";
-        io.IniFilename = imGuiIniPath.c_str();
-    }
+    ImFontConfig config {};
+    config.OversampleH = 2;
+    config.OversampleV = 2;
+
+    font = io.Fonts->AddFontFromFileTTF((wideCharToMultiByte(windowsDirectoryPath) + "\\Fonts\\segoeui.ttf").c_str(),
+        16.0f, &config, io.Fonts->GetGlyphRangesDefault());
+
+    io.Fonts->Build();
 }
 
 void Application::draw()
@@ -259,205 +264,267 @@ void Application::draw()
     ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_Static);
     ImGui::DockSpace(ImGui::GetID("MyDockSpace"));
 
-    if (showScene && ImGui::Begin("Scene", &showScene))
-    {
-        if (ImGui::CollapsingHeader("Instances"))
-        {
-            char search[1024] {};
-
-            ImGui::SetNextItemWidth(-1);
-            const bool doSearch = ImGui::InputText("##Search", search, sizeof(search));
-
-            ImGui::SetNextItemWidth(-1);
-            ImGui::BeginListBox("##Instances");
-
-            for (auto& instance : scene->instances)
-            {
-                const uint16_t resolution = propertyBag.get<uint16_t>(instance->name + ".resolution", 256);
-
-                char name[1024];
-                sprintf(name, "%s (%dx%d)", instance->name.c_str(), resolution, resolution);
-
-                if (doSearch && !strstr(name, search))
-                    continue;
-
-                if (ImGui::Selectable(name, selectedInstance == instance.get()))
-                    selectedInstance = instance.get();
-            }
-
-            ImGui::EndListBox();
-
-            if (selectedInstance != nullptr)
-            {
-                ImGui::Separator();
-
-                uint16_t resolution = propertyBag.get<uint16_t>(selectedInstance->name + ".resolution", 256);
-                if (ImGui::InputScalar("Selected Instance Resolution", ImGuiDataType_U16, &resolution)) propertyBag.set(selectedInstance->name + ".resolution", resolution);
-            }
-
-            ImGui::Separator();
-
-            ImGui::InputFloat("Resolution Base", &bakeParams.resolutionBase);
-            ImGui::InputFloat("Resolution Bias", &bakeParams.resolutionBias);
-            ImGui::InputScalar("Resolution Minimum", ImGuiDataType_U16, &bakeParams.resolutionMinimum);
-            ImGui::InputScalar("Resolution Maximum", ImGuiDataType_U16, &bakeParams.resolutionMaximum);
-
-            if (ImGui::Button("Compute New Resolutions"))
-            {
-                for (auto& instance : scene->instances)
-                {
-                    uint16_t resolution = nextPowerOfTwo((int)exp2f(bakeParams.resolutionBias + logf(getRadius(instance->aabb)) / logf(bakeParams.resolutionBase)));
-                    resolution = std::max(bakeParams.resolutionMinimum, std::min(bakeParams.resolutionMaximum, resolution));
-
-                    propertyBag.set(instance->name + ".resolution", resolution);
-                }
-            }
-        }
-
-        ImGui::End();
-    }
-
-    if (showViewport && ImGui::Begin("Viewport", &showViewport))
-    {
-        const ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
-        const ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
-        const ImVec2 windowPos = ImGui::GetWindowPos();
-
-        if (const Texture* texture = viewport.getTexture(); texture != nullptr)
-        {
-            const ImVec2 min = { contentMin.x + windowPos.x, contentMin.y + windowPos.y };
-            const ImVec2 max = { contentMax.x + windowPos.x, contentMax.y + windowPos.y };
-
-            ImGui::GetWindowDrawList()->AddImage((ImTextureID*)texture->id, min, max,
-                { 0, 1 }, { (float)viewportWidth / (float)texture->width, 1.0f - (float)viewportHeight / (float)texture->height });
-        }
-        
-        viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
-        viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
-
-        viewportResolutionInvRatio = std::max(viewportResolutionInvRatio, 1.0f);
-        viewportWidth = (int)((float)viewportWidth / viewportResolutionInvRatio);
-        viewportHeight = (int)((float)viewportHeight / viewportResolutionInvRatio);
-
-        ImGui::End();
-    }
-
-    if (showSettings && ImGui::Begin("Settings", &showSettings))
-    {
-        const BakeParams oldBakeParams = bakeParams;
-
-        ImGui::InputFloat("Viewport Resolution", &viewportResolutionInvRatio);
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("Environment Color"))
-        {
-            ImGui::ColorEdit3("##RGB", bakeParams.environmentColor.data());
-        }
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("Light Sampling"))
-        {
-            ImGui::InputScalar("Light Bounce Count", ImGuiDataType_U32, &bakeParams.lightBounceCount);
-            ImGui::InputScalar("Light Sample Count", ImGuiDataType_U32, &bakeParams.lightSampleCount);
-            ImGui::InputScalar("Russian Roulette Max Depth", ImGuiDataType_U32, &bakeParams.russianRouletteMaxDepth);
-        }                                                 
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("Shadow Sampling"))
-        {
-            ImGui::InputScalar("Shadow Sample Count", ImGuiDataType_U32, &bakeParams.shadowSampleCount);
-            ImGui::InputFloat("Shadow Search Radius", &bakeParams.shadowSearchRadius);
-            ImGui::InputFloat("Shadow Bias", &bakeParams.shadowBias);
-        }
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("Ambient Occlusion"))
-        {
-            ImGui::InputScalar("AO Sample Count", ImGuiDataType_U32, &bakeParams.aoSampleCount);
-            ImGui::InputFloat("AO Fade Constant", &bakeParams.aoFadeConstant);
-            ImGui::InputFloat("AO Fade Linear", &bakeParams.aoFadeLinear);
-            ImGui::InputFloat("AO Fade Quadratic", &bakeParams.aoFadeQuadratic);
-            ImGui::InputFloat("AO Fade Strength", &bakeParams.aoStrength);
-        }
-        ImGui::Separator();
-
-        if (ImGui::CollapsingHeader("Strength Modifiers"))
-        {
-            ImGui::InputFloat("Diffuse Strength", &bakeParams.diffuseStrength);
-            ImGui::InputFloat("Diffuse Saturation", &bakeParams.diffuseSaturation);
-            ImGui::InputFloat("Light Strength", &bakeParams.lightStrength);
-            ImGui::InputFloat("Emission Strength", &bakeParams.emissionStrength);
-        }
-
-        ImGui::End();
-
-        dirty = memcmp(&oldBakeParams, &bakeParams, sizeof(BakeParams)) != 0;
-    }
-
-    if (showBakingFactory && ImGui::Begin("Baking Factory", &showBakingFactory))
-    {
-        if (ImGui::BeginCombo("Mode", getBakingFactoryModeString(mode)))
-        {
-            if (ImGui::Selectable(getBakingFactoryModeString(BAKING_FACTORY_MODE_GI))) mode = BAKING_FACTORY_MODE_GI;
-            if (ImGui::Selectable(getBakingFactoryModeString(BAKING_FACTORY_MODE_LIGHT_FIELD))) mode = BAKING_FACTORY_MODE_LIGHT_FIELD;
-
-            ImGui::EndCombo();
-        }
-
-        if (ImGui::BeginCombo("Engine", getTargetEngineString(bakeParams.targetEngine)))
-        {
-            if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE1))) bakeParams.targetEngine = TARGET_ENGINE_HE1;
-            if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE2))) bakeParams.targetEngine = TARGET_ENGINE_HE2;
-
-            ImGui::EndCombo();
-        }
-        ImGui::Separator();
-
-        if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD && bakeParams.targetEngine == TARGET_ENGINE_HE1)
-        {
-            ImGui::InputFloat("Minimum Cell Radius", &bakeParams.lightFieldMinCellRadius);
-            ImGui::InputFloat("AABB Size Multiplier", &bakeParams.lightFieldAabbSizeMultiplier);
-        }
-        else if (mode == BAKING_FACTORY_MODE_GI)
-        {
-            ImGui::Checkbox("Denoise Shadow Map", &bakeParams.denoiseShadowMap);
-            ImGui::Checkbox("Optimize Seams", &bakeParams.optimizeSeams);
-
-            if (ImGui::BeginCombo("Denoiser Type", getDenoiserTypeString(bakeParams.denoiserType)))
-            {
-                if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_NONE))) bakeParams.denoiserType = DENOISER_TYPE_NONE;
-                if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_OPTIX))) bakeParams.denoiserType = DENOISER_TYPE_OPTIX;
-                if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_OIDN))) bakeParams.denoiserType = DENOISER_TYPE_OIDN;
-
-                ImGui::EndCombo();
-            }
-            ImGui::InputScalar("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
-        }
-        ImGui::Separator();
-
-        char outputDirPath[1024];
-        strcpy(outputDirPath, outputDirectoryPath.c_str());
-
-        if (ImGui::InputText("##outputDirectoryPath", outputDirPath, sizeof(outputDirPath)))
-            outputDirectoryPath = outputDirPath;
-
-        ImGui::SameLine();
-        if (ImGui::Button("Browse"))
-        {
-            if (const std::string newOutputDirectoryPath = FileDialog::openFolder(L"Open Output Folder"); !newOutputDirectoryPath.empty())
-                outputDirectoryPath = newOutputDirectoryPath;
-        }
-
-        ImGui::Separator();
-        if (ImGui::Button("Bake"))
-        {
-            
-        }
-    }
+    drawSceneUI();
+    drawViewportUI();
+    drawSettingsUI();
+    drawBakingFactoryUI();
 
     ImGui::End();
 
     ImGui::PopFont();
+}
+
+void Application::drawSceneUI()
+{
+    if (!showScene || !ImGui::Begin("Scene", &showScene))
+        return;
+
+    drawInstancesUI();
+    drawLightsUI();
+
+    ImGui::End();
+}
+
+void Application::drawInstancesUI()
+{
+    if (!ImGui::CollapsingHeader("Instances"))
+        return;
+
+    char search[1024] {};
+
+    ImGui::SetNextItemWidth(-1);
+    const bool doSearch = ImGui::InputText("##Search", search, sizeof(search));
+
+    ImGui::SetNextItemWidth(-1);
+    ImGui::BeginListBox("##Instances");
+
+    for (auto& instance : scene->instances)
+    {
+        const uint16_t resolution = propertyBag.get<uint16_t>(instance->name + ".resolution", 256);
+
+        char name[1024];
+        sprintf(name, "%s (%dx%d)", instance->name.c_str(), resolution, resolution);
+
+        if (doSearch && !strstr(name, search))
+            continue;
+
+        if (ImGui::Selectable(name, selectedInstance == instance.get()))
+            selectedInstance = instance.get();
+    }
+
+    ImGui::EndListBox();
+
+    if (selectedInstance != nullptr)
+    {
+        ImGui::Separator();
+
+        uint16_t resolution = propertyBag.get<uint16_t>(selectedInstance->name + ".resolution", 256);
+        if (ImGui::InputScalar("Selected Instance Resolution", ImGuiDataType_U16, &resolution)) propertyBag.set(selectedInstance->name + ".resolution", resolution);
+    }
+
+    ImGui::Separator();
+
+    ImGui::InputFloat("Resolution Base", &bakeParams.resolutionBase);
+    ImGui::InputFloat("Resolution Bias", &bakeParams.resolutionBias);
+    ImGui::InputScalar("Resolution Minimum", ImGuiDataType_U16, &bakeParams.resolutionMinimum);
+    ImGui::InputScalar("Resolution Maximum", ImGuiDataType_U16, &bakeParams.resolutionMaximum);
+
+    if (ImGui::Button("Compute New Resolutions"))
+    {
+        for (auto& instance : scene->instances)
+        {
+            uint16_t resolution = nextPowerOfTwo((int)exp2f(bakeParams.resolutionBias + logf(getRadius(instance->aabb)) / logf(bakeParams.resolutionBase)));
+            resolution = std::max(bakeParams.resolutionMinimum, std::min(bakeParams.resolutionMaximum, resolution));
+
+            propertyBag.set(instance->name + ".resolution", resolution);
+        }
+    }
+}
+
+void Application::drawLightsUI()
+{
+    if (!ImGui::CollapsingHeader("Lights"))
+        return;
+
+    char search[1024] {};
+
+    ImGui::SetNextItemWidth(-1);
+    const bool doSearch = ImGui::InputText("##Search", search, sizeof(search));
+
+    ImGui::SetNextItemWidth(-1);
+    ImGui::BeginListBox("##Lights");
+
+    for (auto& light : scene->lights)
+    {
+        if (doSearch && light->name.find(search) == std::string::npos)
+            continue;
+
+        if (ImGui::Selectable(light->name.c_str(), selectedLight == light.get()))
+            selectedLight = light.get();
+    }
+
+    ImGui::EndListBox();
+
+    if (selectedLight != nullptr)
+    {
+        ImGui::Separator();
+
+        dirty |= ImGui::InputFloat3(selectedLight->type == LIGHT_TYPE_POINT ? "Position" : "Direction", selectedLight->positionOrDirection.data());
+        dirty |= ImGui::InputFloat3("Color", selectedLight->color.data());
+
+        if (selectedLight->type == LIGHT_TYPE_POINT)
+            dirty |= ImGui::InputFloat3("Range", selectedLight->range.data());
+        else
+            selectedLight->positionOrDirection.normalize();
+    }
+}
+
+void Application::drawViewportUI()
+{
+    if (!showViewport || !ImGui::Begin("Viewport", &showViewport))
+        return;
+
+    const ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
+    const ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
+    const ImVec2 windowPos = ImGui::GetWindowPos();
+
+    const ImVec2 min = { contentMin.x + windowPos.x, contentMin.y + windowPos.y };
+    const ImVec2 max = { contentMax.x + windowPos.x, contentMax.y + windowPos.y };
+
+    if (const Texture* texture = viewport.getTexture(); texture != nullptr)
+    {
+        ImGui::GetWindowDrawList()->AddImage(reinterpret_cast<ImTextureID>(texture->id), min, max,
+            { 0, 1 }, { (float)viewportWidth / (float)texture->width, 1.0f - (float)viewportHeight / (float)texture->height });
+    }
+
+    viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
+    viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
+
+    viewportResolutionInvRatio = std::max(viewportResolutionInvRatio, 1.0f);
+    viewportWidth = (int)((float)viewportWidth / viewportResolutionInvRatio);
+    viewportHeight = (int)((float)viewportHeight / viewportResolutionInvRatio);
+    viewportFocused = ImGui::IsMouseHoveringRect(min, max) || ImGui::IsWindowFocused();
+
+    ImGui::End();
+}
+
+void Application::drawSettingsUI()
+{
+    if (!showSettings || !ImGui::Begin("Settings", &showSettings))
+        return;
+
+    const BakeParams oldBakeParams = bakeParams;
+
+    ImGui::InputFloat("Viewport Resolution", &viewportResolutionInvRatio);
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Environment Color"))
+    {
+        ImGui::ColorEdit3("##RGB", bakeParams.environmentColor.data());
+    }
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Light Sampling"))
+    {
+        ImGui::InputScalar("Light Bounce Count", ImGuiDataType_U32, &bakeParams.lightBounceCount);
+        ImGui::InputScalar("Light Sample Count", ImGuiDataType_U32, &bakeParams.lightSampleCount);
+        ImGui::InputScalar("Russian Roulette Max Depth", ImGuiDataType_U32, &bakeParams.russianRouletteMaxDepth);
+    }
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Shadow Sampling"))
+    {
+        ImGui::InputScalar("Shadow Sample Count", ImGuiDataType_U32, &bakeParams.shadowSampleCount);
+        ImGui::InputFloat("Shadow Search Radius", &bakeParams.shadowSearchRadius);
+        ImGui::InputFloat("Shadow Bias", &bakeParams.shadowBias);
+    }
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Ambient Occlusion"))
+    {
+        ImGui::InputScalar("AO Sample Count", ImGuiDataType_U32, &bakeParams.aoSampleCount);
+        ImGui::InputFloat("AO Fade Constant", &bakeParams.aoFadeConstant);
+        ImGui::InputFloat("AO Fade Linear", &bakeParams.aoFadeLinear);
+        ImGui::InputFloat("AO Fade Quadratic", &bakeParams.aoFadeQuadratic);
+        ImGui::InputFloat("AO Fade Strength", &bakeParams.aoStrength);
+    }
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Strength Modifiers"))
+    {
+        ImGui::InputFloat("Diffuse Strength", &bakeParams.diffuseStrength);
+        ImGui::InputFloat("Diffuse Saturation", &bakeParams.diffuseSaturation);
+        ImGui::InputFloat("Light Strength", &bakeParams.lightStrength);
+        ImGui::InputFloat("Emission Strength", &bakeParams.emissionStrength);
+    }
+
+    ImGui::End();
+
+    dirty |= memcmp(&oldBakeParams, &bakeParams, sizeof(BakeParams)) != 0;
+}
+
+void Application::drawBakingFactoryUI()
+{
+    if (!showBakingFactory || !ImGui::Begin("Baking Factory", &showBakingFactory))
+        return;
+
+    if (ImGui::BeginCombo("Mode", getBakingFactoryModeString(mode)))
+    {
+        if (ImGui::Selectable(getBakingFactoryModeString(BAKING_FACTORY_MODE_GI))) mode = BAKING_FACTORY_MODE_GI;
+        if (ImGui::Selectable(getBakingFactoryModeString(BAKING_FACTORY_MODE_LIGHT_FIELD))) mode = BAKING_FACTORY_MODE_LIGHT_FIELD;
+
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::BeginCombo("Engine", getTargetEngineString(bakeParams.targetEngine)))
+    {
+        if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE1))) bakeParams.targetEngine = TARGET_ENGINE_HE1;
+        if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE2))) bakeParams.targetEngine = TARGET_ENGINE_HE2;
+
+        ImGui::EndCombo();
+    }
+    ImGui::Separator();
+
+    if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD && bakeParams.targetEngine == TARGET_ENGINE_HE1)
+    {
+        ImGui::InputFloat("Minimum Cell Radius", &bakeParams.lightFieldMinCellRadius);
+        ImGui::InputFloat("AABB Size Multiplier", &bakeParams.lightFieldAabbSizeMultiplier);
+    }
+    else if (mode == BAKING_FACTORY_MODE_GI)
+    {
+        ImGui::Checkbox("Denoise Shadow Map", &bakeParams.denoiseShadowMap);
+        ImGui::Checkbox("Optimize Seams", &bakeParams.optimizeSeams);
+
+        if (ImGui::BeginCombo("Denoiser Type", getDenoiserTypeString(bakeParams.denoiserType)))
+        {
+            if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_NONE))) bakeParams.denoiserType = DENOISER_TYPE_NONE;
+            if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_OPTIX))) bakeParams.denoiserType = DENOISER_TYPE_OPTIX;
+            if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_OIDN))) bakeParams.denoiserType = DENOISER_TYPE_OIDN;
+
+            ImGui::EndCombo();
+        }
+        ImGui::InputScalar("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
+    }
+    ImGui::Separator();
+
+    char outputDirPath[1024];
+    strcpy(outputDirPath, outputDirectoryPath.c_str());
+
+    if (ImGui::InputText("##outputDirectoryPath", outputDirPath, sizeof(outputDirPath)))
+        outputDirectoryPath = outputDirPath;
+
+    ImGui::SameLine();
+    if (ImGui::Button("Browse"))
+    {
+        if (const std::string newOutputDirectoryPath = FileDialog::openFolder(L"Open Output Folder"); !newOutputDirectoryPath.empty())
+            outputDirectoryPath = newOutputDirectoryPath;
+    }
+
+    ImGui::Separator();
+    if (ImGui::Button("Bake"))
+    {
+
+    }
 }
 
 void Application::setTitle()
@@ -608,7 +675,8 @@ void Application::update()
     // Viewport
     if (scene && showViewport)
     {
-        camera.update(*this);
+        if (viewportFocused)
+            camera.update(*this);
 
         // Halven viewport resolution if we are moving
         if (camera.hasChanged())

@@ -32,41 +32,46 @@ class Application
 
     int viewportWidth {};
     int viewportHeight {};
+    bool viewportFocused {};
 
     bool showScene { true };
     bool showViewport { true };
     bool showSettings { true };
     bool showBakingFactory { true };
-
     bool dirty {};
-
-    std::unique_ptr<Scene> scene;
-    std::future<std::unique_ptr<Scene>> futureScene;
 
     std::string stageName;
     std::string stageDirectoryPath;
-    std::string outputDirectoryPath;
-
     PropertyBag propertyBag;
+    std::unique_ptr<Scene> scene;
+    std::future<std::unique_ptr<Scene>> futureScene;
 
+    const Instance* selectedInstance {};
+    Light* selectedLight {};
+    
     float viewportResolutionInvRatio {};
     BakeParams bakeParams;
 
     BakingFactoryMode mode {};
-
-    const Instance* selectedInstance{};
+    std::string outputDirectoryPath;
 
     static GLFWwindow* createGLFWwindow();
 
     void initializeImGui();
+    void initializeStyle();
+    void initializeFonts();
 
     void draw();
-
+    void drawSceneUI();
+    void drawInstancesUI();
+    void drawLightsUI();
+    void drawViewportUI();
+    void drawSettingsUI();
+    void drawBakingFactoryUI();
     void setTitle();
 
     void loadProperties();
     void storeProperties();
-
     void destroyScene();
 
 public:
@@ -85,10 +90,9 @@ public:
 
     bool isDirty() const;
 
+    PropertyBag& getPropertyBag();
     const RaytracingContext getRaytracingContext() const;
     const BakeParams getBakeParams() const;
-
-    PropertyBag& getPropertyBag();
 
     void drawQuad() const;
     

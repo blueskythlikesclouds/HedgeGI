@@ -11,6 +11,7 @@ enum LightType
 class Light
 {
 public:
+    std::string name;
     LightType type{};
     Vector3 positionOrDirection;
     Color3 color;

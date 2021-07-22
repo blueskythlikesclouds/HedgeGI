@@ -14,7 +14,7 @@ void Viewport::update(const Application& application)
         const size_t bitmapWidth = bitmap != nullptr ? std::max<size_t>(bitmap->width, viewportWidth) : viewportWidth;
         const size_t bitmapHeight = bitmap != nullptr ? std::max<size_t>(bitmap->height, viewportHeight) : viewportHeight;
 
-        bitmap = std::make_unique<Bitmap>(bitmapWidth, bitmapHeight);
+        bitmap = std::make_unique<Bitmap>((uint32_t)bitmapWidth, (uint32_t)bitmapHeight);
         texture = std::make_unique<Texture>(GL_TEXTURE_2D, GL_RGBA, bitmap->width, bitmap->height, GL_RGBA, GL_FLOAT);
         progress = 0;
     }
@@ -27,7 +27,7 @@ void Viewport::update(const Application& application)
     }
 
     BakingFactory::bake(application.getRaytracingContext(), *bitmap, viewportWidth, viewportHeight, camera, application.getBakeParams(), progress++);
-    texture->subImage(0, bitmap->height - viewportHeight, viewportWidth, viewportHeight, GL_RGBA, GL_FLOAT, bitmap->data.get());
+    texture->subImage(0, (GLint)(bitmap->height - viewportHeight), (GLsizei)viewportWidth, (GLsizei)viewportHeight, GL_RGBA, GL_FLOAT, bitmap->data.get());
 
     previousViewportWidth = viewportWidth;
     previousViewportHeight = viewportHeight;

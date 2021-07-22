@@ -505,7 +505,13 @@ void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
         HlHHLightV1* light = (HlHHLightV1*)hlHHGetData((void*)entry->data, nullptr);
         hlHHLightV1Fix(light);
 
-        scene.lights.push_back(std::move(createLight(light)));
+        std::unique_ptr<Light> newLight = createLight(light);
+
+        char name[MAX_PATH];
+        hlStrConvNativeToUTF8NoAlloc(entry->path, name, 0, MAX_PATH);
+        newLight->name = getFileNameWithoutExtension(name);
+
+        scene.lights.push_back(std::move(newLight));
     }
 
     for (size_t i = 0; i < archive->entries.count; i++)
