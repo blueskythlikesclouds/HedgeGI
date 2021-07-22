@@ -569,7 +569,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         pathTrace<TARGET_ENGINE_HE1, false>(raytracingContext, position, direction, sunLight, bakeParams);
 }
 
-void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, const Camera& camera, const BakeParams& bakeParams, size_t progress)
+void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress)
 {
     const Light* sunLight = nullptr;
     for (auto& light : raytracingContext.scene->lights)
@@ -583,25 +583,27 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
 
     const float tanFovy = tanf(camera.fieldOfView / 2);
 
-    std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[bitmap.width * bitmap.height], [&](Color4& outputColor)
+    std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[width * height], [&](Color4& outputColor)
     {
         const size_t i = std::distance(&bitmap.data[0], &outputColor);
-        const size_t x = i % bitmap.width;
-        const size_t y = i / bitmap.height;
+        const size_t x = i % width;
+        const size_t y = i / width;
 
         const float u1 = 2.0f * Random::next();
         const float u2 = 2.0f * Random::next();
         const float dx = u1 < 1 ? sqrtf(u1) - 1.0f : 1.0f - sqrtf(2.0f - u1);
         const float dy = u2 < 1 ? sqrtf(u2) - 1.0f : 1.0f - sqrtf(2.0f - u2);
 
-        const float xNormalized = (x + 0.5f + dx) / bitmap.width * 2 - 1;
-        const float yNormalized = (y + 0.5f + dy) / bitmap.height * 2 - 1;
+        const float xNormalized = (x + 0.5f + dx) / width * 2 - 1;
+        const float yNormalized = (y + 0.5f + dy) / height * 2 - 1;
 
         const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio * camera.aspectRatio,
             yNormalized * tanFovy, -1)).normalized();
 
         const Color3 result = pathTrace(raytracingContext, camera.position, rayDirection, *sunLight, bakeParams, true).head<3>();
-        outputColor.head<3>() = (outputColor.head<3>() * progress + result) / (progress + 1);
-        outputColor.w() = 1.0f;
+
+        Color4& output = bitmap.data[y * width + x];
+        output.head<3>() = (output.head<3>() * progress + result) / (progress + 1);
+        output.w() = 1.0f;
     });
 }

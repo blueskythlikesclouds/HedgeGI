@@ -23,7 +23,7 @@ GLFWwindow* Application::createGLFWwindow()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(1920, 1080, "HedgeGI", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1600, 900, "HedgeGI", nullptr, nullptr);
     glfwMaximizeWindow(window);
 
     glfwMakeContextCurrent(window);
@@ -249,18 +249,21 @@ void Application::draw()
         const ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
         const ImVec2 windowPos = ImGui::GetWindowPos();
 
+        if (const Texture* texture = viewport.getTexture(); texture != nullptr)
+        {
+            const ImVec2 min = { contentMin.x + windowPos.x, contentMin.y + windowPos.y };
+            const ImVec2 max = { contentMax.x + windowPos.x, contentMax.y + windowPos.y };
+
+            ImGui::GetWindowDrawList()->AddImage((ImTextureID*)texture->id, min, max,
+                { 0, 1 }, { (float)viewportWidth / (float)texture->width, 1.0f - (float)viewportHeight / (float)texture->height });
+        }
+        
         viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
         viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
 
         viewportResolutionInvRatio = std::max(viewportResolutionInvRatio, 1.0f);
         viewportWidth = (int)((float)viewportWidth / viewportResolutionInvRatio);
         viewportHeight = (int)((float)viewportHeight / viewportResolutionInvRatio);
-
-        const ImVec2 min = { contentMin.x + windowPos.x, contentMin.y + windowPos.y };
-        const ImVec2 max = { contentMax.x + windowPos.x, contentMax.y + windowPos.y };
-
-        if (const Texture* texture = viewport.getTexture(); texture != nullptr)
-            ImGui::GetWindowDrawList()->AddImage((ImTextureID*)texture->id, min, max);
 
         ImGui::End();
     }

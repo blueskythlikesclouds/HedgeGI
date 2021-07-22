@@ -3,8 +3,12 @@
 #include "Input.h"
 #include "PropertyBag.h"
 
-Camera::Camera() : position(Vector3::Zero()), rotation(Quaternion::Identity())
+Camera::Camera()
 {
+    position.setZero();
+    rotation.setIdentity();
+    history.position.setZero();
+    history.rotation.setIdentity();
 }
 
 bool Camera::hasChanged() const
@@ -66,8 +70,8 @@ void Camera::update(const Application& application)
 
     if (!input.tappedMouseButtons[GLFW_MOUSE_BUTTON_RIGHT] && input.heldMouseButtons[GLFW_MOUSE_BUTTON_RIGHT])
     {
-        const float pitch = (float)(input.cursorY - input.history.cursorY) * 0.25f * elapsedTime;
-        const float yaw = (float)(input.cursorX - input.history.cursorX) * 0.25f * elapsedTime;
+        const float pitch = (float)(input.cursorY - input.history.cursorY) * 0.25f * -elapsedTime;
+        const float yaw = (float)(input.cursorX - input.history.cursorX) * 0.25f * -elapsedTime;
 
         const Eigen::AngleAxisf x(pitch, rotation * Eigen::Vector3f::UnitX());
         const Eigen::AngleAxisf y(yaw, Eigen::Vector3f::UnitY());
