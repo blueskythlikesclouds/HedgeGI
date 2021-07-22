@@ -57,10 +57,10 @@ void Camera::update(const Application& application)
     history.fieldOfView = fieldOfView;
 
     aspectRatio = (float)application.getViewportWidth() / (float)application.getViewportHeight();
-    fieldOfView = PI / 4.0f;
+    setFieldOfView(PI / 4.0f);
 
     const Input& input = application.getInput();
-    const float elapsedTime = application.getElapsedTime();
+    const float elapsedTime = std::min(1.0f / 15.0f, application.getElapsedTime());
 
     if (input.heldKeys['Q'] ^ input.heldKeys['E'])
     {
