@@ -6,10 +6,17 @@ struct Property
     uint64_t value{};
 };
 
+struct StringProperty
+{
+    uint64_t key {};
+    std::string value;
+};
+
 class PropertyBag
 {
 public:
     std::vector<Property> properties;
+    std::vector<StringProperty> stringProperties;
 
     template<typename T>
     T get(const std::string& name, const T defaultValue = T()) const
@@ -21,6 +28,18 @@ public:
         {
             if (property.key == hash)
                 return *(T*)&property.value;
+        }
+
+        return defaultValue;
+    }
+
+    const std::string& getString(const std::string& name, const std::string& defaultValue = "")
+    {
+        const uint64_t hash = computeHash(name.c_str());
+        for (auto& property : stringProperties)
+        {
+            if (property.key == hash)
+                return property.value;
         }
 
         return defaultValue;
@@ -46,6 +65,22 @@ public:
         *(T*)&property.value = value;
 
         properties.push_back(std::move(property));
+    }
+
+    void setString(const std::string& name, const std::string& value)
+    {
+        const uint64_t hash = computeHash(name.c_str());
+
+        for (auto& property : stringProperties)
+        {
+            if (property.key != hash)
+                continue;
+
+            property.value = value;
+            return;
+        }
+
+        stringProperties.push_back({ hash, value });
     }
 
     void read(const FileStream& file);

@@ -6,6 +6,16 @@
 #include "FileDialog.h"
 #include "SceneFactory.h"
 
+const char* getBakingFactoryModeString(const BakingFactoryMode mode)
+{
+    switch (mode)
+    {
+    case BAKING_FACTORY_MODE_GI: return "Global Illumination";
+    case BAKING_FACTORY_MODE_LIGHT_FIELD: return "Light Field";
+    default: return "Unknown";
+    }
+}
+
 const ImGuiWindowFlags ImGuiWindowFlags_Static = 
     ImGuiWindowFlags_NoTitleBar |
     ImGuiWindowFlags_NoResize |
@@ -29,7 +39,6 @@ GLFWwindow* Application::createGLFWwindow()
 
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-    glfwSwapInterval(1);
 
     return window;
 }
@@ -164,8 +173,10 @@ void Application::draw()
 
                     futureScene = std::async(std::launch::async, [this, directoryPath]()
                     {
-                        propertyBagFilePath = directoryPath + "/" + getFileNameWithoutExtension(directoryPath) + ".hedgegi";
-                        propertyBag.load(propertyBagFilePath);
+                        stageName = getFileNameWithoutExtension(directoryPath);
+                        stageDirectoryPath = directoryPath;
+
+                        propertyBag.load(directoryPath + "/" + stageName + ".hedgegi");
                         loadProperties();
 
                         return SceneFactory::create(directoryPath);
@@ -182,13 +193,13 @@ void Application::draw()
                     destroyScene();
 
                     futureScene = std::async(std::launch::async, [filePath]()
-                        {
-                            std::unique_ptr<Scene> scene = std::make_unique<Scene>();
-                            scene->load(filePath);
-                            scene->createRTCScene();
+                    {
+                        std::unique_ptr<Scene> scene = std::make_unique<Scene>();
+                        scene->load(filePath);
+                        scene->createRTCScene();
 
-                            return scene;
-                        });
+                        return scene;
+                    });
                 }
             }
 
@@ -211,14 +222,13 @@ void Application::draw()
             showScene ^= ImGui::MenuItem("Scene");
             showViewport ^= ImGui::MenuItem("Viewport");
             showSettings ^= ImGui::MenuItem("Settings");
+            showBakingFactory ^= ImGui::MenuItem("Baking Factory");
 
             ImGui::EndMenu();
         }
 
         ImGui::EndMainMenuBar();
     }
-
-    drawFPS(y);
 
     if (futureScene.valid())
     {
@@ -239,7 +249,10 @@ void Application::draw()
     }
 
     if (scene == nullptr)
+    {
+        ImGui::PopFont();
         return;
+    }
 
     ImGui::SetNextWindowPos({0, y});
     ImGui::SetNextWindowSize({(float)width, (float)height - y});
@@ -248,6 +261,59 @@ void Application::draw()
 
     if (showScene && ImGui::Begin("Scene", &showScene))
     {
+        if (ImGui::CollapsingHeader("Instances"))
+        {
+            char search[1024] {};
+
+            ImGui::SetNextItemWidth(-1);
+            const bool doSearch = ImGui::InputText("##Search", search, sizeof(search));
+
+            ImGui::SetNextItemWidth(-1);
+            ImGui::BeginListBox("##Instances");
+
+            for (auto& instance : scene->instances)
+            {
+                const uint16_t resolution = propertyBag.get<uint16_t>(instance->name + ".resolution", 256);
+
+                char name[1024];
+                sprintf(name, "%s (%dx%d)", instance->name.c_str(), resolution, resolution);
+
+                if (doSearch && !strstr(name, search))
+                    continue;
+
+                if (ImGui::Selectable(name, selectedInstance == instance.get()))
+                    selectedInstance = instance.get();
+            }
+
+            ImGui::EndListBox();
+
+            if (selectedInstance != nullptr)
+            {
+                ImGui::Separator();
+
+                uint16_t resolution = propertyBag.get<uint16_t>(selectedInstance->name + ".resolution", 256);
+                if (ImGui::InputScalar("Selected Instance Resolution", ImGuiDataType_U16, &resolution)) propertyBag.set(selectedInstance->name + ".resolution", resolution);
+            }
+
+            ImGui::Separator();
+
+            ImGui::InputFloat("Resolution Base", &bakeParams.resolutionBase);
+            ImGui::InputFloat("Resolution Bias", &bakeParams.resolutionBias);
+            ImGui::InputScalar("Resolution Minimum", ImGuiDataType_U16, &bakeParams.resolutionMinimum);
+            ImGui::InputScalar("Resolution Maximum", ImGuiDataType_U16, &bakeParams.resolutionMaximum);
+
+            if (ImGui::Button("Compute New Resolutions"))
+            {
+                for (auto& instance : scene->instances)
+                {
+                    uint16_t resolution = nextPowerOfTwo((int)exp2f(bakeParams.resolutionBias + logf(getRadius(instance->aabb)) / logf(bakeParams.resolutionBase)));
+                    resolution = std::max(bakeParams.resolutionMinimum, std::min(bakeParams.resolutionMaximum, resolution));
+
+                    propertyBag.set(instance->name + ".resolution", resolution);
+                }
+            }
+        }
+
         ImGui::End();
     }
 
@@ -281,15 +347,6 @@ void Application::draw()
         const BakeParams oldBakeParams = bakeParams;
 
         ImGui::InputFloat("Viewport Resolution", &viewportResolutionInvRatio);
-        ImGui::Separator();
-
-        if (ImGui::BeginCombo("Target Engine", getTargetEngineString(bakeParams.targetEngine)))
-        {
-            if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE1))) bakeParams.targetEngine = TARGET_ENGINE_HE1;
-            if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE2))) bakeParams.targetEngine = TARGET_ENGINE_HE2;
-
-            ImGui::EndCombo();
-        }
         ImGui::Separator();
 
         if (ImGui::CollapsingHeader("Environment Color"))
@@ -331,19 +388,37 @@ void Application::draw()
             ImGui::InputFloat("Light Strength", &bakeParams.lightStrength);
             ImGui::InputFloat("Emission Strength", &bakeParams.emissionStrength);
         }
-        ImGui::Separator();
 
-        if (ImGui::CollapsingHeader("Resolution"))
+        ImGui::End();
+
+        dirty = memcmp(&oldBakeParams, &bakeParams, sizeof(BakeParams)) != 0;
+    }
+
+    if (showBakingFactory && ImGui::Begin("Baking Factory", &showBakingFactory))
+    {
+        if (ImGui::BeginCombo("Mode", getBakingFactoryModeString(mode)))
         {
-            ImGui::InputFloat("Resolution Base", &bakeParams.resolutionBase);
-            ImGui::InputFloat("Resolution Bias", &bakeParams.resolutionBias);
-            ImGui::InputScalar("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
-            ImGui::InputScalar("Resolution Minimum", ImGuiDataType_U16, &bakeParams.resolutionMinimum);
-            ImGui::InputScalar("Resolution Maximum", ImGuiDataType_U16, &bakeParams.resolutionMaximum);
+            if (ImGui::Selectable(getBakingFactoryModeString(BAKING_FACTORY_MODE_GI))) mode = BAKING_FACTORY_MODE_GI;
+            if (ImGui::Selectable(getBakingFactoryModeString(BAKING_FACTORY_MODE_LIGHT_FIELD))) mode = BAKING_FACTORY_MODE_LIGHT_FIELD;
+
+            ImGui::EndCombo();
+        }
+
+        if (ImGui::BeginCombo("Engine", getTargetEngineString(bakeParams.targetEngine)))
+        {
+            if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE1))) bakeParams.targetEngine = TARGET_ENGINE_HE1;
+            if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE2))) bakeParams.targetEngine = TARGET_ENGINE_HE2;
+
+            ImGui::EndCombo();
         }
         ImGui::Separator();
 
-        if (ImGui::CollapsingHeader("Other"))
+        if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD && bakeParams.targetEngine == TARGET_ENGINE_HE1)
+        {
+            ImGui::InputFloat("Minimum Cell Radius", &bakeParams.lightFieldMinCellRadius);
+            ImGui::InputFloat("AABB Size Multiplier", &bakeParams.lightFieldAabbSizeMultiplier);
+        }
+        else if (mode == BAKING_FACTORY_MODE_GI)
         {
             ImGui::Checkbox("Denoise Shadow Map", &bakeParams.denoiseShadowMap);
             ImGui::Checkbox("Optimize Seams", &bakeParams.optimizeSeams);
@@ -356,31 +431,54 @@ void Application::draw()
 
                 ImGui::EndCombo();
             }
+            ImGui::InputScalar("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
         }
         ImGui::Separator();
 
-        if (ImGui::CollapsingHeader("Light Field"))
+        char outputDirPath[1024];
+        strcpy(outputDirPath, outputDirectoryPath.c_str());
+
+        if (ImGui::InputText("##outputDirectoryPath", outputDirPath, sizeof(outputDirPath)))
+            outputDirectoryPath = outputDirPath;
+
+        ImGui::SameLine();
+        if (ImGui::Button("Browse"))
         {
-            ImGui::InputFloat("Minimum Cell Radius", &bakeParams.lightFieldMinCellRadius);
-            ImGui::InputFloat("AABB Size Multiplier", &bakeParams.lightFieldAabbSizeMultiplier);
+            if (const std::string newOutputDirectoryPath = FileDialog::openFolder(L"Open Output Folder"); !newOutputDirectoryPath.empty())
+                outputDirectoryPath = newOutputDirectoryPath;
         }
 
-        dirty = memcmp(&oldBakeParams, &bakeParams, sizeof(BakeParams)) != 0;
-
-        ImGui::End();
+        ImGui::Separator();
+        if (ImGui::Button("Bake"))
+        {
+            
+        }
     }
+
     ImGui::End();
 
     ImGui::PopFont();
 }
 
-void Application::drawFPS(float y) const
+void Application::setTitle()
 {
-    ImGui::Begin("FPS", nullptr, ImGuiWindowFlags_Static);
-    ImGui::SetWindowPos({ ImGui::GetIO().DisplaySize.x - ImGui::GetWindowSize().x, y });
-    ImGui::Text("%d fps", (int)round(1.0f / elapsedTime));
-    ImGui::Text("%.2f ms", elapsedTime * 1000);
-    ImGui::End();
+    if (titleUpdateTime < 0.5f)
+    {
+        titleUpdateTime += elapsedTime;
+        return;
+    }
+    titleUpdateTime = 0.0f;
+
+    char title[256];
+
+    const int fps = (int)round(1.0f / elapsedTime);
+
+    if (!stageName.empty())
+        sprintf(title, "Hedge GI - %s (FPS: %d)", stageName.c_str(), fps);
+    else
+        sprintf(title, "Hedge GI (FPS: %d)", fps);
+
+    glfwSetWindowTitle(window, title);
 }
 
 void Application::loadProperties()
@@ -388,6 +486,7 @@ void Application::loadProperties()
     camera.load(propertyBag);
     bakeParams.load(propertyBag);
     viewportResolutionInvRatio = propertyBag.get("viewportResolutionInvRatio", 2.0f);
+    outputDirectoryPath = propertyBag.getString("outputDirectoryPath", stageDirectoryPath + "-HedgeGI");
 }
 
 void Application::storeProperties()
@@ -395,19 +494,21 @@ void Application::storeProperties()
     camera.store(propertyBag);
     bakeParams.store(propertyBag);
     propertyBag.set("viewportResolutionInvRatio", viewportResolutionInvRatio);
+    propertyBag.setString("outputDirectoryPath", outputDirectoryPath);
 }
 
 void Application::destroyScene()
 {
     scene = nullptr;
 
-    if (!propertyBagFilePath.empty())
+    if (!stageDirectoryPath.empty() && !stageName.empty())
     {
         storeProperties();
-        propertyBag.save(propertyBagFilePath);
+        propertyBag.save(stageDirectoryPath + "/" + stageName + ".hedgegi");
     }
 
-    propertyBagFilePath.clear();
+    stageDirectoryPath.clear();
+    stageName.clear();
 }
 
 Application::Application()
@@ -540,4 +641,5 @@ void Application::update()
     input.postUpdate();
 
     glfwSwapBuffers(window);
+    setTitle();
 }

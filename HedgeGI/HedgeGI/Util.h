@@ -63,3 +63,15 @@ inline std::string wideCharToMultiByte(LPCWSTR value)
     WideCharToMultiByte(CP_UTF8, 0, value, -1, multiByte, _countof(multiByte), 0, 0);
     return std::string(multiByte);
 }
+
+inline void alert()
+{
+    FLASHWINFO flashInfo;
+    flashInfo.cbSize = sizeof(FLASHWINFO);
+    flashInfo.dwFlags = FLASHW_TRAY | FLASHW_TIMERNOFG;
+    flashInfo.uCount = 5;
+    flashInfo.dwTimeout = 0;
+    flashInfo.hwnd = GetConsoleWindow();
+    FlashWindowEx(&flashInfo);
+    MessageBeep(MB_OK);
+}

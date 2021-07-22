@@ -25,8 +25,10 @@ public:
     std::vector<std::unique_ptr<const Material>> materials;
     std::vector<std::unique_ptr<const Mesh>> meshes;
     std::vector<std::unique_ptr<const Instance>> instances;
-    std::vector<std::unique_ptr<const Light>> lights;
-    std::vector<std::unique_ptr<const SHLightField>> shLightFields;
+
+    std::vector<std::unique_ptr<Light>> lights;
+    std::vector<std::unique_ptr<SHLightField>> shLightFields;
+
     AABB aabb;
 
     void buildAABB();

@@ -6,6 +6,12 @@
 #include "Viewport.h"
 #include "Camera.h"
 
+enum BakingFactoryMode
+{
+    BAKING_FACTORY_MODE_GI,
+    BAKING_FACTORY_MODE_LIGHT_FIELD
+};
+
 class Application
 {
     GLFWwindow* window{};
@@ -19,6 +25,7 @@ class Application
 
     float elapsedTime{};
     double currentTime{};
+    float titleUpdateTime {};
 
     int width {};
     int height {};
@@ -29,24 +36,33 @@ class Application
     bool showScene { true };
     bool showViewport { true };
     bool showSettings { true };
+    bool showBakingFactory { true };
 
     bool dirty {};
 
     std::unique_ptr<Scene> scene;
     std::future<std::unique_ptr<Scene>> futureScene;
 
+    std::string stageName;
+    std::string stageDirectoryPath;
+    std::string outputDirectoryPath;
+
     PropertyBag propertyBag;
-    std::string propertyBagFilePath;
 
     float viewportResolutionInvRatio {};
     BakeParams bakeParams;
+
+    BakingFactoryMode mode {};
+
+    const Instance* selectedInstance{};
 
     static GLFWwindow* createGLFWwindow();
 
     void initializeImGui();
 
     void draw();
-    void drawFPS(float y) const;
+
+    void setTitle();
 
     void loadProperties();
     void storeProperties();

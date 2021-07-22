@@ -498,3 +498,26 @@ inline Vector2 approxEnvBRDF(float cosLo, float roughness)
     float a004 = std::min<float>(r.x() * r.x(), exp2(-9.28f * cosLo)) * r.x() + r.y();
     return Vector2(-1.04, 1.04) * a004 + Vector2(r.z(), r.w());
 }
+
+inline int nextPowerOfTwo(int value)
+{
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value++;
+
+    return value;
+}
+
+inline float getRadius(const AABB& aabb)
+{
+    float radius = 0.0f;
+
+    for (size_t j = 0; j < 8; j++)
+        radius = std::max<float>(radius, (aabb.center() - aabb.corner((AABB::CornerType)j)).norm());
+
+    return radius;
+}

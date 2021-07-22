@@ -32,31 +32,6 @@ const char* const GAME_NAMES[] =
     "Sonic Forces"
 };
 
-int nextPowerOfTwo(int value)
-{
-    value--;
-    value |= value >> 1;
-    value |= value >> 2;
-    value |= value >> 4;
-    value |= value >> 8;
-    value |= value >> 16;
-    value++;
-
-    return value;
-}
-
-void alert()
-{
-    FLASHWINFO flashInfo;
-    flashInfo.cbSize = sizeof(FLASHWINFO);
-    flashInfo.dwFlags = FLASHW_TRAY | FLASHW_TIMERNOFG;
-    flashInfo.uCount = 5;
-    flashInfo.dwTimeout = 0;
-    flashInfo.hwnd = GetConsoleWindow();
-    FlashWindowEx(&flashInfo);
-    MessageBeep(MB_OK);
-}
-
 int32_t main(int32_t argc, const char* argv[])
 {
     const auto begin = std::chrono::high_resolution_clock::now();
@@ -311,7 +286,7 @@ int32_t main(int32_t argc, const char* argv[])
         if (game == GAME_FORCES || isPbrMod)
         {
             size_t i = 0;
-            std::for_each(std::execution::par_unseq, scene->shLightFields.begin(), scene->shLightFields.end(), [&](const std::unique_ptr<const SHLightField>& shlf)
+            std::for_each(std::execution::par_unseq, scene->shLightFields.begin(), scene->shLightFields.end(), [&](const std::unique_ptr<SHLightField>& shlf)
             {
                 auto bitmap = SHLightFieldBaker::bake(raytracingContext, *shlf, bakeParams);
                 if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
