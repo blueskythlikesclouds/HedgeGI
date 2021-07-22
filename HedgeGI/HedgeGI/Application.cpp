@@ -56,8 +56,16 @@ void Application::initializeUI()
             style->IndentSpacing = 14.0f;
             style->GrabMinSize = 12.0f;
 
-            if (const int minWindowWidth = ::GetSystemMetrics(SM_CXMIN); minWindowWidth != 0)
-                style->WindowMinSize = ImVec2(static_cast<float>(minWindowWidth), 32.0f);
+            style->ChildRounding = 4.0f;
+            style->FrameRounding = 4.0f;
+            style->GrabRounding = 4.0f;
+            style->PopupRounding = 4.0f;
+            style->ScrollbarRounding = 4.0f;
+            style->TabRounding = 4.0f;
+            style->WindowRounding = 4.0f;
+
+            style->AntiAliasedFill = true;
+            style->AntiAliasedLines = true;
 
             ImVec4* colors = style->Colors;
             colors[ImGuiCol_Text] = ImVec4(0.88f, 0.88f, 0.88f, 1.00f);
@@ -135,8 +143,12 @@ void Application::draw()
 {
     ImGui::PushFont(font);
 
+    float y = 0.0f;
+
     if (ImGui::BeginMainMenuBar())
     {
+        y = ImGui::GetWindowSize().y;
+
         if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("Open Stage"))
@@ -205,6 +217,8 @@ void Application::draw()
         ImGui::EndMainMenuBar();
     }
 
+    drawFPS(y);
+
     if (futureScene.valid())
     {
         if (futureScene.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
@@ -240,11 +254,11 @@ void Application::draw()
         viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
         viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
 
+        const ImVec2 min = { contentMin.x + windowPos.x, contentMin.y + windowPos.y };
+        const ImVec2 max = { contentMax.x + windowPos.x, contentMax.y + windowPos.y };
+
         if (const Texture* texture = viewport.getTexture(); texture != nullptr)
-        {
-            ImGui::GetWindowDrawList()->AddImage((ImTextureID*)texture->id,
-                { contentMin.x + windowPos.x, contentMin.y + windowPos.y }, { contentMax.x + windowPos.x, contentMax.y + windowPos.y });
-        }
+            ImGui::GetWindowDrawList()->AddImage((ImTextureID*)texture->id, min, max);
 
         ImGui::End();
     }
@@ -337,12 +351,12 @@ void Application::draw()
     ImGui::PopFont();
 }
 
-void Application::drawFPS() const
+void Application::drawFPS(float y) const
 {
     ImGui::Begin("FPS", nullptr, ImGuiWindowFlags_Static);
-    ImGui::SetWindowPos(ImVec2(width - ImGui::GetWindowSize().x, 0));
-    ImGui::Text("FPS: %.2f", 1.0f / elapsedTime);
-    ImGui::Text("Time: %.2fms", elapsedTime * 1000);
+    ImGui::SetWindowPos({ ImGui::GetIO().DisplaySize.x - ImGui::GetWindowSize().x, y });
+    ImGui::Text("Frame Rate: %.2f fps", 1.0f / elapsedTime);
+    ImGui::Text("Frame Time: %.2f ms", elapsedTime * 1000);
     ImGui::End();
 }
 

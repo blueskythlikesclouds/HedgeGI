@@ -45,7 +45,7 @@ class Application
     void initializeUI();
 
     void draw();
-    void drawFPS() const;
+    void drawFPS(float y) const;
 
     void destroyScene();
 
