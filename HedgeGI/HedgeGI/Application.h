@@ -38,6 +38,7 @@ class Application
     PropertyBag propertyBag;
     std::string propertyBagFilePath;
 
+    float viewportResolutionInvRatio {};
     BakeParams bakeParams;
 
     static GLFWwindow* createGLFWwindow();
@@ -46,6 +47,9 @@ class Application
 
     void draw();
     void drawFPS(float y) const;
+
+    void loadProperties();
+    void storeProperties();
 
     void destroyScene();
 

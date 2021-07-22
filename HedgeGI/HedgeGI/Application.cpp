@@ -163,9 +163,7 @@ void Application::draw()
                     {
                         propertyBagFilePath = directoryPath + "/" + getFileNameWithoutExtension(directoryPath) + ".hedgegi";
                         propertyBag.load(propertyBagFilePath);
-
-                        camera.load(propertyBag);
-                        bakeParams.load(propertyBag);
+                        loadProperties();
 
                         return SceneFactory::create(directoryPath);
                     });
@@ -254,6 +252,10 @@ void Application::draw()
         viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
         viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
 
+        viewportResolutionInvRatio = std::max(viewportResolutionInvRatio, 1.0f);
+        viewportWidth = (int)((float)viewportWidth / viewportResolutionInvRatio);
+        viewportHeight = (int)((float)viewportHeight / viewportResolutionInvRatio);
+
         const ImVec2 min = { contentMin.x + windowPos.x, contentMin.y + windowPos.y };
         const ImVec2 max = { contentMax.x + windowPos.x, contentMax.y + windowPos.y };
 
@@ -267,6 +269,8 @@ void Application::draw()
     {
         const BakeParams oldBakeParams = bakeParams;
 
+        ImGui::InputFloat("Viewport Resolution", &viewportResolutionInvRatio);
+
         if (ImGui::BeginCombo("Target Engine", getTargetEngineString(bakeParams.targetEngine)))
         {
             if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE1))) bakeParams.targetEngine = TARGET_ENGINE_HE1;
@@ -277,9 +281,7 @@ void Application::draw()
 
         if (ImGui::CollapsingHeader("Environment Color"))
         {
-            ImGui::InputFloat("R", &bakeParams.environmentColor[0]);
-            ImGui::InputFloat("G", &bakeParams.environmentColor[1]);
-            ImGui::InputFloat("B", &bakeParams.environmentColor[2]);
+            ImGui::ColorEdit3("##RGB", bakeParams.environmentColor.data());
         }
 
         if (ImGui::CollapsingHeader("Light Sampling"))
@@ -355,9 +357,23 @@ void Application::drawFPS(float y) const
 {
     ImGui::Begin("FPS", nullptr, ImGuiWindowFlags_Static);
     ImGui::SetWindowPos({ ImGui::GetIO().DisplaySize.x - ImGui::GetWindowSize().x, y });
-    ImGui::Text("Frame Rate: %.2f fps", 1.0f / elapsedTime);
-    ImGui::Text("Frame Time: %.2f ms", elapsedTime * 1000);
+    ImGui::Text("%d fps", (int)round(1.0f / elapsedTime));
+    ImGui::Text("%.2f ms", elapsedTime * 1000);
     ImGui::End();
+}
+
+void Application::loadProperties()
+{
+    camera.load(propertyBag);
+    bakeParams.load(propertyBag);
+    viewportResolutionInvRatio = propertyBag.get("viewportResolutionInvRatio", 1.0f);
+}
+
+void Application::storeProperties()
+{
+    camera.store(propertyBag);
+    bakeParams.store(propertyBag);
+    propertyBag.set("viewportResolutionInvRatio", viewportResolutionInvRatio);
 }
 
 void Application::destroyScene()
@@ -366,8 +382,7 @@ void Application::destroyScene()
 
     if (!propertyBagFilePath.empty())
     {
-        camera.store(propertyBag);
-        bakeParams.store(propertyBag);
+        storeProperties();
         propertyBag.save(propertyBagFilePath);
     }
 
@@ -473,8 +488,18 @@ void Application::update()
     if (scene && showViewport)
     {
         camera.update(*this);
+
+        // Halven viewport resolution if we are moving
+        if (camera.hasChanged())
+        {
+            viewportWidth /= 2;
+            viewportHeight /= 2;
+        }
+
         viewport.update(*this);
     }
+
+    dirty = false;
 
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
     glClearColor(0.22f, 0.22f, 0.22f, 1.0f);
@@ -493,7 +518,6 @@ void Application::update()
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     input.postUpdate();
-    dirty = false;
 
     glfwSwapBuffers(window);
 }
