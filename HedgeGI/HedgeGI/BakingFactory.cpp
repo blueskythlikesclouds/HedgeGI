@@ -569,7 +569,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         pathTrace<TARGET_ENGINE_HE1, false>(raytracingContext, position, direction, sunLight, bakeParams);
 }
 
-void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, const Camera& camera, const BakeParams& bakeParams)
+void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, const Camera& camera, const BakeParams& bakeParams, size_t progress)
 {
     const Light* sunLight = nullptr;
     for (auto& light : raytracingContext.scene->lights)
@@ -601,12 +601,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
             yNormalized * tanFovy, -1)).normalized();
 
         const Color3 result = pathTrace(raytracingContext, camera.position, rayDirection, *sunLight, bakeParams, true).head<3>();
-
-        uint32_t* count = (uint32_t*)&outputColor[3];
-
-        outputColor.head<3>() *= (float)*count;
-        outputColor.head<3>() += result;
-        *count += 1;
-        outputColor.head<3>() /= (float)*count;
+        outputColor.head<3>() = (outputColor.head<3>() * progress + result) / (progress + 1);
+        outputColor.w() = 1.0f;
     });
 }

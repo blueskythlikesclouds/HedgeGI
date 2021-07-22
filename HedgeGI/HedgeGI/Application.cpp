@@ -12,7 +12,8 @@ const ImGuiWindowFlags ImGuiWindowFlags_Static =
     ImGuiWindowFlags_NoMove |
     ImGuiWindowFlags_NoCollapse |
     ImGuiWindowFlags_AlwaysAutoResize |
-    ImGuiWindowFlags_NoFocusOnAppearing;
+    ImGuiWindowFlags_NoFocusOnAppearing |
+    ImGuiWindowFlags_NoSavedSettings;
 
 GLFWwindow* Application::createGLFWwindow()
 {
@@ -20,9 +21,9 @@ GLFWwindow* Application::createGLFWwindow()
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow * window = glfwCreateWindow(800, 450, "HedgeGI", nullptr, nullptr);
+    GLFWwindow * window = glfwCreateWindow(1600, 900, "HedgeGI", nullptr, nullptr);
 
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -42,6 +43,87 @@ void Application::initializeUI()
         ImGui_ImplOpenGL3_Init();
 
         ImGuiIO& io = ImGui::GetIO();
+        {
+            // courtesy of samyuu, love ya! <3
+
+            ImGuiStyle* style = &ImGui::GetStyle();
+            style->WindowPadding = ImVec2(2.0f, 2.0f);
+            style->FrameBorderSize = 0.0f;
+            style->ItemSpacing = ImVec2(8.0f, 2.0f);
+            style->ItemInnerSpacing = ImVec2(2.0f, 4.0f);
+            style->ScrollbarSize = 14.0f;
+            style->IndentSpacing = 14.0f;
+            style->GrabMinSize = 12.0f;
+
+            if (const int minWindowWidth = ::GetSystemMetrics(SM_CXMIN); minWindowWidth != 0)
+                style->WindowMinSize = ImVec2(static_cast<float>(minWindowWidth), 32.0f);
+
+            ImVec4* colors = style->Colors;
+            colors[ImGuiCol_Text] = ImVec4(0.88f, 0.88f, 0.88f, 1.00f);
+            colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+            colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.11f, 0.11f, 1.00f);
+            colors[ImGuiCol_ChildBg] = ImVec4(0.196f, 0.196f, 0.196f, 1.00f);
+            colors[ImGuiCol_PopupBg] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+            colors[ImGuiCol_Border] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+            colors[ImGuiCol_BorderShadow] = ImVec4(0.36f, 0.36f, 0.36f, 0.21f);
+            colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+            colors[ImGuiCol_FrameBgHovered] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+            colors[ImGuiCol_FrameBgActive] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+            colors[ImGuiCol_TitleBg] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+            colors[ImGuiCol_TitleBgActive] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+            colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+            colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+            colors[ImGuiCol_ScrollbarBg] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+            colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+            colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+            colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.24f, 0.24f, 0.24f, 1.00f);
+            colors[ImGuiCol_CheckMark] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+            colors[ImGuiCol_SliderGrab] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+            colors[ImGuiCol_SliderGrabActive] = ImVec4(0.28f, 0.28f, 0.28f, 1.00f);
+            colors[ImGuiCol_Button] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+            colors[ImGuiCol_ButtonHovered] = ImVec4(0.14f, 0.14f, 0.14f, 1.00f);
+            colors[ImGuiCol_ButtonActive] = ImVec4(0.12f, 0.12f, 0.12f, 1.00f);
+            colors[ImGuiCol_Header] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+            colors[ImGuiCol_HeaderHovered] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+            colors[ImGuiCol_HeaderActive] = ImVec4(0.13f, 0.13f, 0.13f, 1.00f);
+            colors[ImGuiCol_Separator] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+            colors[ImGuiCol_SeparatorHovered] = ImVec4(0.37f, 0.37f, 0.37f, 1.00f);
+            colors[ImGuiCol_SeparatorActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+            colors[ImGuiCol_ResizeGrip] = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
+            colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+            colors[ImGuiCol_ResizeGripActive] = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+            colors[ImGuiCol_Tab] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+            colors[ImGuiCol_TabHovered] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
+            colors[ImGuiCol_TabActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+            colors[ImGuiCol_TabUnfocused] = ImVec4(0.16f, 0.16f, 0.16f, 1.00f);
+            colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+            colors[ImGuiCol_DockingPreview] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+            colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
+            colors[ImGuiCol_PlotLines] = ImVec4(0.66f, 0.66f, 0.66f, 1.00f);
+            colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.27f, 0.37f, 0.13f, 1.00f);
+            colors[ImGuiCol_PlotHistogram] = ImVec4(0.34f, 0.47f, 0.17f, 1.00f);
+            colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.41f, 0.56f, 0.20f, 0.99f);
+            colors[ImGuiCol_TextSelectedBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.27f);
+            colors[ImGuiCol_DragDropTarget] = ImVec4(0.59f, 0.59f, 0.59f, 0.98f);
+            colors[ImGuiCol_NavHighlight] = ImVec4(0.83f, 0.83f, 0.83f, 1.00f);
+            colors[ImGuiCol_NavWindowingHighlight] = ImVec4(0.83f, 0.83f, 0.83f, 1.00f);
+            colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.50f);
+            colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.05f, 0.05f, 0.05f, 0.50f);
+        }
+
+        {
+            WCHAR windowsDirectoryPath[MAX_PATH];
+            GetWindowsDirectory(windowsDirectoryPath, MAX_PATH);
+
+            ImFontConfig config{};
+            config.OversampleH = 2;
+            config.OversampleV = 2;
+
+            font = io.Fonts->AddFontFromFileTTF((wideCharToMultiByte(windowsDirectoryPath) + "\\Fonts\\segoeui.ttf").c_str(),
+                16.0f, &config, io.Fonts->GetGlyphRangesDefault());
+
+            io.Fonts->Build();
+        }
 
         imGuiIniPath = getExecutableDirectoryPath() + "/ImGui.ini";
         io.IniFilename = imGuiIniPath.c_str();
@@ -50,6 +132,8 @@ void Application::initializeUI()
 
 void Application::draw()
 {
+    ImGui::PushFont(font);
+
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
@@ -129,10 +213,10 @@ void Application::draw()
         }
 
         else
-            ImGui::OpenPopup("Loading Scene");
+            ImGui::OpenPopup("Loading");
     }
 
-    if (ImGui::BeginPopupModal("Loading Scene", nullptr, ImGuiWindowFlags_Static))
+    if (ImGui::BeginPopupModal("Loading", nullptr, ImGuiWindowFlags_Static))
     {
         ImGui::Text("Loading...");
         ImGui::EndPopup();
@@ -151,12 +235,15 @@ void Application::draw()
         const ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
         const ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
         const ImVec2 windowPos = ImGui::GetWindowPos();
-        const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 
-        viewportX = (int)(windowPos.x + contentMin.x);
-        viewportY =  (int)(displaySize.y - contentMax.y - windowPos.y);
         viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
         viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
+
+        if (const Texture* texture = viewport.getTexture(); texture != nullptr)
+        {
+            ImGui::GetWindowDrawList()->AddImage((ImTextureID*)texture->id,
+                { contentMin.x + windowPos.x, contentMin.y + windowPos.y }, { contentMax.x + windowPos.x, contentMax.y + windowPos.y });
+        }
 
         ImGui::End();
     }
@@ -245,6 +332,8 @@ void Application::draw()
 
         ImGui::End();
     }
+
+    ImGui::PopFont();
 }
 
 void Application::drawFPS() const
@@ -365,9 +454,15 @@ void Application::update()
 
     glfwGetWindowSize(window, &width, &height);
 
-    camera.update(*this);
+    // Viewport
+    if (scene && showViewport)
+    {
+        camera.update(*this);
+        viewport.update(*this);
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
+    glClearColor(0.22f, 0.22f, 0.22f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // GUI
@@ -381,20 +476,6 @@ void Application::update()
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    // Viewport
-    if (scene != nullptr && showViewport)
-    {
-        viewport.update(*this);
-
-        const FramebufferTexture& framebufferTex = viewport.getFramebufferTexture();
-
-        glViewport(0, 0, framebufferTex.width, framebufferTex.height);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebufferTex.id);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, GL_NONE);
-        glBlitFramebuffer(0, 0, framebufferTex.width, framebufferTex.height, viewportX, viewportY, viewportX + viewportWidth, viewportY + viewportHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-        glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
-    }
 
     input.postUpdate();
     dirty = false;

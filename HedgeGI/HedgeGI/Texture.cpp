@@ -4,6 +4,11 @@ Texture::Texture(GLenum target, GLint internalformat, GLsizei width, GLsizei hei
     : id(glGenTexture()), target(target), width(width), height(height)
 {
     glBindTexture(target, id);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 0);
     glTexImage2D(target, 0, internalformat, width, height, 0, format, type, nullptr);
 }
 

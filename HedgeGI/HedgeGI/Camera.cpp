@@ -29,7 +29,7 @@ void Camera::load(const PropertyBag& propertyBag)
     rotation.x() = propertyBag.get("camera.rotation.x()", 0.0f);
     rotation.y() = propertyBag.get("camera.rotation.y()", 0.0f);
     rotation.z() = propertyBag.get("camera.rotation.z()", 0.0f);
-    rotation.z() = propertyBag.get("camera.rotation.w()", 1.0f);
+    rotation.w() = propertyBag.get("camera.rotation.w()", 1.0f);
     rotation.normalize();
 }
 
@@ -53,8 +53,8 @@ void Camera::update(const Application& application)
     history.fieldOfView = fieldOfView;
 
     aspectRatio = (float)application.getViewportWidth() / (float)application.getViewportHeight();
-    setFieldOfView(PI / 4.0f);
-    
+    fieldOfView = PI / 4.0f;
+
     const Input& input = application.getInput();
     const float elapsedTime = application.getElapsedTime();
 
@@ -66,8 +66,8 @@ void Camera::update(const Application& application)
 
     if (!input.tappedMouseButtons[GLFW_MOUSE_BUTTON_RIGHT] && input.heldMouseButtons[GLFW_MOUSE_BUTTON_RIGHT])
     {
-        const float pitch = (float)(input.cursorY - input.history.cursorY) * 0.25f * -elapsedTime;
-        const float yaw = (float)(input.cursorX - input.history.cursorX) * 0.25f * -elapsedTime;
+        const float pitch = (float)(input.cursorY - input.history.cursorY) * 0.25f * elapsedTime;
+        const float yaw = (float)(input.cursorX - input.history.cursorX) * 0.25f * elapsedTime;
 
         const Eigen::AngleAxisf x(pitch, rotation * Eigen::Vector3f::UnitX());
         const Eigen::AngleAxisf y(yaw, Eigen::Vector3f::UnitY());

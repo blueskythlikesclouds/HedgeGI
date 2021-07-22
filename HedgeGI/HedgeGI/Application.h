@@ -14,6 +14,7 @@ class Application
     Viewport viewport;
     const Quad quad;
 
+    ImFont* font {};
     std::string imGuiIniPath;
 
     float elapsedTime{};
@@ -22,8 +23,6 @@ class Application
     int width {};
     int height {};
 
-    int viewportX {};
-    int viewportY {};
     int viewportWidth {};
     int viewportHeight {};
 
