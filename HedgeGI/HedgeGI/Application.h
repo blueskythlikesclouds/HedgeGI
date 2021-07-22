@@ -43,7 +43,7 @@ class Application
 
     static GLFWwindow* createGLFWwindow();
 
-    void initializeUI();
+    void initializeImGui();
 
     void draw();
     void drawFPS(float y) const;

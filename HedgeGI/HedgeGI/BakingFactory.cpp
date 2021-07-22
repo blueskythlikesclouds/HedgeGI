@@ -59,9 +59,9 @@ void BakeParams::load(const PropertyBag& propertyBag)
 {
     targetEngine = propertyBag.get("bakeParams.targetEngine", TARGET_ENGINE_HE1);
 
-    environmentColor.x() = propertyBag.get("bakeParams.environmentColor.x()", 1.0f);
-    environmentColor.y() = propertyBag.get("bakeParams.environmentColor.y()", 1.0f);
-    environmentColor.z() = propertyBag.get("bakeParams.environmentColor.z()", 1.0f);
+    environmentColor.x() = propertyBag.get("bakeParams.environmentColor.x()", 106.0f / 255.0f);
+    environmentColor.y() = propertyBag.get("bakeParams.environmentColor.y()", 113.0f / 255.0f);
+    environmentColor.z() = propertyBag.get("bakeParams.environmentColor.z()", 179.0f / 255.0f);
 
     lightBounceCount = propertyBag.get("bakeParams.lightBounceCount", 10);
     lightSampleCount = propertyBag.get("bakeParams.lightSampleCount", 32);
