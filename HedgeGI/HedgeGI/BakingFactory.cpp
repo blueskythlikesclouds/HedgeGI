@@ -597,7 +597,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const float xNormalized = (x + 0.5f + dx) / width * 2 - 1;
         const float yNormalized = (y + 0.5f + dy) / height * 2 - 1;
 
-        const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio * camera.aspectRatio,
+        const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio,
             yNormalized * tanFovy, -1)).normalized();
 
         const Color3 result = pathTrace(raytracingContext, camera.position, rayDirection, *sunLight, bakeParams, true).head<3>();
