@@ -3,6 +3,8 @@
 
 #include "Application.h"
 
+#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+
 int32_t main(int32_t argc, const char* argv[])
 {
     _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);
