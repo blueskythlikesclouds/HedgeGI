@@ -608,7 +608,7 @@ void Application::drawBakingPopupUI()
             char overlay[1024];
             if (lastBakedInstance != nullptr)
             {
-                const uint16_t resolution = propertyBag.get(lastBakedInstance->name + ".resolution", 256);
+                const uint16_t resolution = bakeParams.resolutionOverride > 0 ? bakeParams.resolutionOverride : propertyBag.get(lastBakedInstance->name + ".resolution", 256);
                 sprintf(overlay, "%s (%dx%d)", lastBakedInstance->name.c_str(), resolution, resolution);
             }
 
@@ -715,7 +715,8 @@ void Application::bakeGI()
             return;
         }
 
-        const uint16_t resolution = propertyBag.get(instance->name + ".resolution", 256);
+        const uint16_t resolution = bakeParams.resolutionOverride > 0 ? bakeParams.resolutionOverride :
+            propertyBag.get(instance->name + ".resolution", 256);
     
         if (isSg)
         {
