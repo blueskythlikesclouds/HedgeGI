@@ -129,6 +129,15 @@
     <ClCompile Include="FileDialog.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="BakeParams.cpp">
+      <Filter>Baker</Filter>
+    </ClCompile>
+    <ClCompile Include="Game.cpp">
+      <Filter>Other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -254,6 +263,15 @@
     </ClInclude>
     <ClInclude Include="FileDialog.h">
       <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="BakeParams.h">
+      <Filter>Baker</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.h">
+      <Filter>Other</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

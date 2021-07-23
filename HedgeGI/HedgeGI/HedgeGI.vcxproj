@@ -130,6 +130,7 @@
     <ClCompile Include="..\..\Dependencies\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\Dependencies\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="BakeParams.cpp" />
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="BitmapHelper.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -137,7 +138,9 @@
     <ClCompile Include="ElementArray.cpp" />
     <ClCompile Include="FileDialog.cpp" />
     <ClCompile Include="Framebuffer.cpp" />
+    <ClCompile Include="Game.cpp" />
     <ClCompile Include="Input.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="OidnDenoiserDevice.cpp" />
     <ClCompile Include="OptixDenoiserDevice.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -173,6 +176,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="BakeParams.h" />
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="BakePoint.h" />
     <ClInclude Include="BitmapHelper.h" />
@@ -181,7 +185,9 @@
     <ClInclude Include="ElementArray.h" />
     <ClInclude Include="FileDialog.h" />
     <ClInclude Include="Framebuffer.h" />
+    <ClInclude Include="Game.h" />
     <ClInclude Include="Input.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="OidnDenoiserDevice.h" />
     <ClInclude Include="OptixDenoiserDevice.h" />
     <ClInclude Include="hl_hh_light.h" />

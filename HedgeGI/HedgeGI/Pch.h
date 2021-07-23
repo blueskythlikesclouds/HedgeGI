@@ -73,8 +73,10 @@ using Quaternion = Eigen::Quaternionf;
 #undef max
 
 // HedgeGI
+#include "Logger.h"
 #include "FileStream.h"
 #include "Math.h"
 #include "Util.h"
 #include "Random.h"
 #include "RaytracingDevice.h"
+#include "Game.h"

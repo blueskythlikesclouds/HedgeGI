@@ -1,10 +1,19 @@
 ﻿#include "Application.h"
+#include "BitmapHelper.h"
 #include "Input.h"
 #include "Viewport.h"
 #include "Camera.h"
 #include "Framebuffer.h"
 #include "FileDialog.h"
+#include "GIBaker.h"
+#include "LightFieldBaker.h"
 #include "SceneFactory.h"
+#include "LightField.h"
+#include "SeamOptimizer.h"
+#include "SGGIBaker.h"
+#include "SHLightFieldBaker.h"
+
+#define TRY_CANCEL() if (cancelBake) return;
 
 const char* getBakingFactoryModeString(const BakingFactoryMode mode)
 {
@@ -41,6 +50,13 @@ GLFWwindow* Application::createGLFWwindow()
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
     return window;
+}
+
+void Application::logListener(void* owner, const char* text)
+{
+    Application* application = (Application*)owner;
+    std::lock_guard lock(application->logMutex);
+    application->logs.emplace_back(text);
 }
 
 void Application::initializeImGui()
@@ -173,39 +189,7 @@ void Application::draw()
                 const std::string directoryPath = FileDialog::openFolder(L"Open Stage");
 
                 if (!directoryPath.empty())
-                {
-                    destroyScene();
-
-                    futureScene = std::async(std::launch::async, [this, directoryPath]()
-                    {
-                        stageName = getFileNameWithoutExtension(directoryPath);
-                        stageDirectoryPath = directoryPath;
-
-                        propertyBag.load(directoryPath + "/" + stageName + ".hedgegi");
-                        loadProperties();
-
-                        return SceneFactory::create(directoryPath);
-                    });
-                }
-            }
-
-            if (ImGui::MenuItem("Open Scene"))
-            {
-                const std::string filePath = FileDialog::openFile(L"HedgeGI Scene(.scene)\0*.scene\0", L"Open HedgeGI Scene");
-
-                if (!filePath.empty())
-                {
-                    destroyScene();
-
-                    futureScene = std::async(std::launch::async, [filePath]()
-                    {
-                        std::unique_ptr<Scene> scene = std::make_unique<Scene>();
-                        scene->load(filePath);
-                        scene->createRTCScene();
-
-                        return scene;
-                    });
-                }
+                    loadScene(directoryPath);
             }
 
             if (ImGui::MenuItem("Close"))
@@ -241,10 +225,19 @@ void Application::draw()
         {
             scene = std::move(futureScene.get());
             futureScene = {};
+            ImGui::CloseCurrentPopup();
         }
-
         else
+        {
             ImGui::OpenPopup("Loading");
+        }
+    }
+    else if (futureBake.valid())
+    {
+        if (futureBake.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+            futureBake = {};
+        else
+            ImGui::OpenPopup("Baking");
     }
 
     if (ImGui::BeginPopupModal("Loading", nullptr, ImGuiWindowFlags_Static))
@@ -253,8 +246,12 @@ void Application::draw()
         ImGui::EndPopup();
     }
 
-    if (scene == nullptr)
+    drawBakingPopupUI();
+
+    if (!scene || futureScene.valid() || futureBake.valid())
     {
+        viewportVisible = false;
+
         ImGui::PopFont();
         return;
     }
@@ -293,7 +290,7 @@ void Application::drawInstancesUI()
     char search[1024] {};
 
     ImGui::SetNextItemWidth(-1);
-    const bool doSearch = ImGui::InputText("##Search", search, sizeof(search));
+    const bool doSearch = ImGui::InputText("##SearchInstances", search, sizeof(search));
 
     ImGui::SetNextItemWidth(-1);
     ImGui::BeginListBox("##Instances");
@@ -349,7 +346,7 @@ void Application::drawLightsUI()
     char search[1024] {};
 
     ImGui::SetNextItemWidth(-1);
-    const bool doSearch = ImGui::InputText("##Search", search, sizeof(search));
+    const bool doSearch = ImGui::InputText("##SearchLights", search, sizeof(search));
 
     ImGui::SetNextItemWidth(-1);
     ImGui::BeginListBox("##Lights");
@@ -373,7 +370,7 @@ void Application::drawLightsUI()
         dirty |= ImGui::InputFloat3("Color", selectedLight->color.data());
 
         if (selectedLight->type == LIGHT_TYPE_POINT)
-            dirty |= ImGui::InputFloat3("Range", selectedLight->range.data());
+            dirty |= ImGui::InputFloat4("Range", selectedLight->range.data());
         else
             selectedLight->positionOrDirection.normalize();
     }
@@ -382,7 +379,12 @@ void Application::drawLightsUI()
 void Application::drawViewportUI()
 {
     if (!showViewport || !ImGui::Begin("Viewport", &showViewport))
+    {
+        viewportVisible = false;
         return;
+    }
+
+    viewportVisible = true;
 
     const ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
     const ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
@@ -510,20 +512,26 @@ void Application::drawBakingFactoryUI()
     char outputDirPath[1024];
     strcpy(outputDirPath, outputDirectoryPath.c_str());
 
-    if (ImGui::InputText("##outputDirectoryPath", outputDirPath, sizeof(outputDirPath)))
+    if (ImGui::InputText("Output Directory", outputDirPath, sizeof(outputDirPath)))
         outputDirectoryPath = outputDirPath;
 
-    ImGui::SameLine();
     if (ImGui::Button("Browse"))
     {
         if (const std::string newOutputDirectoryPath = FileDialog::openFolder(L"Open Output Folder"); !newOutputDirectoryPath.empty())
             outputDirectoryPath = newOutputDirectoryPath;
     }
 
+    ImGui::SameLine();
+    if (ImGui::Button("Open in Explorer"))
+        std::system(("explorer \"" + outputDirectoryPath + "\"").c_str());
+
     ImGui::Separator();
     if (ImGui::Button("Bake"))
     {
-
+        futureBake = std::async(std::launch::async, [&]()
+        {
+            bake();
+        });
     }
 }
 
@@ -541,7 +549,7 @@ void Application::setTitle()
     const int fps = (int)round(1.0f / elapsedTime);
 
     if (!stageName.empty())
-        sprintf(title, "Hedge GI - %s (FPS: %d)", stageName.c_str(), fps);
+        sprintf(title, "Hedge GI - %s - %s (FPS: %d)", stageName.c_str(), GAME_NAMES[game], fps);
     else
         sprintf(title, "Hedge GI (FPS: %d)", fps);
 
@@ -554,6 +562,7 @@ void Application::loadProperties()
     bakeParams.load(propertyBag);
     viewportResolutionInvRatio = propertyBag.get("viewportResolutionInvRatio", 2.0f);
     outputDirectoryPath = propertyBag.getString("outputDirectoryPath", stageDirectoryPath + "-HedgeGI");
+    mode = propertyBag.get("mode", BAKING_FACTORY_MODE_GI);
 }
 
 void Application::storeProperties()
@@ -562,6 +571,7 @@ void Application::storeProperties()
     bakeParams.store(propertyBag);
     propertyBag.set("viewportResolutionInvRatio", viewportResolutionInvRatio);
     propertyBag.setString("outputDirectoryPath", outputDirectoryPath);
+    propertyBag.set("mode", mode);
 }
 
 void Application::destroyScene()
@@ -571,21 +581,306 @@ void Application::destroyScene()
     if (!stageDirectoryPath.empty() && !stageName.empty())
     {
         storeProperties();
-        propertyBag.save(stageDirectoryPath + "/" + stageName + ".hedgegi");
+        propertyBag.save(stageDirectoryPath + "/" + stageName + ".hgi");
     }
 
     stageDirectoryPath.clear();
     stageName.clear();
+
+    dirty = true;
+}
+
+void Application::drawBakingPopupUI()
+{
+    if (!ImGui::BeginPopupModal("Baking", nullptr, ImGuiWindowFlags_Static))
+        return;
+
+    ImGui::Text(cancelBake ? "Cancelling..." : "Baking...");
+
+    if (mode == BAKING_FACTORY_MODE_GI || bakeParams.targetEngine == TARGET_ENGINE_HE2)
+    {
+        const Instance* const lastBakedInstance = this->lastBakedInstance;
+        const SHLightField* const lastBakedShlf = this->lastBakedShlf;
+        const size_t bakeProgress = this->bakeProgress;
+
+        if (mode == BAKING_FACTORY_MODE_GI)
+        {
+            char overlay[1024];
+            if (lastBakedInstance != nullptr)
+            {
+                const uint16_t resolution = propertyBag.get(lastBakedInstance->name + ".resolution", 256);
+                sprintf(overlay, "%s (%dx%d)", lastBakedInstance->name.c_str(), resolution, resolution);
+            }
+
+            ImGui::Separator();
+            ImGui::ProgressBar(bakeProgress / ((float)scene->instances.size() + 1), { 0, 0 }, lastBakedInstance ? overlay : nullptr);
+        }
+        else if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD)
+        {
+            char overlay[1024];
+            if (lastBakedShlf != nullptr)
+                sprintf(overlay, "%s (%dx%dx%d)", lastBakedShlf->name.c_str(), lastBakedShlf->resolution.x(), lastBakedShlf->resolution.y(), lastBakedShlf->resolution.z());
+
+            ImGui::Separator();
+            ImGui::ProgressBar(bakeProgress / ((float)scene->shLightFields.size() + 1), { 0, 0 }, lastBakedShlf ? overlay : nullptr);
+        }
+    }
+    else if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD)
+    {
+        std::lock_guard lock(logMutex);
+
+        ImGui::Separator();
+        ImGui::BeginListBox("##Logs");
+
+        for (auto& log : logs)
+            ImGui::TextUnformatted(log.c_str());
+
+        ImGui::EndListBox();
+    }
+
+    ImGui::Separator();
+    if (ImGui::Button("Cancel"))
+        cancelBake = true;
+
+    ImGui::EndPopup();
+}
+
+void Application::bake()
+{
+    bakeProgress = 0;
+    lastBakedInstance = nullptr;
+    lastBakedShlf = nullptr;
+    cancelBake = false;
+
+    {
+        std::lock_guard lock(logMutex);
+        logs.clear();
+    }
+
+    std::filesystem::create_directory(outputDirectoryPath);
+
+    if (mode == BAKING_FACTORY_MODE_GI)
+        bakeGI();
+
+    else if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD)
+        bakeLightField();
+
+    alert();
+}
+
+void Application::bakeGI()
+{
+    std::for_each(std::execution::par_unseq, scene->instances.begin(), scene->instances.end(), [&](const std::unique_ptr<const Instance>& instance)
+    {
+        TRY_CANCEL()
+
+        bool skip = instance->name.find("_NoGI") != std::string::npos || instance->name.find("_noGI") != std::string::npos;
+    
+        const bool isSg = !skip && bakeParams.targetEngine == TARGET_ENGINE_HE2 && propertyBag.get(instance->name + ".isSg", false);
+    
+        std::string lightMapFileName;
+        std::string shadowMapFileName;
+    
+        if (!skip)
+        {
+            if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+            {
+                lightMapFileName = isSg ? instance->name + "_sg.dds" : instance->name + ".dds";
+                shadowMapFileName = instance->name + "_occlusion.dds";
+            }
+            else if (game == GAME_LOST_WORLD)
+            {
+                lightMapFileName = instance->name + ".dds";
+            }
+            else
+            {
+                lightMapFileName = instance->name + "_lightmap.png";
+                shadowMapFileName = instance->name + "_shadowmap.png";
+            }
+        }
+    
+        lightMapFileName = outputDirectoryPath + "/" + lightMapFileName;
+        skip |= std::filesystem::exists(lightMapFileName);
+    
+        if (!shadowMapFileName.empty())
+        {
+            shadowMapFileName = outputDirectoryPath + "/" + shadowMapFileName;
+            skip |= std::filesystem::exists(shadowMapFileName);
+        }
+    
+        if (skip)
+        {
+            ++bakeProgress;
+            lastBakedInstance = instance.get();
+            return;
+        }
+
+        const uint16_t resolution = propertyBag.get(instance->name + ".resolution", 256);
+    
+        if (isSg)
+        {
+            GIPair pair;
+            {
+                const std::lock_guard<std::mutex> lock = BakingFactory::lock();
+                {
+                    ++bakeProgress;
+                    lastBakedInstance = instance.get();
+                }
+
+                TRY_CANCEL()
+
+                pair = SGGIBaker::bake(scene->getRaytracingContext(), *instance, resolution, bakeParams);
+            }
+
+            TRY_CANCEL()
+    
+            // Dilate
+            pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
+            pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
+
+            TRY_CANCEL()
+
+            // Denoise
+            if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+            {
+                pair.lightMap = BitmapHelper::denoise(*pair.lightMap, bakeParams.denoiserType);
+    
+                if (bakeParams.denoiseShadowMap)
+                    pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap, bakeParams.denoiserType);
+            }
+
+            TRY_CANCEL()
+    
+            if (bakeParams.optimizeSeams)
+            {
+                const SeamOptimizer seamOptimizer(*instance);
+                pair.lightMap = seamOptimizer.optimize(*pair.lightMap);
+                pair.shadowMap = seamOptimizer.optimize(*pair.shadowMap);
+            }
+
+            TRY_CANCEL()
+    
+            pair.lightMap->save(lightMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT);
+            pair.shadowMap->save(shadowMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT);
+        }
+        else
+        {
+            GIPair pair;
+            {
+                const std::lock_guard<std::mutex> lock = BakingFactory::lock();
+                {
+                    ++bakeProgress;
+                    lastBakedInstance = instance.get();
+                }
+
+                TRY_CANCEL()
+
+                pair = GIBaker::bake(scene->getRaytracingContext(), *instance, resolution, bakeParams);
+            }
+
+            TRY_CANCEL()
+    
+            // Dilate
+            pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
+            pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
+
+            TRY_CANCEL()
+
+            // Combine
+            auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
+
+            TRY_CANCEL()
+
+            // Denoise
+            if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+                combined = BitmapHelper::denoise(*combined, bakeParams.denoiserType, bakeParams.denoiseShadowMap);
+
+            TRY_CANCEL()
+
+            // Optimize seams
+            if (bakeParams.optimizeSeams)
+                combined = BitmapHelper::optimizeSeams(*combined, *instance);
+
+            TRY_CANCEL()
+
+            // Make ready for encoding
+            if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+                combined = BitmapHelper::makeEncodeReady(*combined, ENCODE_READY_FLAGS_SQRT);
+
+            TRY_CANCEL()
+
+            if (game == GAME_GENERATIONS && bakeParams.targetEngine == TARGET_ENGINE_HE1)
+            {
+                combined->save(lightMapFileName, Bitmap::transformToLightMap);
+                combined->save(shadowMapFileName, Bitmap::transformToShadowMap);
+            }
+            else if (game == GAME_LOST_WORLD)
+            {
+                combined->save(lightMapFileName, DXGI_FORMAT_BC3_UNORM);
+            }
+            else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+            {
+                combined->save(lightMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
+                combined->save(shadowMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
+            }
+        }
+    });
+
+    ++bakeProgress;
+    lastBakedInstance = nullptr;
+}
+
+void Application::bakeLightField()
+{
+    if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+    {
+        std::for_each(std::execution::par_unseq, scene->shLightFields.begin(), scene->shLightFields.end(), [&](const std::unique_ptr<SHLightField>& shlf)
+        {            
+            ++bakeProgress;
+            lastBakedShlf = shlf.get();
+
+            TRY_CANCEL()
+
+            auto bitmap = SHLightFieldBaker::bake(scene->getRaytracingContext(), *shlf, bakeParams);
+
+            TRY_CANCEL()
+
+            if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+                bitmap = BitmapHelper::denoise(*bitmap, bakeParams.denoiserType);
+
+            TRY_CANCEL()
+
+            bitmap->save(outputDirectoryPath + "/" + shlf->name + ".dds", DXGI_FORMAT_R16G16B16A16_FLOAT);
+        });
+
+        ++bakeProgress;
+        lastBakedShlf = nullptr;
+    }
+
+    else if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+    {
+        TRY_CANCEL()
+
+        std::unique_ptr<LightField> lightField = LightFieldBaker::bake(scene->getRaytracingContext(), bakeParams);
+
+        Logger::log("Saving...\n");
+
+        TRY_CANCEL()
+
+        lightField->save(outputDirectoryPath + "/light-field.lft");
+    }
 }
 
 Application::Application()
     : window(createGLFWwindow()), input(window), bakeParams(TARGET_ENGINE_HE1)
 {
+    Logger::addListener(this, logListener);
     initializeImGui();
 }
 
 Application::~Application()
 {
+    Logger::removeListener(this);
     ImGui_ImplGlfw_Shutdown();
     glfwTerminate();
     ImGui_ImplOpenGL3_Shutdown();
@@ -631,6 +926,23 @@ bool Application::isDirty() const
     return dirty;
 }
 
+void Application::loadScene(const std::string& directoryPath)
+{
+    destroyScene();
+
+    futureScene = std::async(std::launch::async, [this, directoryPath]()
+    {
+        stageName = getFileNameWithoutExtension(directoryPath);
+        stageDirectoryPath = directoryPath;
+        game = detectGameFromStageDirectory(stageDirectoryPath);
+
+        propertyBag.load(directoryPath + "/" + stageName + ".hgi");
+        loadProperties();
+
+        return SceneFactory::create(directoryPath);
+    });
+}
+
 const RaytracingContext Application::getRaytracingContext() const
 {
     return scene->getRaytracingContext();
@@ -666,6 +978,12 @@ void Application::update()
 {
     glfwPollEvents();
 
+    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        return;
+    }
+
     const double glfwTime = glfwGetTime();
     elapsedTime = (float)(glfwTime - currentTime);
     currentTime = glfwTime;
@@ -673,7 +991,7 @@ void Application::update()
     glfwGetWindowSize(window, &width, &height);
 
     // Viewport
-    if (scene && showViewport)
+    if (viewportVisible && scene && showViewport)
     {
         if (viewportFocused)
             camera.update(*this);
@@ -686,9 +1004,9 @@ void Application::update()
         }
 
         viewport.update(*this);
-    }
 
-    dirty = false;
+        dirty = false;
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
     glClearColor(0.22f, 0.22f, 0.22f, 1.0f);
@@ -698,10 +1016,9 @@ void Application::update()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    {
-        draw();
-        //drawFPS();
-    }
+
+    draw();
+
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

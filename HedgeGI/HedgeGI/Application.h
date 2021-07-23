@@ -20,6 +20,9 @@ class Application
     Viewport viewport;
     const Quad quad;
 
+    std::vector<std::string> logs;
+    std::mutex logMutex;
+
     ImFont* font {};
     std::string imGuiIniPath;
 
@@ -33,6 +36,7 @@ class Application
     int viewportWidth {};
     int viewportHeight {};
     bool viewportFocused {};
+    bool viewportVisible {};
 
     bool showScene { true };
     bool showViewport { true };
@@ -42,8 +46,11 @@ class Application
 
     std::string stageName;
     std::string stageDirectoryPath;
+    Game game {};
     PropertyBag propertyBag;
     std::unique_ptr<Scene> scene;
+
+    std::atomic<bool> loadingScene {};
     std::future<std::unique_ptr<Scene>> futureScene;
 
     const Instance* selectedInstance {};
@@ -55,7 +62,14 @@ class Application
     BakingFactoryMode mode {};
     std::string outputDirectoryPath;
 
+    std::future<void> futureBake;
+    std::atomic<size_t> bakeProgress {};
+    std::atomic<const Instance*> lastBakedInstance {};
+    std::atomic<const SHLightField*> lastBakedShlf {};
+    std::atomic<bool> cancelBake {};
+
     static GLFWwindow* createGLFWwindow();
+    static void logListener(void* owner, const char* text);
 
     void initializeImGui();
     void initializeStyle();
@@ -74,6 +88,11 @@ class Application
     void storeProperties();
     void destroyScene();
 
+    void drawBakingPopupUI();
+    void bake();
+    void bakeGI();
+    void bakeLightField();
+
 public:
     Application();
     ~Application();
@@ -89,6 +108,8 @@ public:
     int getViewportHeight() const;
 
     bool isDirty() const;
+
+    void loadScene(const std::string& directoryPath);
 
     PropertyBag& getPropertyBag();
     const RaytracingContext getRaytracingContext() const;
