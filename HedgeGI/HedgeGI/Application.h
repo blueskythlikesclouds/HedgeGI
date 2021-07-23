@@ -14,6 +14,8 @@ enum BakingFactoryMode
 
 class Application
 {
+    static std::string TEMP_FILE_PATH;
+
     GLFWwindow* window{};
     Input input;
     Camera camera;
@@ -46,6 +48,7 @@ class Application
 
     std::string stageName;
     std::string stageDirectoryPath;
+    std::list<std::string> recentStages;
     Game game {};
     PropertyBag propertyBag;
     std::unique_ptr<Scene> scene;
@@ -87,6 +90,10 @@ class Application
     void loadProperties();
     void storeProperties();
     void destroyScene();
+
+    void addRecentStage(const std::string& path);
+    void loadRecentStages();
+    void saveRecentStages() const;
 
     void drawBakingPopupUI();
     void bake();

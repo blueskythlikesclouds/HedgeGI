@@ -13,6 +13,8 @@
 #include "SGGIBaker.h"
 #include "SHLightFieldBaker.h"
 
+#include <fstream>
+
 #define TRY_CANCEL() if (cancelBake) return;
 
 const char* getBakingFactoryModeString(const BakingFactoryMode mode)
@@ -34,6 +36,14 @@ const ImGuiWindowFlags ImGuiWindowFlags_Static =
     ImGuiWindowFlags_NoFocusOnAppearing |
     ImGuiWindowFlags_NoSavedSettings |
     ImGuiWindowFlags_NoDocking;
+
+std::string Application::TEMP_FILE_PATH = []()
+{
+    WCHAR path[MAX_PATH];
+    GetTempPathW(MAX_PATH, path);
+
+    return wideCharToMultiByte(path) + "/HedgeGI.txt";
+}();
 
 GLFWwindow* Application::createGLFWwindow()
 {
@@ -190,6 +200,16 @@ void Application::draw()
 
                 if (!directoryPath.empty())
                     loadScene(directoryPath);
+            }
+
+            if (ImGui::BeginMenu("Recent Stages"))
+            {
+                for (auto& directoryPath : recentStages)
+                {
+                    if (ImGui::MenuItem(directoryPath.c_str()))
+                        loadScene(directoryPath);
+                }
+                ImGui::EndMenu();
             }
 
             if (ImGui::MenuItem("Close"))
@@ -563,6 +583,9 @@ void Application::loadProperties()
     viewportResolutionInvRatio = propertyBag.get("viewportResolutionInvRatio", 2.0f);
     outputDirectoryPath = propertyBag.getString("outputDirectoryPath", stageDirectoryPath + "-HedgeGI");
     mode = propertyBag.get("mode", BAKING_FACTORY_MODE_GI);
+
+    if (game == GAME_FORCES)
+        bakeParams.targetEngine = TARGET_ENGINE_HE2;
 }
 
 void Application::storeProperties()
@@ -588,6 +611,40 @@ void Application::destroyScene()
     stageName.clear();
 
     dirty = true;
+}
+
+void Application::addRecentStage(const std::string& path)
+{
+    recentStages.remove(path);
+
+    if (recentStages.size() >= 10)
+        recentStages.pop_back();
+
+    recentStages.push_front(path);
+}
+
+void Application::loadRecentStages()
+{
+    std::ifstream file(TEMP_FILE_PATH, std::ios::in);
+    if (!file.is_open())
+        return;
+
+    std::string path;
+    while (std::getline(file, path))
+    {
+        if (std::filesystem::exists(path))
+            recentStages.push_back(path);
+    }
+}   
+
+void Application::saveRecentStages() const
+{
+    std::ofstream file(TEMP_FILE_PATH, std::ios::out);
+    if (!file.is_open())
+        return;
+
+    for (auto& path : recentStages)
+        file << path << std::endl; 
 }
 
 void Application::drawBakingPopupUI()
@@ -877,6 +934,7 @@ Application::Application()
 {
     Logger::addListener(this, logListener);
     initializeImGui();
+    loadRecentStages();
 }
 
 Application::~Application()
@@ -885,6 +943,7 @@ Application::~Application()
     ImGui_ImplGlfw_Shutdown();
     glfwTerminate();
     ImGui_ImplOpenGL3_Shutdown();
+    saveRecentStages();
 }
 
 const Input& Application::getInput() const
@@ -935,6 +994,7 @@ void Application::loadScene(const std::string& directoryPath)
     {
         stageName = getFileNameWithoutExtension(directoryPath);
         stageDirectoryPath = directoryPath;
+        addRecentStage(directoryPath);
         game = detectGameFromStageDirectory(stageDirectoryPath);
 
         propertyBag.load(directoryPath + "/" + stageName + ".hgi");
