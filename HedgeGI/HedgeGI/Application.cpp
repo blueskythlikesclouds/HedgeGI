@@ -540,8 +540,17 @@ void Application::drawBakingFactoryUI()
 
     if (ImGui::BeginCombo("Engine", getTargetEngineString(bakeParams.targetEngine)))
     {
-        if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE1))) bakeParams.targetEngine = TARGET_ENGINE_HE1;
-        if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE2))) bakeParams.targetEngine = TARGET_ENGINE_HE2;
+        if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE1)))
+        {
+            bakeParams.targetEngine = TARGET_ENGINE_HE1;
+            dirty = true;
+        }
+
+        if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE2)))
+        {
+            bakeParams.targetEngine = TARGET_ENGINE_HE2;
+            dirty = true;
+        }
 
         ImGui::EndCombo();
     }
@@ -583,7 +592,10 @@ void Application::drawBakingFactoryUI()
 
     ImGui::SameLine();
     if (ImGui::Button("Open in Explorer"))
+    {
+        std::filesystem::create_directory(outputDirectoryPath);
         std::system(("explorer \"" + outputDirectoryPath + "\"").c_str());
+    }
 
     ImGui::Separator();
     if (ImGui::Button("Bake"))
