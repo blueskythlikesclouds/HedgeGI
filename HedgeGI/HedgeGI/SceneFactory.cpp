@@ -654,7 +654,16 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
             tgFile.write(data.get(), entry->dataSize);
         }
 
-        std::system("expand temp.cab temp.ar > nul");
+        STARTUPINFO startupInfo = { sizeof(STARTUPINFO) };
+        PROCESS_INFORMATION processInformation = {};
+
+        TCHAR args[] = TEXT("expand temp.cab temp.ar");
+        if (!CreateProcess(nullptr, args, nullptr, nullptr, false, CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, &processInformation))
+            continue;
+
+        WaitForSingleObject(processInformation.hProcess, INFINITE);
+        CloseHandle(processInformation.hProcess);
+        CloseHandle(processInformation.hThread);
 
         HlArchive* tgArchive = nullptr;
         hlHHArchiveLoad(HL_NTEXT("temp.ar"), false, nullptr, &tgArchive);
@@ -666,8 +675,8 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
 
     hlArchiveFree(resArchive);
 
-    std::system("del temp.cab");
-    std::system("del temp.ar");
+    std::filesystem::remove("temp.cab");
+    std::filesystem::remove("temp.ar");
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();
