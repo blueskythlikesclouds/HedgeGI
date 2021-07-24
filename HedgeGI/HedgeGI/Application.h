@@ -48,6 +48,9 @@ class Application
     bool showBakingFactory { true };
     bool dirty {};
 
+    bool openLoadingPopup {};
+    bool openBakingPopup {};
+
     std::string stageName;
     std::string stageDirectoryPath;
     std::list<std::string> recentStages;
@@ -82,6 +85,7 @@ class Application
     void initializeDocks();
 
     void draw();
+    void drawLoadingPopupUI();
     void drawSceneUI();
     void drawInstancesUI();
     void drawLightsUI();

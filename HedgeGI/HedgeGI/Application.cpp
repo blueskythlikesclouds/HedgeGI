@@ -216,13 +216,11 @@ void Application::initializeDocks()
 
 void Application::draw()
 {
-    ImGui::PushFont(font);
-
-    float y = 0.0f;
+    float dockSpaceY = 0.0f;
 
     if (ImGui::BeginMainMenuBar())
     {
-        y = ImGui::GetWindowSize().y;
+        dockSpaceY = ImGui::GetWindowSize().y;
 
         if (ImGui::BeginMenu("File"))
         {
@@ -271,45 +269,26 @@ void Application::draw()
         ImGui::EndMainMenuBar();
     }
 
-    if (futureScene.valid())
+    if (futureScene.valid() && futureScene.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
     {
-        if (futureScene.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-        {
-            scene = std::move(futureScene.get());
-            futureScene = {};
-            ImGui::CloseCurrentPopup();
-        }
-        else
-        {
-            ImGui::OpenPopup("Loading");
-        }
-    }
-    else if (futureBake.valid())
-    {
-        if (futureBake.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-            futureBake = {};
-        else
-            ImGui::OpenPopup("Baking");
+        scene = std::move(futureScene.get());
+        futureScene = {};
     }
 
-    if (ImGui::BeginPopupModal("Loading", nullptr, ImGuiWindowFlags_Static))
-    {
-        ImGui::Text("Loading...");
-        ImGui::EndPopup();
-    }
+    else if (futureBake.valid() && futureBake.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        futureBake = {};
 
+    drawLoadingPopupUI();
     drawBakingPopupUI();
 
     if (!scene || futureScene.valid() || futureBake.valid())
     {
         viewportVisible = false;
-
-        ImGui::PopFont();
         return;
     }
 
-    ImGui::SetNextWindowPos({0, y});
-    ImGui::SetNextWindowSize({(float)width, (float)height - y});
+    ImGui::SetNextWindowPos({ 0, dockSpaceY });
+    ImGui::SetNextWindowSize({ (float)width, (float)height - dockSpaceY });
     ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_Static);
 
     if (!docksInitialized)
@@ -319,21 +298,34 @@ void Application::draw()
     }
 
     ImGui::DockSpace(ImGui::GetID("MyDockSpace"));
-
-    drawSceneUI();
-    drawViewportUI();
-    drawSettingsUI();
-    drawBakingFactoryUI();
-
+    {
+        drawSceneUI();
+        drawViewportUI();
+        drawSettingsUI();
+        drawBakingFactoryUI();
+    }
     ImGui::End();
+}
 
-    ImGui::PopFont();
+void Application::drawLoadingPopupUI()
+{
+    if (openLoadingPopup)
+        ImGui::OpenPopup("Loading");
+
+    if (!ImGui::BeginPopupModal("Loading", nullptr, ImGuiWindowFlags_Static))
+        return;
+
+    ImGui::Text("Loading...");
+    ImGui::EndPopup();
 }
 
 void Application::drawSceneUI()
 {
-    if (!showScene || !ImGui::Begin("Scene", &showScene))
+    if (!showScene)
         return;
+
+    if (!ImGui::Begin("Scene", &showScene))
+        return ImGui::End();
 
     drawInstancesUI();
     drawLightsUI();
@@ -437,11 +429,14 @@ void Application::drawLightsUI()
 
 void Application::drawViewportUI()
 {
-    if (!showViewport || !ImGui::Begin("Viewport", &showViewport))
+    if (!showViewport)
     {
         viewportVisible = false;
         return;
     }
+
+    if (!ImGui::Begin("Viewport", &showViewport))
+        return ImGui::End();
 
     viewportVisible = true;
 
@@ -471,8 +466,11 @@ void Application::drawViewportUI()
 
 void Application::drawSettingsUI()
 {
-    if (!showSettings || !ImGui::Begin("Settings", &showSettings))
+    if (!showSettings)
         return;
+
+    if (!ImGui::Begin("Settings", &showSettings))
+        return ImGui::End();
 
     const BakeParams oldBakeParams = bakeParams;
 
@@ -526,8 +524,11 @@ void Application::drawSettingsUI()
 
 void Application::drawBakingFactoryUI()
 {
-    if (!showBakingFactory || !ImGui::Begin("Baking Factory", &showBakingFactory))
+    if (!showBakingFactory)
         return;
+
+    if (!ImGui::Begin("Baking Factory", &showBakingFactory))
+        return ImGui::End();
 
     if (ImGui::BeginCombo("Mode", getBakingFactoryModeString(mode)))
     {
@@ -592,6 +593,8 @@ void Application::drawBakingFactoryUI()
             bake();
         });
     }
+
+    ImGui::End();
 }
 
 void Application::setTitle()
@@ -688,6 +691,9 @@ void Application::saveRecentStages() const
 
 void Application::drawBakingPopupUI()
 {
+    if (openBakingPopup)
+        ImGui::OpenPopup("Baking");
+
     if (!ImGui::BeginPopupModal("Baking", nullptr, ImGuiWindowFlags_Static))
         return;
 
@@ -743,6 +749,7 @@ void Application::drawBakingPopupUI()
 
 void Application::bake()
 {
+    openBakingPopup = true;
     bakeProgress = 0;
     lastBakedInstance = nullptr;
     lastBakedShlf = nullptr;
@@ -762,6 +769,7 @@ void Application::bake()
         bakeLightField();
 
     alert();
+    openBakingPopup = false;
 }
 
 void Application::bakeGI()
@@ -1029,6 +1037,8 @@ void Application::loadScene(const std::string& directoryPath)
 {
     destroyScene();
 
+    openLoadingPopup = true;
+
     futureScene = std::async(std::launch::async, [this, directoryPath]()
     {
         stageName = getFileNameWithoutExtension(directoryPath);
@@ -1039,7 +1049,10 @@ void Application::loadScene(const std::string& directoryPath)
         propertyBag.load(directoryPath + "/" + stageName + ".hgi");
         loadProperties();
 
-        return SceneFactory::create(directoryPath);
+        std::unique_ptr<Scene> scene = SceneFactory::create(directoryPath);
+
+        openLoadingPopup = false;
+        return scene;
     });
 }
 
@@ -1116,9 +1129,11 @@ void Application::update()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    draw();
-
+    ImGui::PushFont(font);
+    {
+        draw();
+    }
+    ImGui::PopFont();
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
