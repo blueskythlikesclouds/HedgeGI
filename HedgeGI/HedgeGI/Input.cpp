@@ -4,7 +4,7 @@ void Input::keyCallback(GLFWwindow* window, int key, int scanCode, int action, i
 {
     Input* input = (Input*)glfwGetWindowUserPointer(window);
 
-    if (action != GLFW_PRESS && action != GLFW_RELEASE)
+    if (key < 0 || key > GLFW_KEY_LAST || (action != GLFW_PRESS && action != GLFW_RELEASE))
         return;
 
     input->heldKeys[key] = action == GLFW_PRESS;
@@ -15,7 +15,7 @@ void Input::mouseButtonCallback(GLFWwindow* window, int button, int action, int 
 {
     Input* input = (Input*)glfwGetWindowUserPointer(window);
 
-    if (action != GLFW_PRESS && action != GLFW_RELEASE)
+    if (button < 0 || button > GLFW_MOUSE_BUTTON_LAST || (action != GLFW_PRESS && action != GLFW_RELEASE))
         return;
 
     input->heldMouseButtons[button] = action == GLFW_PRESS;
