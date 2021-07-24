@@ -15,6 +15,11 @@
 
 #include <fstream>
 
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_glfw.h>
+
 #define TRY_CANCEL() if (cancelBake) return;
 
 const char* getBakingFactoryModeString(const BakingFactoryMode mode)
@@ -182,6 +187,33 @@ void Application::initializeFonts()
     io.Fonts->Build();
 }
 
+void Application::initializeDocks()
+{
+    const ImGuiID dockSpaceId = ImGui::GetID("MyDockSpace");
+    if (ImGui::DockBuilderGetNode(dockSpaceId))
+        return;
+
+    ImGui::DockBuilderRemoveNode(dockSpaceId);
+    ImGui::DockBuilderAddNode(dockSpaceId);
+
+    ImGuiID mainId = dockSpaceId;
+    ImGuiID topLeftId;
+    ImGuiID bottomLeftId;
+    ImGuiID centerId;
+    ImGuiID rightId;
+
+    ImGui::DockBuilderSplitNode(mainId, ImGuiDir_Left, 0.21f, &topLeftId, &centerId);
+    ImGui::DockBuilderSplitNode(centerId, ImGuiDir_Right, 0.3f, &rightId, &centerId);
+    ImGui::DockBuilderSplitNode(topLeftId, ImGuiDir_Up, 0.5f, &topLeftId, &bottomLeftId);
+
+    ImGui::DockBuilderDockWindow("Scene", topLeftId);
+    ImGui::DockBuilderDockWindow("Baking Factory", bottomLeftId);
+    ImGui::DockBuilderDockWindow("Viewport", centerId);
+    ImGui::DockBuilderDockWindow("Settings", rightId);
+
+    ImGui::DockBuilderFinish(dockSpaceId);
+}
+
 void Application::draw()
 {
     ImGui::PushFont(font);
@@ -279,6 +311,13 @@ void Application::draw()
     ImGui::SetNextWindowPos({0, y});
     ImGui::SetNextWindowSize({(float)width, (float)height - y});
     ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_Static);
+
+    if (!docksInitialized)
+    {
+        initializeDocks();
+        docksInitialized = true;
+    }
+
     ImGui::DockSpace(ImGui::GetID("MyDockSpace"));
 
     drawSceneUI();

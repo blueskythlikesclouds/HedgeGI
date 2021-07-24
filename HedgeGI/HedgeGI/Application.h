@@ -25,8 +25,10 @@ class Application
     std::vector<std::string> logs;
     std::mutex logMutex;
 
-    ImFont* font {};
+    struct ImFont* font {};
     std::string imGuiIniPath;
+
+    bool docksInitialized {};
 
     float elapsedTime{};
     double currentTime{};
@@ -77,6 +79,7 @@ class Application
     void initializeImGui();
     void initializeStyle();
     void initializeFonts();
+    void initializeDocks();
 
     void draw();
     void drawSceneUI();
