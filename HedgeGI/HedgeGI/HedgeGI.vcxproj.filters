@@ -135,6 +135,12 @@
     <ClCompile Include="Game.cpp">
       <Filter>Other</Filter>
     </ClCompile>
+    <ClCompile Include="SceneEffect.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\tinyxml2\tinyxml2.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -270,6 +276,15 @@
     <ClInclude Include="resource.h">
       <Filter>Resources</Filter>
     </ClInclude>
+    <ClInclude Include="SceneEffect.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="FxSceneData.h">
+      <Filter>HedgehogEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="NeedleFxSceneData.h">
+      <Filter>HedgehogEngine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scene">
@@ -329,6 +344,9 @@
     <Filter Include="Rendering\Primitives">
       <UniqueIdentifier>{ba7fca39-4b78-4ff6-a289-733dd22d8abb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources\Shaders\ToneMap">
+      <UniqueIdentifier>{98a68785-cfcd-4b1d-beb5-3529e1b778ee}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="HedgeGI.rc">
@@ -336,17 +354,17 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ToneMap.vert.glsl">
-      <Filter>Resources\Shaders</Filter>
-    </None>
     <None Include="CopyTexture.frag.glsl">
-      <Filter>Resources\Shaders</Filter>
+      <Filter>Resources\Shaders\ToneMap</Filter>
     </None>
     <None Include="CopyTexture.vert.glsl">
-      <Filter>Resources\Shaders</Filter>
+      <Filter>Resources\Shaders\ToneMap</Filter>
     </None>
     <None Include="ToneMap.frag.glsl">
-      <Filter>Resources\Shaders</Filter>
+      <Filter>Resources\Shaders\ToneMap</Filter>
+    </None>
+    <None Include="ToneMap.vert.glsl">
+      <Filter>Resources\Shaders\ToneMap</Filter>
     </None>
   </ItemGroup>
 </Project>

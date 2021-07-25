@@ -5,7 +5,7 @@
 #include "Light.h"
 #include "Material.h"
 #include "Mesh.h"
-#include "PropertyBag.h"
+#include "SceneEffect.h"
 #include "SHLightField.h"
 
 struct RaytracingContext
@@ -30,6 +30,8 @@ public:
     std::vector<std::unique_ptr<SHLightField>> shLightFields;
 
     AABB aabb;
+
+    SceneEffect sceneEffect {};
 
     void buildAABB();
 

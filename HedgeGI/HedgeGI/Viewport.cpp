@@ -7,7 +7,7 @@
 
 void Viewport::initialize()
 {
-    avgLuminanceFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_RGBA32F, 256, 256, GL_RGBA, GL_FLOAT);
+    avgLuminanceFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_R32F, 256, 256, GL_RED, GL_FLOAT);
     avgLuminanceFramebufferTex->bind();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 8);
 }
@@ -54,8 +54,11 @@ void Viewport::pathTrace(const Application& application)
 
 void Viewport::copy(const Application& application) const
 {
+    const SceneEffect& sceneEffect = application.getSceneEffect();
+
     copyTexShader.use();
     copyTexShader.set("uRect", Vector4(0, 1 - normalizedHeight, normalizedWidth, normalizedHeight));
+    copyTexShader.set("uLumMinMax", Vector2(sceneEffect.hdr.lumMin, sceneEffect.hdr.lumMax));
     copyTexShader.set("uTexture", 0);
 
     avgLuminanceFramebufferTex->bind();
@@ -71,9 +74,11 @@ void Viewport::toneMap(const Application& application) const
 {
     const size_t viewportWidth = application.getViewportWidth();
     const size_t viewportHeight = application.getViewportHeight();
+    const float middleGray = application.getSceneEffect().hdr.middleGray;
 
     toneMapShader.use();
     toneMapShader.set("uRect", Vector4(0, 1 - normalizedHeight, normalizedWidth, normalizedHeight));
+    toneMapShader.set("uMiddleGray", application.getGame() == Game::Forces ? middleGray * 0.5f : middleGray);
     toneMapShader.set("uTexture", 0);
     toneMapShader.set("uAvgLuminanceTex", 1);
     toneMapShader.set("uApplyGamma", application.getBakeParams().targetEngine == TargetEngine::HE2);

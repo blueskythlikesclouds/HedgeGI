@@ -598,12 +598,58 @@ void SceneFactory::loadTerrain(HlArchive* archive, Scene& scene)
     }
 }
 
+void SceneFactory::loadSceneEffect(HlArchive* archive, Scene& scene, const std::string& stageName)
+{
+    HlNChar hhdName[0x100];
+    hlStrConvUTF8ToNativeNoAlloc((stageName + ".hhd").c_str(), hhdName, 0, 0x100);
+
+    HlNChar rflName[0x100];
+    hlStrConvUTF8ToNativeNoAlloc((stageName + ".rfl").c_str(), rflName, 0, 0x100);
+
+    for (size_t i = 0; i < archive->entries.count; i++)
+    {
+        HlArchiveEntry* entry = &archive->entries.data[i];
+
+        if (hlNStrsEqual(entry->path, HL_NTEXT("SceneEffect.prm.xml")))
+        {
+            tinyxml2::XMLDocument doc;
+
+            if (doc.Parse((const char*)entry->data, entry->size) == tinyxml2::XML_SUCCESS)
+                scene.sceneEffect.load(doc);
+
+            break;
+        }
+
+        if (hlNStrsEqual(entry->path, hhdName))
+        {
+            hlBINAFix((void*)entry->data, entry->size);
+
+            if (const auto data = (sonic2013::FxSceneData*)hlBINAGetData((void*)entry->data); data)
+                scene.sceneEffect.load(*data);
+
+            break;
+        }
+
+        if (hlNStrsEqual(entry->path, rflName))
+        {
+            hlBINAFix((void*)entry->data, entry->size);
+
+            if (const auto data = (wars::NeedleFxSceneData*)hlBINAGetData((void*)entry->data); data)
+                scene.sceneEffect.load(*data);
+
+            break;
+        }
+    }
+}
+
 std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& directoryPath)
 {
+    const std::string stageName = getFileNameWithoutExtension(directoryPath);
+
     std::unique_ptr<Scene> scene = std::make_unique<Scene>();
 
     HlNChar filePath[MAX_PATH];
-    hlStrConvUTF8ToNativeNoAlloc((directoryPath + "/" + getFileNameWithoutExtension(directoryPath) + ".ar.00").c_str(), filePath, 0, MAX_PATH);
+    hlStrConvUTF8ToNativeNoAlloc((directoryPath + "/" + stageName + ".ar.00").c_str(), filePath, 0, MAX_PATH);
 
     HlArchive* resArchive = nullptr;
     hlHHArchiveLoad(filePath, true, nullptr, &resArchive);
@@ -680,6 +726,20 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();
+
+    HlNChar arFilePath[MAX_PATH];
+    hlStrConvUTF8ToNativeNoAlloc((directoryPath + "/../../#" + stageName + ".ar.00").c_str(), arFilePath, 0, MAX_PATH);
+
+    if (hlPathExists(arFilePath))
+    {
+        HlArchive* archive = nullptr;
+        hlHHArchiveLoad(arFilePath, true, nullptr, &archive);
+
+        loadSceneEffect(archive, *scene, stageName);
+
+        hlArchiveFree(archive);
+    }
+
     return scene;
 }
 
@@ -722,6 +782,20 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();
+
+    HlNChar miscFilePath[MAX_PATH];
+    hlStrConvUTF8ToNativeNoAlloc((directoryPath + "/" + stageName + "_misc.pac").c_str(), miscFilePath, 0, MAX_PATH);
+
+    if (hlPathExists(miscFilePath))
+    {
+        HlArchive* archive = nullptr;
+        hlPACxLoad(miscFilePath, 0, true, nullptr, &archive);
+
+        loadSceneEffect(archive, *scene, stageName);
+
+        hlArchiveFree(archive);
+    }
+
     return scene;
 }
 

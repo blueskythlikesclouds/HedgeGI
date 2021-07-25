@@ -1175,9 +1175,19 @@ void Application::loadScene(const std::string& directoryPath)
     });
 }
 
+Game Application::getGame() const
+{
+    return game;
+}
+
 const RaytracingContext Application::getRaytracingContext() const
 {
     return scene->getRaytracingContext();
+}
+
+const SceneEffect& Application::getSceneEffect() const
+{
+    return scene->sceneEffect;
 }
 
 const BakeParams Application::getBakeParams() const

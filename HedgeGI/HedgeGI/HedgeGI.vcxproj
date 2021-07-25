@@ -61,7 +61,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\DirectXTex;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\DirectXTex;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;..\..\Dependencies\tinyxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -82,7 +82,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\DirectXTex;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\DirectXTex;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;..\..\Dependencies\tinyxml2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <StringPooling>true</StringPooling>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -129,6 +129,7 @@
     <ClCompile Include="..\..\Dependencies\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\Dependencies\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\Dependencies\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\Dependencies\tinyxml2\tinyxml2.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="BakeParams.cpp" />
     <ClCompile Include="Buffer.cpp" />
@@ -162,6 +163,7 @@
     <ClCompile Include="Quad.cpp" />
     <ClCompile Include="RaytracingDevice.cpp" />
     <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="SceneEffect.cpp" />
     <ClCompile Include="SceneFactory.cpp" />
     <ClCompile Include="SeamOptimizer.cpp" />
     <ClCompile Include="SGGIBaker.cpp" />
@@ -185,8 +187,10 @@
     <ClInclude Include="FileDialog.h" />
     <ClInclude Include="Framebuffer.h" />
     <ClInclude Include="Game.h" />
+    <ClInclude Include="FxSceneData.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Logger.h" />
+    <ClInclude Include="NeedleFxSceneData.h" />
     <ClInclude Include="OidnDenoiserDevice.h" />
     <ClInclude Include="OptixDenoiserDevice.h" />
     <ClInclude Include="hl_hh_light.h" />
@@ -198,6 +202,7 @@
     <ClInclude Include="Quad.h" />
     <ClInclude Include="RaytracingDevice.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SceneEffect.h" />
     <ClInclude Include="SceneFactory.h" />
     <ClInclude Include="FileStream.h" />
     <ClInclude Include="GIBaker.h" />

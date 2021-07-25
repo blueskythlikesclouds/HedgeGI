@@ -2,11 +2,12 @@
 
 in vec2 fTexCoord;
 
-out vec4 oColor;
+out float oColor;
 
 uniform sampler2D uTexture;
+uniform vec2 uLumMinMax;
 
 void main()
 {
-    oColor = texture(uTexture, fTexCoord);
+    oColor = clamp(dot(texture(uTexture, fTexCoord).rgb, vec3(0.2126, 0.7152, 0.0722)), uLumMinMax.x, uLumMinMax.y);
 }

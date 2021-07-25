@@ -134,8 +134,10 @@ public:
 
     void loadScene(const std::string& directoryPath);
 
+    Game getGame() const;
     PropertyBag& getPropertyBag();
     const RaytracingContext getRaytracingContext() const;
+    const SceneEffect& getSceneEffect() const;
     const BakeParams getBakeParams() const;
 
     void drawQuad() const;

@@ -66,6 +66,9 @@ using Quaternion = Eigen::Quaternionf;
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+// tinyxml2
+#include <tinyxml2.h>
+
 #undef min
 #undef max
 
@@ -77,3 +80,4 @@ using Quaternion = Eigen::Quaternionf;
 #include "Random.h"
 #include "RaytracingDevice.h"
 #include "Game.h"
+#include "PropertyBag.h"
