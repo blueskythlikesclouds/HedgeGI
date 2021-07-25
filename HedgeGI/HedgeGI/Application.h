@@ -88,6 +88,7 @@ class Application
     static void beginProperty(const char* label);
     static bool property(const char* label, enum ImGuiDataType_ dataType, void* data);
     static bool property(const char* label, bool& data);
+    static bool property(const char* label, Color3& data);
     static bool property(const char* label, char* data, size_t dataSize);
     template<typename T> static bool property(const char* label, const std::initializer_list<std::pair<const char*, T>>& values, T& data);
     static void endProperties();

@@ -47,6 +47,9 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
         {
+            if (targetEngine == TargetEngine::HE2)
+                throughput *= bakeParams.exposure;
+
             radiance += throughput * bakeParams.environmentColor;
             break;
         }

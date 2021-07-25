@@ -20,6 +20,7 @@ struct BakeParams
     TargetEngine targetEngine;
 
     Color3 environmentColor;
+    float exposure;
 
     uint32_t lightBounceCount {};
     uint32_t lightSampleCount {};

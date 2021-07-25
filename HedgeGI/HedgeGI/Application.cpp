@@ -232,6 +232,12 @@ bool Application::property(const char* label, bool& data)
     return ImGui::Checkbox((std::string("##") + label).c_str(), &data);
 }
 
+bool Application::property(const char* label, Color3& data)
+{
+    beginProperty(label);
+    return ImGui::ColorEdit3((std::string("##") + label).c_str(), data.data());
+}
+
 bool Application::property(const char* label, char* data, size_t dataSize)
 {
     beginProperty(label);
@@ -553,9 +559,23 @@ void Application::drawSettingsUI()
     }
     ImGui::Separator();
 
-    if (ImGui::CollapsingHeader("Environment Color"))
+    if (ImGui::CollapsingHeader("Environment Color") && beginProperties("##Environment Color"))
     {
-        ImGui::ColorEdit3("##RGB", bakeParams.environmentColor.data());
+        if (bakeParams.targetEngine == TargetEngine::HE2)
+        {
+            Color3 environmentColor = bakeParams.environmentColor.pow(1.0f / 2.2f);
+
+            if (property("Color", environmentColor))
+                bakeParams.environmentColor = environmentColor.pow(2.2f);
+
+            property("Exposure", ImGuiDataType_Float, &bakeParams.exposure);
+        }
+        else
+        {
+            property("Color", bakeParams.environmentColor);
+        }
+
+        endProperties();
     }
     ImGui::Separator();
 

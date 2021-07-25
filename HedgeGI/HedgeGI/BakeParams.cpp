@@ -61,6 +61,7 @@ void BakeParams::load(const PropertyBag& propertyBag)
     environmentColor.x() = propertyBag.get("bakeParams.environmentColor.x()", 106.0f / 255.0f);
     environmentColor.y() = propertyBag.get("bakeParams.environmentColor.y()", 113.0f / 255.0f);
     environmentColor.z() = propertyBag.get("bakeParams.environmentColor.z()", 179.0f / 255.0f);
+    exposure = propertyBag.get("bakeParams.exposure", 1.0f);
 
     lightBounceCount = propertyBag.get("bakeParams.lightBounceCount", 10);
     lightSampleCount = propertyBag.get("bakeParams.lightSampleCount", 32);
@@ -102,6 +103,7 @@ void BakeParams::store(PropertyBag& propertyBag) const
     propertyBag.set("bakeParams.environmentColor.x()", environmentColor.x());
     propertyBag.set("bakeParams.environmentColor.y()", environmentColor.y());
     propertyBag.set("bakeParams.environmentColor.z()", environmentColor.z());
+    propertyBag.set("bakeParams.exposure", exposure);
 
     propertyBag.set("bakeParams.lightBounceCount", lightBounceCount);
     propertyBag.set("bakeParams.lightSampleCount", lightSampleCount);
