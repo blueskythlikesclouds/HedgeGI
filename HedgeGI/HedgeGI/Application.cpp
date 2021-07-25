@@ -1147,6 +1147,11 @@ int Application::getViewportHeight() const
     return viewportHeight;
 }
 
+bool Application::isViewportFocused() const
+{
+    return viewportFocused;
+}
+
 bool Application::isDirty() const
 {
     return dirty;
@@ -1235,8 +1240,7 @@ void Application::update()
     // Viewport
     if (viewportVisible && scene && showViewport)
     {
-        if (viewportFocused)
-            camera.update(*this);
+        camera.update(*this);
 
         // Halven viewport resolution if we are moving
         if (camera.hasChanged())

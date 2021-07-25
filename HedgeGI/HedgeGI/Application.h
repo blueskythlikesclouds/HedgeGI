@@ -130,6 +130,8 @@ public:
     int getViewportWidth() const;
     int getViewportHeight() const;
 
+    bool isViewportFocused() const;
+
     bool isDirty() const;
 
     void loadScene(const std::string& directoryPath);

@@ -57,7 +57,10 @@ void Camera::update(const Application& application)
     history.fieldOfView = fieldOfView;
 
     aspectRatio = (float)application.getViewportWidth() / (float)application.getViewportHeight();
-    setFieldOfView(PI / 4.0f);
+    fieldOfView = (75.0f / 180.0f) * PI;
+
+    if (!application.isViewportFocused())
+        return;
 
     const Input& input = application.getInput();
     const float elapsedTime = std::min(1.0f / 15.0f, application.getElapsedTime());
