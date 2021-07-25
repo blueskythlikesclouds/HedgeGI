@@ -28,6 +28,9 @@ void PropertyBag::write(const FileStream& file) const
 
 void PropertyBag::load(const std::string& filePath)
 {
+    properties.clear();
+    stringProperties.clear();
+
     const FileStream fileStream(filePath.c_str(), "rb");
 
     if (fileStream.isOpen())
