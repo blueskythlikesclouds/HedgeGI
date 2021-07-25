@@ -37,7 +37,7 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     bitmap->type =
         ((metadata.miscFlags & DirectX::TEX_MISC_TEXTURECUBE) != 0) ? BitmapType::Cube :
         metadata.dimension == DirectX::TEX_DIMENSION_TEXTURE3D ? BitmapType::_3D :
-        BitmapType::_3D;
+        BitmapType::_2D;
 
     bitmap->width = (uint32_t)metadata.width;
     bitmap->height = (uint32_t)metadata.height;
