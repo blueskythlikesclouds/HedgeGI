@@ -22,6 +22,12 @@ void Texture::bind() const
     glBindTexture(target, id);
 }
 
+void Texture::bind(size_t index) const
+{
+    glActiveTexture(GL_TEXTURE0 + index);
+    glBindTexture(target, id);
+}
+
 void Texture::subImage(GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) const
 {
     glBindTexture(target, id);

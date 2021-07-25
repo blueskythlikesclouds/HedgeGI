@@ -165,8 +165,7 @@
     <ClCompile Include="SceneFactory.cpp" />
     <ClCompile Include="SeamOptimizer.cpp" />
     <ClCompile Include="SGGIBaker.cpp" />
-    <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="ShaderLibrary.cpp" />
+    <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="SHLightField.cpp" />
     <ClCompile Include="SHLightFieldBaker.cpp" />
     <ClCompile Include="Bitmap.cpp" />
@@ -198,6 +197,7 @@
     <ClInclude Include="PropertyBag.h" />
     <ClInclude Include="Quad.h" />
     <ClInclude Include="RaytracingDevice.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="SceneFactory.h" />
     <ClInclude Include="FileStream.h" />
     <ClInclude Include="GIBaker.h" />
@@ -212,14 +212,32 @@
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SeamOptimizer.h" />
     <ClInclude Include="SGGIBaker.h" />
-    <ClInclude Include="Shader.h" />
-    <ClInclude Include="ShaderLibrary.h" />
+    <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="SHLightField.h" />
     <ClInclude Include="SHLightFieldBaker.h" />
     <ClInclude Include="Bitmap.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="VertexArray.h" />
     <ClInclude Include="Viewport.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ToneMap.frag.glsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="HedgeGI.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ToneMap.vert.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CopyTexture.frag.glsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="CopyTexture.vert.glsl">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

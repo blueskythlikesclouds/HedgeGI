@@ -19,5 +19,6 @@ public:
     ~Texture();
 
     void bind() const;
+    void bind(size_t index) const;
     void subImage(GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void* pixels) const;
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "resource.h"
+
 // DirectXTex
 #include <DirectXTex.h>
 
