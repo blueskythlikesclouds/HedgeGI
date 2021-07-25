@@ -8,7 +8,7 @@ void BakeParams::load(const std::string& filePath)
     if (reader.ParseError() != 0)
         return;
 
-    if (targetEngine == TARGET_ENGINE_HE2)
+    if (targetEngine == TargetEngine::HE2)
     {
         environmentColor.x() = reader.GetFloat("EnvironmentColorHE2", "R", 1.0f);
         environmentColor.y() = reader.GetFloat("EnvironmentColorHE2", "G", 1.0f);
@@ -48,7 +48,7 @@ void BakeParams::load(const std::string& filePath)
 
     denoiseShadowMap = reader.GetBoolean("Baker", "DenoiseShadowMap", true);
     optimizeSeams = reader.GetBoolean("Baker", "OptimizeSeams", true);
-    denoiserType = (DenoiserType)reader.GetInteger("Baker", "DenoiserType", DENOISER_TYPE_OPTIX);
+    denoiserType = (DenoiserType)reader.GetInteger("Baker", "DenoiserType", (long)DenoiserType::Optix);
 
     lightFieldMinCellRadius = reader.GetFloat("LightField", "MinCellRadius", 5.0f);
     lightFieldAabbSizeMultiplier = reader.GetFloat("LightField", "AabbSizeMultiplier", 1.0f);
@@ -56,7 +56,7 @@ void BakeParams::load(const std::string& filePath)
 
 void BakeParams::load(const PropertyBag& propertyBag)
 {
-    targetEngine = propertyBag.get("bakeParams.targetEngine", TARGET_ENGINE_HE1);
+    targetEngine = propertyBag.get("bakeParams.targetEngine", TargetEngine::HE1);
 
     environmentColor.x() = propertyBag.get("bakeParams.environmentColor.x()", 106.0f / 255.0f);
     environmentColor.y() = propertyBag.get("bakeParams.environmentColor.y()", 113.0f / 255.0f);
@@ -89,7 +89,7 @@ void BakeParams::load(const PropertyBag& propertyBag)
 
     denoiseShadowMap = propertyBag.get("bakeParams.denoiseShadowMap", true);
     optimizeSeams = propertyBag.get("bakeParams.optimizeSeams", true);
-    denoiserType = propertyBag.get("bakeParams.denoiserType", DENOISER_TYPE_OPTIX);
+    denoiserType = propertyBag.get("bakeParams.denoiserType", DenoiserType::Optix);
 
     lightFieldMinCellRadius = propertyBag.get("bakeParams.lightFieldMinCellRadius", 5.0f);
     lightFieldAabbSizeMultiplier = propertyBag.get("bakeParams.lightFieldAabbSizeMultiplier", 1.0f);

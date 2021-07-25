@@ -614,16 +614,16 @@ void Application::drawBakingFactoryUI()
     {
         property("Mode",
             {
-                { "Global Illumination", BAKING_FACTORY_MODE_GI },
-                { "Light Field", BAKING_FACTORY_MODE_LIGHT_FIELD }
+                { "Global Illumination", BakingFactoryMode::GI },
+                { "Light Field", BakingFactoryMode::LightField }
             },
             mode
             );
 
         dirty |= property("Engine",
             {
-                { "Hedgehog Engine 1", TARGET_ENGINE_HE1},
-                { "Hedgehog Engine 2", TARGET_ENGINE_HE2}
+                { "Hedgehog Engine 1", TargetEngine::HE1},
+                { "Hedgehog Engine 2", TargetEngine::HE2}
             },
             bakeParams.targetEngine
             );
@@ -634,21 +634,21 @@ void Application::drawBakingFactoryUI()
 
     if (beginProperties("##Mode Specific Settings"))
     {
-        if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD && bakeParams.targetEngine == TARGET_ENGINE_HE1)
+        if (mode == BakingFactoryMode::LightField && bakeParams.targetEngine == TargetEngine::HE1)
         {
             property("Minimum Cell Radius", ImGuiDataType_Float, &bakeParams.lightFieldMinCellRadius);
             property("AABB Size Multiplier", ImGuiDataType_Float, &bakeParams.lightFieldAabbSizeMultiplier);
         }
-        else if (mode == BAKING_FACTORY_MODE_GI)
+        else if (mode == BakingFactoryMode::GI)
         {
             property("Denoise Shadow Map", bakeParams.denoiseShadowMap);
             property("Optimize Seams", bakeParams.optimizeSeams);
 
             property("Denoiser Type",
                 {
-                    {"None", DENOISER_TYPE_NONE},
-                    {"Optix AI", DENOISER_TYPE_OPTIX},
-                    {"oidn", DENOISER_TYPE_OIDN},
+                    {"None", DenoiserType::None},
+                    {"Optix AI", DenoiserType::Optix},
+                    {"oidn", DenoiserType::Oidn},
                 },
                 bakeParams.denoiserType);
 
@@ -723,10 +723,10 @@ void Application::loadProperties()
     bakeParams.load(propertyBag);
     viewportResolutionInvRatio = propertyBag.get("viewportResolutionInvRatio", 2.0f);
     outputDirectoryPath = propertyBag.getString("outputDirectoryPath", stageDirectoryPath + "-HedgeGI");
-    mode = propertyBag.get("mode", BAKING_FACTORY_MODE_GI);
+    mode = propertyBag.get("mode", BakingFactoryMode::GI);
 
     if (game == GAME_FORCES)
-        bakeParams.targetEngine = TARGET_ENGINE_HE2;
+        bakeParams.targetEngine = TargetEngine::HE2;
 }
 
 void Application::storeProperties()
@@ -798,13 +798,13 @@ void Application::drawBakingPopupUI()
 
     ImGui::Text(cancelBake ? "Cancelling..." : "Baking...");
 
-    if (mode == BAKING_FACTORY_MODE_GI || bakeParams.targetEngine == TARGET_ENGINE_HE2)
+    if (mode == BakingFactoryMode::GI || bakeParams.targetEngine == TargetEngine::HE2)
     {
         const Instance* const lastBakedInstance = this->lastBakedInstance;
         const SHLightField* const lastBakedShlf = this->lastBakedShlf;
         const size_t bakeProgress = this->bakeProgress;
 
-        if (mode == BAKING_FACTORY_MODE_GI)
+        if (mode == BakingFactoryMode::GI)
         {
             char overlay[1024];
             if (lastBakedInstance != nullptr)
@@ -816,7 +816,7 @@ void Application::drawBakingPopupUI()
             ImGui::Separator();
             ImGui::ProgressBar(bakeProgress / ((float)scene->instances.size() + 1), { 0, 0 }, lastBakedInstance ? overlay : nullptr);
         }
-        else if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD)
+        else if (mode == BakingFactoryMode::LightField)
         {
             char overlay[1024];
             if (lastBakedShlf != nullptr)
@@ -826,7 +826,7 @@ void Application::drawBakingPopupUI()
             ImGui::ProgressBar(bakeProgress / ((float)scene->shLightFields.size() + 1), { 0, 0 }, lastBakedShlf ? overlay : nullptr);
         }
     }
-    else if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD)
+    else if (mode == BakingFactoryMode::LightField)
     {
         std::lock_guard lock(logMutex);
 
@@ -861,10 +861,10 @@ void Application::bake()
 
     std::filesystem::create_directory(outputDirectoryPath);
 
-    if (mode == BAKING_FACTORY_MODE_GI)
+    if (mode == BakingFactoryMode::GI)
         bakeGI();
 
-    else if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD)
+    else if (mode == BakingFactoryMode::LightField)
         bakeLightField();
 
     alert();
@@ -879,14 +879,14 @@ void Application::bakeGI()
 
         bool skip = instance->name.find("_NoGI") != std::string::npos || instance->name.find("_noGI") != std::string::npos;
     
-        const bool isSg = !skip && bakeParams.targetEngine == TARGET_ENGINE_HE2 && propertyBag.get(instance->name + ".isSg", false);
+        const bool isSg = !skip && bakeParams.targetEngine == TargetEngine::HE2 && propertyBag.get(instance->name + ".isSg", false);
     
         std::string lightMapFileName;
         std::string shadowMapFileName;
     
         if (!skip)
         {
-            if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+            if (bakeParams.targetEngine == TargetEngine::HE2)
             {
                 lightMapFileName = isSg ? instance->name + "_sg.dds" : instance->name + ".dds";
                 shadowMapFileName = instance->name + "_occlusion.dds";
@@ -945,7 +945,7 @@ void Application::bakeGI()
             TRY_CANCEL()
 
             // Denoise
-            if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+            if (bakeParams.denoiserType != DenoiserType::None)
             {
                 pair.lightMap = BitmapHelper::denoise(*pair.lightMap, bakeParams.denoiserType);
     
@@ -996,7 +996,7 @@ void Application::bakeGI()
             TRY_CANCEL()
 
             // Denoise
-            if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+            if (bakeParams.denoiserType != DenoiserType::None)
                 combined = BitmapHelper::denoise(*combined, bakeParams.denoiserType, bakeParams.denoiseShadowMap);
 
             TRY_CANCEL()
@@ -1008,12 +1008,12 @@ void Application::bakeGI()
             TRY_CANCEL()
 
             // Make ready for encoding
-            if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+            if (bakeParams.targetEngine == TargetEngine::HE1)
                 combined = BitmapHelper::makeEncodeReady(*combined, ENCODE_READY_FLAGS_SQRT);
 
             TRY_CANCEL()
 
-            if (game == GAME_GENERATIONS && bakeParams.targetEngine == TARGET_ENGINE_HE1)
+            if (game == GAME_GENERATIONS && bakeParams.targetEngine == TargetEngine::HE1)
             {
                 combined->save(lightMapFileName, Bitmap::transformToLightMap);
                 combined->save(shadowMapFileName, Bitmap::transformToShadowMap);
@@ -1022,7 +1022,7 @@ void Application::bakeGI()
             {
                 combined->save(lightMapFileName, DXGI_FORMAT_BC3_UNORM);
             }
-            else if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+            else if (bakeParams.targetEngine == TargetEngine::HE2)
             {
                 combined->save(lightMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
                 combined->save(shadowMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
@@ -1036,7 +1036,7 @@ void Application::bakeGI()
 
 void Application::bakeLightField()
 {
-    if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+    if (bakeParams.targetEngine == TargetEngine::HE2)
     {
         std::for_each(std::execution::par_unseq, scene->shLightFields.begin(), scene->shLightFields.end(), [&](const std::unique_ptr<SHLightField>& shlf)
         {            
@@ -1049,7 +1049,7 @@ void Application::bakeLightField()
 
             TRY_CANCEL()
 
-            if (bakeParams.denoiserType != DENOISER_TYPE_NONE)
+            if (bakeParams.denoiserType != DenoiserType::None)
                 bitmap = BitmapHelper::denoise(*bitmap, bakeParams.denoiserType);
 
             TRY_CANCEL()
@@ -1061,7 +1061,7 @@ void Application::bakeLightField()
         lastBakedShlf = nullptr;
     }
 
-    else if (bakeParams.targetEngine == TARGET_ENGINE_HE1)
+    else if (bakeParams.targetEngine == TargetEngine::HE1)
     {
         TRY_CANCEL()
 
@@ -1076,7 +1076,7 @@ void Application::bakeLightField()
 }
 
 Application::Application()
-    : window(createGLFWwindow()), input(window), bakeParams(TARGET_ENGINE_HE1)
+    : window(createGLFWwindow()), input(window), bakeParams(TargetEngine::HE1)
 {
     Logger::addListener(this, logListener);
     initializeImGui();

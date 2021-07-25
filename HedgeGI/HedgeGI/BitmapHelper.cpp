@@ -8,8 +8,8 @@
 
 std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap, const DenoiserType denoiserType, const bool denoiseAlpha)
 {
-    return denoiserType == DENOISER_TYPE_OPTIX ? OptixDenoiserDevice::denoise(bitmap, denoiseAlpha) :
-        denoiserType == DENOISER_TYPE_OIDN ? OidnDenoiserDevice::denoise(bitmap, denoiseAlpha) : nullptr;
+    return denoiserType == DenoiserType::Optix ? OptixDenoiserDevice::denoise(bitmap, denoiseAlpha) :
+        denoiserType == DenoiserType::Oidn ? OidnDenoiserDevice::denoise(bitmap, denoiseAlpha) : nullptr;
 }
 
 std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)

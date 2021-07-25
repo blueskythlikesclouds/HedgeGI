@@ -6,10 +6,10 @@
 #include "Viewport.h"
 #include "Camera.h"
 
-enum BakingFactoryMode
+enum class BakingFactoryMode
 {
-    BAKING_FACTORY_MODE_GI,
-    BAKING_FACTORY_MODE_LIGHT_FIELD
+    GI,
+    LightField
 };
 
 class Application

@@ -35,13 +35,13 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>();
 
     bitmap->type =
-        ((metadata.miscFlags & DirectX::TEX_MISC_TEXTURECUBE) != 0) ? BITMAP_TYPE_CUBE :
-        metadata.dimension == DirectX::TEX_DIMENSION_TEXTURE3D ? BITMAP_TYPE_3D :
-        BITMAP_TYPE_3D;
+        ((metadata.miscFlags & DirectX::TEX_MISC_TEXTURECUBE) != 0) ? BitmapType::Cube :
+        metadata.dimension == DirectX::TEX_DIMENSION_TEXTURE3D ? BitmapType::_3D :
+        BitmapType::_3D;
 
     bitmap->width = (uint32_t)metadata.width;
     bitmap->height = (uint32_t)metadata.height;
-    bitmap->arraySize = bitmap->type == BITMAP_TYPE_3D ? (uint32_t)metadata.depth : (uint32_t)metadata.arraySize;
+    bitmap->arraySize = bitmap->type == BitmapType::_3D ? (uint32_t)metadata.depth : (uint32_t)metadata.arraySize;
     bitmap->data = std::make_unique<Color4[]>(bitmap->width * bitmap->height * bitmap->arraySize);
 
     for (size_t i = 0; i < bitmap->arraySize; i++)

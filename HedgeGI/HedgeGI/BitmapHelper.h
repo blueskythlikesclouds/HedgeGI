@@ -2,7 +2,7 @@
 
 #include "Bitmap.h"
 
-enum DenoiserType;
+enum class DenoiserType;
 class Instance;
 struct so_seam_t;
 

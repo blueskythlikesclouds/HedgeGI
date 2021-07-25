@@ -157,15 +157,15 @@ DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) con
 
     switch(type)
     {
-    case BITMAP_TYPE_2D:
+    case BitmapType::_2D:
         scratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
         break;
 
-    case BITMAP_TYPE_3D:
+    case BitmapType::_3D:
         scratchImage.Initialize3D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
         break;
 
-    case BITMAP_TYPE_CUBE:
+    case BitmapType::Cube:
         scratchImage.InitializeCube(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize / 6, 1);
         break;
     }

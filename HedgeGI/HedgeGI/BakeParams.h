@@ -2,17 +2,17 @@
 
 class PropertyBag;
 
-enum TargetEngine
+enum class TargetEngine
 {
-    TARGET_ENGINE_HE1,
-    TARGET_ENGINE_HE2
+    HE1,
+    HE2
 };
 
-enum DenoiserType
+enum class DenoiserType
 {
-    DENOISER_TYPE_NONE,
-    DENOISER_TYPE_OPTIX,
-    DENOISER_TYPE_OIDN
+    None,
+    Optix,
+    Oidn
 };
 
 struct BakeParams
@@ -53,7 +53,7 @@ struct BakeParams
     float lightFieldMinCellRadius {};
     float lightFieldAabbSizeMultiplier {};
 
-    BakeParams() : targetEngine(TARGET_ENGINE_HE1) {}
+    BakeParams() : targetEngine(TargetEngine::HE1) {}
     BakeParams(const TargetEngine targetEngine) : targetEngine(targetEngine) {}
 
     void load(const std::string& filePath);

@@ -94,7 +94,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         {
             if (material->type == MATERIAL_TYPE_COMMON)
             {
-                if (targetEngine == TARGET_ENGINE_HE1)
+                if (targetEngine == TargetEngine::HE1)
                 {
                     diffuse.head<3>() *= material->parameters.diffuse.head<3>();
                     diffuse.w() *= material->parameters.opacityReflectionRefractionSpecType.x();
@@ -104,14 +104,14 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 {
                     Color4 diffuseTex = material->textures.diffuse->pickColor(hitUV);
 
-                    if (targetEngine == TARGET_ENGINE_HE2)
+                    if (targetEngine == TargetEngine::HE2)
                         diffuseTex.head<3>() = diffuseTex.head<3>().pow(2.2f);
 
                     if (material->textures.diffuseBlend != nullptr)
                     {
                         Color4 diffuseBlendTex = material->textures.diffuseBlend->pickColor(hitUV);
 
-                        if (targetEngine == TARGET_ENGINE_HE2)
+                        if (targetEngine == TargetEngine::HE2)
                             diffuseBlendTex.head<3>() = diffuseBlendTex.head<3>().pow(2.2f);
 
                         diffuseTex = lerp(diffuseTex, diffuseBlendTex, hitColor.w());
@@ -120,10 +120,10 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     diffuse *= diffuseTex;
                 }
 
-                if (material->textures.diffuseBlend == nullptr || targetEngine == TARGET_ENGINE_HE2)
+                if (material->textures.diffuseBlend == nullptr || targetEngine == TargetEngine::HE2)
                     diffuse *= hitColor;
 
-                if (targetEngine == TARGET_ENGINE_HE2 && material->textures.alpha != nullptr)
+                if (targetEngine == TargetEngine::HE2 && material->textures.alpha != nullptr)
                     diffuse.w() *= material->textures.alpha->pickColor(hitUV).x();
 
                 // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.
@@ -144,7 +144,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     continue;
                 }
 
-                if (targetEngine == TARGET_ENGINE_HE1 && material->textures.gloss != nullptr)
+                if (targetEngine == TargetEngine::HE1 && material->textures.gloss != nullptr)
                 {
                     float gloss = material->textures.gloss->pickColor(hitUV).x();
 
@@ -167,7 +167,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     }
                 }
 
-                else if (targetEngine == TARGET_ENGINE_HE2)
+                else if (targetEngine == TargetEngine::HE2)
                 {
                     if (material->textures.specular != nullptr)
                     {
@@ -221,7 +221,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     continue;
                 }
 
-                if (targetEngine == TARGET_ENGINE_HE2)
+                if (targetEngine == TargetEngine::HE2)
                 {
                     emission = material->textures.emission != nullptr ? material->textures.emission->pickColor(hitUV) : material->parameters.emissive;
                     emission *= material->parameters.ambient * material->parameters.luminance.x();
@@ -249,7 +249,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         float roughness;
         Color3 F0;
 
-        if (targetEngine == TARGET_ENGINE_HE2)
+        if (targetEngine == TargetEngine::HE2)
         {
             metalness = specular.x() > 0.225f;
             roughness = std::max(0.01f, 1 - specular.y());
@@ -336,7 +336,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 {
                     Color3 directLighting;
 
-                    if (targetEngine == TARGET_ENGINE_HE1)
+                    if (targetEngine == TargetEngine::HE1)
                     {
                         directLighting = diffuse.head<3>();
 
@@ -346,7 +346,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                             directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
                         }
                     }
-                    else if (targetEngine == TARGET_ENGINE_HE2)
+                    else if (targetEngine == TargetEngine::HE2)
                     {
                         const Vector3 halfwayDirection = (viewDirection - lightDirection).normalized();
                         const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
@@ -392,9 +392,9 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         // HE1: Completely diffuse
         // HE2: Completely specular when metallic, half chance of being diffuse/specular when dielectric
-        const float pdf = targetEngine != TARGET_ENGINE_HE2 || metalness == 1.0f ? 1.0f : 0.5f;
+        const float pdf = targetEngine != TargetEngine::HE2 || metalness == 1.0f ? 1.0f : 0.5f;
 
-        if (targetEngine == TARGET_ENGINE_HE2 && (metalness == 1.0f || Random::next() > 0.5f))
+        if (targetEngine == TargetEngine::HE2 && (metalness == 1.0f || Random::next() > 0.5f))
         {
             // Specular reflection
             hitDirection = hitTangentToWorldMatrix * sampleGGXMicrofacet(roughness * roughness, Random::next(), Random::next());
@@ -413,7 +413,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             hitDirection = (hitTangentToWorldMatrix *
                 sampleCosineWeightedHemisphere(Random::next(), Random::next())).normalized();
 
-            if (targetEngine == TARGET_ENGINE_HE2)
+            if (targetEngine == TargetEngine::HE2)
                 throughput *= lerp<Color3>(1 - F0, Color3(0), metalness) * specular.z();
 
             throughput *= diffuse.head<3>();
@@ -442,16 +442,16 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position,
                                 const Vector3& direction, const BakeParams& bakeParams, bool tracingFromEye)
 {
-    if (bakeParams.targetEngine == TARGET_ENGINE_HE2)
+    if (bakeParams.targetEngine == TargetEngine::HE2)
     {
         return tracingFromEye ?
-            pathTrace<TARGET_ENGINE_HE2, true>(raytracingContext, position, direction, bakeParams) :
-            pathTrace<TARGET_ENGINE_HE2, false>(raytracingContext, position, direction, bakeParams);
+            pathTrace<TargetEngine::HE2, true>(raytracingContext, position, direction, bakeParams) :
+            pathTrace<TargetEngine::HE2, false>(raytracingContext, position, direction, bakeParams);
     }
 
     return tracingFromEye ?
-        pathTrace<TARGET_ENGINE_HE1, true>(raytracingContext, position, direction, bakeParams) :
-        pathTrace<TARGET_ENGINE_HE1, false>(raytracingContext, position, direction, bakeParams);
+        pathTrace<TargetEngine::HE1, true>(raytracingContext, position, direction, bakeParams) :
+        pathTrace<TargetEngine::HE1, false>(raytracingContext, position, direction, bakeParams);
 }
 
 void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress)
