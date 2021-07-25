@@ -61,7 +61,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         // Break the loop if we hit a backfacing triangle on an opaque mesh.
         const bool doubleSided = mesh.material && mesh.material->parameters.doubleSided;
 
-        if (mesh.type == MESH_TYPE_OPAQUE && !doubleSided && triNormal.dot(rayNormal) >= 0.0f)
+        if (mesh.type == MeshType::Opaque && !doubleSided && triNormal.dot(rayNormal) >= 0.0f)
         {
             faceFactor = (float)(i != 0);
             break;
@@ -78,7 +78,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         const Color4 hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
 
         Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
-        if ((mesh.type != MESH_TYPE_OPAQUE || doubleSided) && triNormal.dot(hitNormal) < 0)
+        if ((mesh.type != MeshType::Opaque || doubleSided) && triNormal.dot(hitNormal) < 0)
             hitNormal *= -1;
 
         Vector3 hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
@@ -95,7 +95,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         if (material != nullptr)
         {
-            if (material->type == MATERIAL_TYPE_COMMON)
+            if (material->type == MaterialType::Common)
             {
                 if (targetEngine == TargetEngine::HE1)
                 {
@@ -130,7 +130,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     diffuse.w() *= material->textures.alpha->pickColor(hitUV).x();
 
                 // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.
-                if (mesh.type == MESH_TYPE_PUNCH && diffuse.w() < 0.5f)
+                if (mesh.type == MeshType::Punch && diffuse.w() < 0.5f)
                 {
                     query.ray.org_x = hitPosition[0];
                     query.ray.org_y = hitPosition[1];
@@ -197,7 +197,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     emission = material->textures.emission->pickColor(hitUV) * material->parameters.ambient * material->parameters.luminance.x();
             }
 
-            else if (material->type == MATERIAL_TYPE_IGNORE_LIGHT)
+            else if (material->type == MaterialType::IgnoreLight)
             {
                 diffuse *= hitColor * material->parameters.diffuse;
 
@@ -207,7 +207,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 if (material->textures.alpha != nullptr)
                     diffuse.w() *= material->textures.alpha->pickColor(hitUV).w();
 
-                if (mesh.type == MESH_TYPE_PUNCH && diffuse.w() < 0.5f)
+                if (mesh.type == MeshType::Punch && diffuse.w() < 0.5f)
                 {
                     query.ray.org_x = hitPosition[0];
                     query.ray.org_y = hitPosition[1];
@@ -259,14 +259,14 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             F0 = lerp<Color3>(Color3(0.17), diffuse.head<3>(), metalness);
         }
 
-        if (material == nullptr || material->type == MATERIAL_TYPE_COMMON)
+        if (material == nullptr || material->type == MaterialType::Common)
         {
             for (auto& light : raytracingContext.scene->lights)
             {
                 Vector3 lightDirection;
                 float attenuation;
 
-                if (light->type == LIGHT_TYPE_POINT)
+                if (light->type == LightType::Point)
                 {
                     computeDirectionAndAttenuationHE1(hitPosition, light->positionOrDirection, light->range, lightDirection, attenuation);
                     if (attenuation == 0.0f)
@@ -296,7 +296,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     shadowQuery.ray.org_y = shadowPosition[1];
                     shadowQuery.ray.org_z = shadowPosition[2];
                     shadowQuery.ray.tnear = bakeParams.shadowBias;
-                    shadowQuery.ray.tfar = light->type == LIGHT_TYPE_POINT ? (light->positionOrDirection - shadowPosition).norm() : INFINITY;
+                    shadowQuery.ray.tfar = light->type == LightType::Point ? (light->positionOrDirection - shadowPosition).norm() : INFINITY;
                     shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
                     shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
@@ -306,7 +306,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                         break;
 
                     const Mesh& shadowMesh = *raytracingContext.scene->meshes[shadowQuery.hit.geomID];
-                    if (shadowMesh.type == MESH_TYPE_OPAQUE)
+                    if (shadowMesh.type == MeshType::Opaque)
                     {
                         receiveLight = false;
                         break;
@@ -374,7 +374,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 }
             }
         }
-        else if (material->type == MATERIAL_TYPE_IGNORE_LIGHT)
+        else if (material->type == MaterialType::IgnoreLight)
         {
             radiance += throughput * diffuse.head<3>();
         }
@@ -403,12 +403,9 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             hitDirection = hitTangentToWorldMatrix * sampleGGXMicrofacet(roughness * roughness, Random::next(), Random::next());
             hitDirection = (2 * hitDirection.dot(viewDirection) * hitDirection - viewDirection).normalized();
 
+            // TODO: This is likely completely wrong, do it correctly using GGX PDF
             const Vector2 specularBRDF = approxEnvBRDF(saturate(hitNormal.dot(viewDirection)), roughness);
             throughput *= (F0 * specularBRDF.x() + specularBRDF.y()) * specular.z();
-
-            // TODO: Handle the PDF properly
-            //const float cosTheta = saturate(hitNormal.dot(hitDirection));
-            //throughput *= cosTheta / computeGGXPdf(hitNormal, (viewDirection + hitDirection).normalized(), viewDirection, roughness * roughness);
         }
         else
         {

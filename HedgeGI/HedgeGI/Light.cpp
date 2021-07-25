@@ -22,7 +22,7 @@ void Light::read(const FileStream& file)
     positionOrDirection = file.read<Vector3>();
     color = file.read<Color3>();
 
-    if (type != LIGHT_TYPE_POINT)
+    if (type != LightType::Point)
         return;
 
     range = file.read<Vector4>();
@@ -34,7 +34,7 @@ void Light::write(const FileStream& file) const
     file.write(positionOrDirection);
     file.write(color);
 
-    if (type != LIGHT_TYPE_POINT)
+    if (type != LightType::Point)
         return;
 
     file.write(range);

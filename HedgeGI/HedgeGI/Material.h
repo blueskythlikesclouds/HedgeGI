@@ -3,10 +3,10 @@
 class Bitmap;
 class Scene;
 
-enum MaterialType : uint32_t
+enum class MaterialType : uint32_t
 {
-    MATERIAL_TYPE_COMMON,
-    MATERIAL_TYPE_IGNORE_LIGHT
+    Common,
+    IgnoreLight
 };
 
 class Material

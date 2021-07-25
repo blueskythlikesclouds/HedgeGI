@@ -10,10 +10,10 @@ const char* const GAME_NAMES[] =
 
 Game detectGameFromStageDirectory(const std::string& directoryPath)
 {
-    Game game = GAME_UNKNOWN;
+    Game game = Game::Unknown;
 
     if (std::filesystem::exists(directoryPath + "/Stage.pfd"))
-        game = GAME_GENERATIONS;
+        game = Game::Generations;
 
     else
     {
@@ -23,7 +23,7 @@ Game detectGameFromStageDirectory(const std::string& directoryPath)
             fileStream.seek(4, SEEK_SET);
             const char version = fileStream.read<char>();
 
-            game = version == '3' ? GAME_FORCES : version == '2' ? GAME_LOST_WORLD : GAME_UNKNOWN;
+            game = version == '3' ? Game::Forces : version == '2' ? Game::LostWorld : Game::Unknown;
         }
     }
 

@@ -2,10 +2,10 @@
 
 class Scene;
 
-enum LightType
+enum class LightType
 {
-    LIGHT_TYPE_DIRECTIONAL,
-    LIGHT_TYPE_POINT
+    Directional,
+    Point
 };
 
 class Light

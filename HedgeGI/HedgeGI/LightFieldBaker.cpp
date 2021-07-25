@@ -106,7 +106,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
     if (radius < bakeParams.lightFieldMinCellRadius || userData.materials.size() <= 1)
     {
-        lightField.cells[cellIndex].type = LIGHT_FIELD_CELL_TYPE_PROBE;
+        lightField.cells[cellIndex].type = LightFieldCellType::Probe;
         lightField.cells[cellIndex].index = (uint32_t)lightField.indices.size();
 
         for (size_t i = 0; i < 8; i++)

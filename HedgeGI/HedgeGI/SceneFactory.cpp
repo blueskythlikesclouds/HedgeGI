@@ -55,7 +55,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
     char* shaderName = (char*)hlOff32Get(&material->shaderNameOffset);
-    newMaterial->type = strstr(shaderName, "IgnoreLight") != nullptr ? MATERIAL_TYPE_IGNORE_LIGHT : MATERIAL_TYPE_COMMON;
+    newMaterial->type = strstr(shaderName, "IgnoreLight") != nullptr ? MaterialType::IgnoreLight : MaterialType::Common;
 
     HL_OFF32(HlHHMaterialParameter)* parameters = (HL_OFF32(HlHHMaterialParameter)*)hlOff32Get(&material->vec4ParamsOffset);
 
@@ -379,13 +379,13 @@ std::unique_ptr<Instance> SceneFactory::createInstance(HlHHTerrainInstanceInfoV0
         HL_OFF32(HlHHMesh)* punchMeshes = (HL_OFF32(HlHHMesh)*)hlOff32Get(&meshGroup->punch.meshesOffset);
 
         for (size_t j = 0; j < meshGroup->solid.meshCount; j++)
-            addMesh((HlHHMesh*)hlOff32Get(&solidMeshes[j]), MESH_TYPE_OPAQUE);
+            addMesh((HlHHMesh*)hlOff32Get(&solidMeshes[j]), MeshType::Opaque);
 
         for (size_t j = 0; j < meshGroup->transparent.meshCount; j++)
-            addMesh((HlHHMesh*)hlOff32Get(&transparentMeshes[j]), MESH_TYPE_TRANSPARENT);
+            addMesh((HlHHMesh*)hlOff32Get(&transparentMeshes[j]), MeshType::Transparent);
 
         for (size_t j = 0; j < meshGroup->punch.meshCount; j++)
-            addMesh((HlHHMesh*)hlOff32Get(&punchMeshes[j]), MESH_TYPE_PUNCH);
+            addMesh((HlHHMesh*)hlOff32Get(&punchMeshes[j]), MeshType::Punch);
 
         HL_OFF32(HlU32)* specialMeshGroupCounts = (HL_OFF32(HlU32)*)hlOff32Get(&meshGroup->special.meshCounts);
         HL_OFF32(HL_OFF32(HlHHMesh))* specialMeshGroupOffsets = (HL_OFF32(HL_OFF32(HlHHMesh))*)hlOff32Get(&meshGroup->special.meshesOffset);
@@ -396,7 +396,7 @@ std::unique_ptr<Instance> SceneFactory::createInstance(HlHHTerrainInstanceInfoV0
             HL_OFF32(HlHHMesh)* specialMeshGroupOffset = (HL_OFF32(HlHHMesh)*)hlOff32Get(&specialMeshGroupOffsets[j]);
 
             for (size_t k = 0; k < *specialMeshGroupCount; k++)
-                addMesh((HlHHMesh*)hlOff32Get(&specialMeshGroupOffset[k]), MESH_TYPE_SPECIAL);
+                addMesh((HlHHMesh*)hlOff32Get(&specialMeshGroupOffset[k]), MeshType::Special);
         }
     }
 
@@ -416,7 +416,7 @@ std::unique_ptr<Light> SceneFactory::createLight(HlHHLightV1* light)
     newLight->color[1] = light->color.y;
     newLight->color[2] = light->color.z;
 
-    if (newLight->type != LIGHT_TYPE_POINT)
+    if (newLight->type != LightType::Point)
     {
         newLight->positionOrDirection.normalize();
         return newLight;

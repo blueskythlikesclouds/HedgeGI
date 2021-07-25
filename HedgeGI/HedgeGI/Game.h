@@ -1,11 +1,11 @@
 ﻿#pragma once
 
-enum Game
+enum class Game
 {
-    GAME_UNKNOWN,
-    GAME_GENERATIONS,
-    GAME_LOST_WORLD,
-    GAME_FORCES
+    Unknown,
+    Generations,
+    LostWorld,
+    Forces
 };
 
 extern const char* const GAME_NAMES[];

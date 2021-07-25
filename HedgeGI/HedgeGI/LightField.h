@@ -11,12 +11,12 @@ struct LightFieldProbe
     }
 };
 
-enum LightFieldCellType : uint32_t
+enum class LightFieldCellType : uint32_t
 {
-    LIGHT_FIELD_CELL_TYPE_X,
-    LIGHT_FIELD_CELL_TYPE_Y,
-    LIGHT_FIELD_CELL_TYPE_Z,
-    LIGHT_FIELD_CELL_TYPE_PROBE
+    X,
+    Y,
+    Z,
+    Probe
 };
 
 struct LightFieldCell

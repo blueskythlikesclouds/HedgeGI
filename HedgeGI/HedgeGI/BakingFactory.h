@@ -36,7 +36,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
     const Light* sunLight = nullptr;
     for (auto& light : raytracingContext.scene->lights)
     {
-        if (light->type != LIGHT_TYPE_DIRECTIONAL)
+        if (light->type != LightType::Directional)
             continue;
 
         sunLight = light.get();
@@ -123,13 +123,13 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
                     const Vector3 triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
 
-                    if (mesh.type == MESH_TYPE_OPAQUE && triNormal.dot(worldSpaceDirection) >= 0.0f)
+                    if (mesh.type == MeshType::Opaque && triNormal.dot(worldSpaceDirection) >= 0.0f)
                         continue;
 
-                    float alpha = mesh.type != MESH_TYPE_OPAQUE && mesh.material && mesh.material->textures.diffuse ?
+                    float alpha = mesh.type != MeshType::Opaque && mesh.material && mesh.material->textures.diffuse ?
                         mesh.material->textures.diffuse->pickColor(barycentricLerp(a.uv, b.uv, c.uv, baryUV)).w() : 1.0f;
 
-                    if (mesh.type == MESH_TYPE_PUNCH && alpha < 0.5f)
+                    if (mesh.type == MeshType::Punch && alpha < 0.5f)
                         continue;
 
                     ambientOcclusion += 1.0f / (bakeParams.aoFadeConstant + bakeParams.aoFadeLinear * query.ray.tfar + bakeParams.aoFadeQuadratic * query.ray.tfar * query.ray.tfar) * alpha;
@@ -201,10 +201,10 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     const Vertex& c = mesh.vertices[triangle.c];
                     const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, { query.hit.v, query.hit.u });
 
-                    const float alpha = mesh.type != MESH_TYPE_OPAQUE && mesh.material && mesh.material->textures.diffuse ? 
+                    const float alpha = mesh.type != MeshType::Opaque && mesh.material && mesh.material->textures.diffuse ? 
                         mesh.material->textures.diffuse->pickColor(hitUV)[3] : 1;
 
-                    shadow += (1 - shadow) * (mesh.type == MESH_TYPE_PUNCH ? alpha > 0.5f : alpha);
+                    shadow += (1 - shadow) * (mesh.type == MeshType::Punch ? alpha > 0.5f : alpha);
 
                     position = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
                 } while (shadow < 1.0f && ++depth < 8); // TODO: Some meshes get stuck in an infinite loop, intersecting each other infinitely. Figure out the solution instead of doing this.

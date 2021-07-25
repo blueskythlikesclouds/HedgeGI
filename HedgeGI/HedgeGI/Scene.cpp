@@ -22,7 +22,7 @@ RTCScene Scene::createRTCScene()
     rtcScene = rtcNewScene(RaytracingDevice::get());
     for (size_t i = 0; i < meshes.size(); i++)
     {
-        if (meshes[i]->type == MESH_TYPE_TRANSPARENT || meshes[i]->type == MESH_TYPE_SPECIAL)
+        if (meshes[i]->type == MeshType::Transparent || meshes[i]->type == MeshType::Special)
             continue;
 
         const RTCGeometry rtcGeometry = meshes[i]->createRTCGeometry();

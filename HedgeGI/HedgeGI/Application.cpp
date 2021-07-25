@@ -495,10 +495,10 @@ void Application::drawLightsUI()
     {
         ImGui::Separator();
 
-        dirty |= ImGui::InputFloat3(selectedLight->type == LIGHT_TYPE_POINT ? "Position" : "Direction", selectedLight->positionOrDirection.data());
+        dirty |= ImGui::InputFloat3(selectedLight->type == LightType::Point ? "Position" : "Direction", selectedLight->positionOrDirection.data());
         dirty |= ImGui::InputFloat3("Color", selectedLight->color.data());
 
-        if (selectedLight->type == LIGHT_TYPE_POINT)
+        if (selectedLight->type == LightType::Point)
             dirty |= ImGui::InputFloat4("Range", selectedLight->range.data());
         else
             selectedLight->positionOrDirection.normalize();
@@ -730,7 +730,7 @@ void Application::setTitle()
     const int fps = (int)round(1.0f / elapsedTime);
 
     if (!stageName.empty())
-        sprintf(title, "Hedge GI - %s - %s (FPS: %d)", stageName.c_str(), GAME_NAMES[game], fps);
+        sprintf(title, "Hedge GI - %s - %s (FPS: %d)", stageName.c_str(), GAME_NAMES[(size_t)game], fps);
     else
         sprintf(title, "Hedge GI (FPS: %d)", fps);
 
@@ -745,7 +745,7 @@ void Application::loadProperties()
     outputDirectoryPath = propertyBag.getString("outputDirectoryPath", stageDirectoryPath + "-HedgeGI");
     mode = propertyBag.get("mode", BakingFactoryMode::GI);
 
-    if (game == GAME_FORCES)
+    if (game == Game::Forces)
         bakeParams.targetEngine = TargetEngine::HE2;
 }
 
@@ -911,7 +911,7 @@ void Application::bakeGI()
                 lightMapFileName = isSg ? instance->name + "_sg.dds" : instance->name + ".dds";
                 shadowMapFileName = instance->name + "_occlusion.dds";
             }
-            else if (game == GAME_LOST_WORLD)
+            else if (game == Game::LostWorld)
             {
                 lightMapFileName = instance->name + ".dds";
             }
@@ -984,8 +984,8 @@ void Application::bakeGI()
 
             TRY_CANCEL()
     
-            pair.lightMap->save(lightMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT);
-            pair.shadowMap->save(shadowMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT);
+            pair.lightMap->save(lightMapFileName, game == Game::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT);
+            pair.shadowMap->save(shadowMapFileName, game == Game::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT);
         }
         else
         {
@@ -1033,19 +1033,19 @@ void Application::bakeGI()
 
             TRY_CANCEL()
 
-            if (game == GAME_GENERATIONS && bakeParams.targetEngine == TargetEngine::HE1)
+            if (game == Game::Generations && bakeParams.targetEngine == TargetEngine::HE1)
             {
                 combined->save(lightMapFileName, Bitmap::transformToLightMap);
                 combined->save(shadowMapFileName, Bitmap::transformToShadowMap);
             }
-            else if (game == GAME_LOST_WORLD)
+            else if (game == Game::LostWorld)
             {
                 combined->save(lightMapFileName, DXGI_FORMAT_BC3_UNORM);
             }
             else if (bakeParams.targetEngine == TargetEngine::HE2)
             {
-                combined->save(lightMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
-                combined->save(shadowMapFileName, game == GAME_GENERATIONS ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
+                combined->save(lightMapFileName, game == Game::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
+                combined->save(shadowMapFileName, game == Game::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
             }
         }
     });

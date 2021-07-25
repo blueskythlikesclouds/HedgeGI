@@ -23,12 +23,12 @@ struct Triangle
     uint32_t c{};
 };
 
-enum MeshType
+enum class MeshType
 {
-    MESH_TYPE_OPAQUE,
-    MESH_TYPE_TRANSPARENT,
-    MESH_TYPE_PUNCH,
-    MESH_TYPE_SPECIAL
+    Opaque,
+    Transparent,
+    Punch,
+    Special
 };
 
 class Mesh
