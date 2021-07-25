@@ -22,16 +22,6 @@
 
 #define TRY_CANCEL() if (cancelBake) return;
 
-const char* getBakingFactoryModeString(const BakingFactoryMode mode)
-{
-    switch (mode)
-    {
-    case BAKING_FACTORY_MODE_GI: return "Global Illumination";
-    case BAKING_FACTORY_MODE_LIGHT_FIELD: return "Light Field";
-    default: return "Unknown";
-    }
-}
-
 const ImGuiWindowFlags ImGuiWindowFlags_Static = 
     ImGuiWindowFlags_NoTitleBar |
     ImGuiWindowFlags_NoResize |
@@ -214,6 +204,78 @@ void Application::initializeDocks()
     ImGui::DockBuilderFinish(dockSpaceId);
 }
 
+bool Application::beginProperties(const char* name)
+{
+    return ImGui::BeginTable(name, 2);
+}
+
+void Application::beginProperty(const char* label)
+{
+    ImGui::TableNextColumn();
+    const ImVec2 cursorPos = ImGui::GetCursorPos();
+    ImGui::SetCursorPos({ cursorPos.x + 4, cursorPos.y + 4 });
+    ImGui::TextUnformatted(label);
+
+    ImGui::TableNextColumn();
+    ImGui::SetNextItemWidth(-1);
+}
+
+bool Application::property(const char* label, const enum ImGuiDataType_ dataType, void* data)
+{
+    beginProperty(label);
+    return ImGui::InputScalar((std::string("##") + label).c_str(), dataType, data);
+}
+
+bool Application::property(const char* label, bool& data)
+{
+    beginProperty(label);
+    return ImGui::Checkbox((std::string("##") + label).c_str(), &data);
+}
+
+bool Application::property(const char* label, char* data, size_t dataSize)
+{
+    beginProperty(label);
+    return ImGui::InputText((std::string("##") + label).c_str(), data, dataSize);
+}
+
+template <typename T>
+bool Application::property(const char* label, const std::initializer_list<std::pair<const char*, T>>& values, T& data)
+{
+    beginProperty(label);
+
+    const char* preview = "None";
+    for (auto& value : values)
+    {
+        if (value.second != data)
+            continue;
+
+        preview = value.first;
+        break;
+    }
+
+    if (!ImGui::BeginCombo((std::string("##") + label).c_str(), preview))
+        return false;
+
+    bool any = false;
+
+    for (auto& value : values)
+    {
+        if (!ImGui::Selectable(value.first))
+            continue;
+
+        data = value.second;
+        any = true;
+    }
+
+    ImGui::EndCombo();
+    return any;
+}
+
+void Application::endProperties()
+{
+    ImGui::EndTable();
+}
+
 void Application::draw()
 {
     float dockSpaceY = 0.0f;
@@ -224,15 +286,15 @@ void Application::draw()
 
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Open Stage"))
+            if (ImGui::MenuItem("Open"))
             {
-                const std::string directoryPath = FileDialog::openFolder(L"Open Stage");
+                const std::string directoryPath = FileDialog::openFolder(L"Enter into a stage directory.");
 
                 if (!directoryPath.empty())
                     loadScene(directoryPath);
             }
 
-            if (ImGui::BeginMenu("Recent Stages"))
+            if (ImGui::BeginMenu("Open Recent"))
             {
                 for (auto& directoryPath : recentStages)
                 {
@@ -367,15 +429,25 @@ void Application::drawInstancesUI()
         ImGui::Separator();
 
         uint16_t resolution = propertyBag.get<uint16_t>(selectedInstance->name + ".resolution", 256);
-        if (ImGui::InputScalar("Selected Instance Resolution", ImGuiDataType_U16, &resolution)) propertyBag.set(selectedInstance->name + ".resolution", resolution);
+        if (beginProperties("##Instance Settings"))
+        {
+            if (property("Selected Instance Resolution", ImGuiDataType_U16, &resolution))
+                propertyBag.set(selectedInstance->name + ".resolution", resolution);
+
+            endProperties();
+        }
     }
 
     ImGui::Separator();
 
-    ImGui::InputFloat("Resolution Base", &bakeParams.resolutionBase);
-    ImGui::InputFloat("Resolution Bias", &bakeParams.resolutionBias);
-    ImGui::InputScalar("Resolution Minimum", ImGuiDataType_U16, &bakeParams.resolutionMinimum);
-    ImGui::InputScalar("Resolution Maximum", ImGuiDataType_U16, &bakeParams.resolutionMaximum);
+    if (beginProperties("##Resolution Settings"))
+    {
+        property("Resolution Base", ImGuiDataType_Float, &bakeParams.resolutionBase);
+        property("Resolution Bias", ImGuiDataType_Float, &bakeParams.resolutionBias);
+        property("Resolution Minimum", ImGuiDataType_U16, &bakeParams.resolutionMinimum);
+        property("Resolution Maximum", ImGuiDataType_U16, &bakeParams.resolutionMaximum);
+        endProperties();
+    }
 
     if (ImGui::Button("Compute New Resolutions"))
     {
@@ -474,7 +546,11 @@ void Application::drawSettingsUI()
 
     const BakeParams oldBakeParams = bakeParams;
 
-    ImGui::InputFloat("Viewport Resolution", &viewportResolutionInvRatio);
+    if (beginProperties("##Viewport Settings"))
+    {
+        property("Viewport Resolution", ImGuiDataType_Float, &viewportResolutionInvRatio);
+        endProperties();
+    }
     ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Environment Color"))
@@ -483,38 +559,42 @@ void Application::drawSettingsUI()
     }
     ImGui::Separator();
 
-    if (ImGui::CollapsingHeader("Light Sampling"))
+    if (ImGui::CollapsingHeader("Light Sampling") && beginProperties("##Light Sampling"))
     {
-        ImGui::InputScalar("Light Bounce Count", ImGuiDataType_U32, &bakeParams.lightBounceCount);
-        ImGui::InputScalar("Light Sample Count", ImGuiDataType_U32, &bakeParams.lightSampleCount);
-        ImGui::InputScalar("Russian Roulette Max Depth", ImGuiDataType_U32, &bakeParams.russianRouletteMaxDepth);
+        property("Light Bounce Count", ImGuiDataType_U32, &bakeParams.lightBounceCount);
+        property("Light Sample Count", ImGuiDataType_U32, &bakeParams.lightSampleCount);
+        property("Russian Roulette Max Depth", ImGuiDataType_U32, &bakeParams.russianRouletteMaxDepth);
+        endProperties();
     }
     ImGui::Separator();
 
-    if (ImGui::CollapsingHeader("Shadow Sampling"))
+    if (ImGui::CollapsingHeader("Shadow Sampling") && beginProperties("##Shadow Sampling"))
     {
-        ImGui::InputScalar("Shadow Sample Count", ImGuiDataType_U32, &bakeParams.shadowSampleCount);
-        ImGui::InputFloat("Shadow Search Radius", &bakeParams.shadowSearchRadius);
-        ImGui::InputFloat("Shadow Bias", &bakeParams.shadowBias);
+        property("Shadow Sample Count", ImGuiDataType_U32, &bakeParams.shadowSampleCount);
+        property("Shadow Search Radius", ImGuiDataType_Float, &bakeParams.shadowSearchRadius);
+        property("Shadow Bias", ImGuiDataType_Float, &bakeParams.shadowBias);
+        endProperties();
     }
     ImGui::Separator();
 
-    if (ImGui::CollapsingHeader("Ambient Occlusion"))
+    if (ImGui::CollapsingHeader("Ambient Occlusion") && beginProperties("##Ambient Occlusion"))
     {
-        ImGui::InputScalar("AO Sample Count", ImGuiDataType_U32, &bakeParams.aoSampleCount);
-        ImGui::InputFloat("AO Fade Constant", &bakeParams.aoFadeConstant);
-        ImGui::InputFloat("AO Fade Linear", &bakeParams.aoFadeLinear);
-        ImGui::InputFloat("AO Fade Quadratic", &bakeParams.aoFadeQuadratic);
-        ImGui::InputFloat("AO Fade Strength", &bakeParams.aoStrength);
+        property("AO Sample Count", ImGuiDataType_U32, &bakeParams.aoSampleCount);
+        property("AO Fade Constant", ImGuiDataType_Float, &bakeParams.aoFadeConstant);
+        property("AO Fade Linear", ImGuiDataType_Float, &bakeParams.aoFadeLinear);
+        property("AO Fade Quadratic", ImGuiDataType_Float, &bakeParams.aoFadeQuadratic);
+        property("AO Fade Strength", ImGuiDataType_Float, &bakeParams.aoStrength);
+        endProperties();
     }
     ImGui::Separator();
 
-    if (ImGui::CollapsingHeader("Strength Modifiers"))
+    if (ImGui::CollapsingHeader("Strength Modifiers") && beginProperties("##Strength Modifiers"))
     {
-        ImGui::InputFloat("Diffuse Strength", &bakeParams.diffuseStrength);
-        ImGui::InputFloat("Diffuse Saturation", &bakeParams.diffuseSaturation);
-        ImGui::InputFloat("Light Strength", &bakeParams.lightStrength);
-        ImGui::InputFloat("Emission Strength", &bakeParams.emissionStrength);
+        property("Diffuse Strength", ImGuiDataType_Float, &bakeParams.diffuseStrength);
+        property("Diffuse Saturation", ImGuiDataType_Float, &bakeParams.diffuseSaturation);
+        property("Light Strength", ImGuiDataType_Float, &bakeParams.lightStrength);
+        property("Emission Strength", ImGuiDataType_Float, &bakeParams.emissionStrength);
+        endProperties();
     }
 
     ImGui::End();
@@ -530,59 +610,66 @@ void Application::drawBakingFactoryUI()
     if (!ImGui::Begin("Baking Factory", &showBakingFactory))
         return ImGui::End();
 
-    if (ImGui::BeginCombo("Mode", getBakingFactoryModeString(mode)))
+    if (beginProperties("##Mode Settings"))
     {
-        if (ImGui::Selectable(getBakingFactoryModeString(BAKING_FACTORY_MODE_GI))) mode = BAKING_FACTORY_MODE_GI;
-        if (ImGui::Selectable(getBakingFactoryModeString(BAKING_FACTORY_MODE_LIGHT_FIELD))) mode = BAKING_FACTORY_MODE_LIGHT_FIELD;
+        property("Mode",
+            {
+                { "Global Illumination", BAKING_FACTORY_MODE_GI },
+                { "Light Field", BAKING_FACTORY_MODE_LIGHT_FIELD }
+            },
+            mode
+            );
 
-        ImGui::EndCombo();
+        dirty |= property("Engine",
+            {
+                { "Hedgehog Engine 1", TARGET_ENGINE_HE1},
+                { "Hedgehog Engine 2", TARGET_ENGINE_HE2}
+            },
+            bakeParams.targetEngine
+            );
+
+        endProperties();
+        ImGui::Separator();
     }
 
-    if (ImGui::BeginCombo("Engine", getTargetEngineString(bakeParams.targetEngine)))
+    if (beginProperties("##Mode Specific Settings"))
     {
-        if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE1)))
+        if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD && bakeParams.targetEngine == TARGET_ENGINE_HE1)
         {
-            bakeParams.targetEngine = TARGET_ENGINE_HE1;
-            dirty = true;
+            property("Minimum Cell Radius", ImGuiDataType_Float, &bakeParams.lightFieldMinCellRadius);
+            property("AABB Size Multiplier", ImGuiDataType_Float, &bakeParams.lightFieldAabbSizeMultiplier);
+        }
+        else if (mode == BAKING_FACTORY_MODE_GI)
+        {
+            property("Denoise Shadow Map", bakeParams.denoiseShadowMap);
+            property("Optimize Seams", bakeParams.optimizeSeams);
+
+            property("Denoiser Type",
+                {
+                    {"None", DENOISER_TYPE_NONE},
+                    {"Optix AI", DENOISER_TYPE_OPTIX},
+                    {"oidn", DENOISER_TYPE_OIDN},
+                },
+                bakeParams.denoiserType);
+
+            property("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
         }
 
-        if (ImGui::Selectable(getTargetEngineString(TARGET_ENGINE_HE2)))
-        {
-            bakeParams.targetEngine = TARGET_ENGINE_HE2;
-            dirty = true;
-        }
-
-        ImGui::EndCombo();
+        endProperties();
+        ImGui::Separator();
     }
-    ImGui::Separator();
 
-    if (mode == BAKING_FACTORY_MODE_LIGHT_FIELD && bakeParams.targetEngine == TARGET_ENGINE_HE1)
+    if (beginProperties("##Baking Factory Settings"))
     {
-        ImGui::InputFloat("Minimum Cell Radius", &bakeParams.lightFieldMinCellRadius);
-        ImGui::InputFloat("AABB Size Multiplier", &bakeParams.lightFieldAabbSizeMultiplier);
+        char outputDirPath[1024];
+        strcpy(outputDirPath, outputDirectoryPath.c_str());
+
+        if (property("Output Directory", outputDirPath, sizeof(outputDirPath)))
+            outputDirectoryPath = outputDirPath;
+
+        endProperties();
+        ImGui::Separator();
     }
-    else if (mode == BAKING_FACTORY_MODE_GI)
-    {
-        ImGui::Checkbox("Denoise Shadow Map", &bakeParams.denoiseShadowMap);
-        ImGui::Checkbox("Optimize Seams", &bakeParams.optimizeSeams);
-
-        if (ImGui::BeginCombo("Denoiser Type", getDenoiserTypeString(bakeParams.denoiserType)))
-        {
-            if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_NONE))) bakeParams.denoiserType = DENOISER_TYPE_NONE;
-            if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_OPTIX))) bakeParams.denoiserType = DENOISER_TYPE_OPTIX;
-            if (ImGui::Selectable(getDenoiserTypeString(DENOISER_TYPE_OIDN))) bakeParams.denoiserType = DENOISER_TYPE_OIDN;
-
-            ImGui::EndCombo();
-        }
-        ImGui::InputScalar("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
-    }
-    ImGui::Separator();
-
-    char outputDirPath[1024];
-    strcpy(outputDirPath, outputDirectoryPath.c_str());
-
-    if (ImGui::InputText("Output Directory", outputDirPath, sizeof(outputDirPath)))
-        outputDirectoryPath = outputDirPath;
 
     if (ImGui::Button("Browse"))
     {
@@ -1103,7 +1190,7 @@ void Application::update()
 {
     glfwPollEvents();
 
-    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
+    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED) && !openLoadingPopup && !openBakingPopup)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         return;
