@@ -6,6 +6,7 @@ class Scene;
 enum class MaterialType : uint32_t
 {
     Common,
+    Blend,
     IgnoreLight
 };
 
@@ -18,6 +19,7 @@ private:
 public:
     std::string name;
     MaterialType type{};
+    bool ignoreVertexColor {}; // HE1 only
 
     struct Parameters
     {

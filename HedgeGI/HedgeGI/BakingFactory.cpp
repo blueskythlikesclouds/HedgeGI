@@ -95,12 +95,19 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         if (material != nullptr)
         {
-            if (material->type == MaterialType::Common)
+            if (material->type == MaterialType::Common || material->type == MaterialType::Blend)
             {
-                if (targetEngine == TargetEngine::HE1)
+                float blend;
+
+                if (targetEngine == TargetEngine::HE2)
+                {
+                    blend = hitColor.w();
+                }
+                else
                 {
                     diffuse.head<3>() *= material->parameters.diffuse.head<3>();
                     diffuse.w() *= material->parameters.opacityReflectionRefractionSpecType.x();
+                    blend = hitColor.x();
                 }
 
                 if (material->textures.diffuse != nullptr)
@@ -110,20 +117,22 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     if (targetEngine == TargetEngine::HE2)
                         diffuseTex.head<3>() = diffuseTex.head<3>().pow(2.2f);
 
-                    if (material->textures.diffuseBlend != nullptr)
+                    if (material->type == MaterialType::Blend && material->textures.diffuseBlend != nullptr)
                     {
                         Color4 diffuseBlendTex = material->textures.diffuseBlend->pickColor(hitUV);
 
                         if (targetEngine == TargetEngine::HE2)
                             diffuseBlendTex.head<3>() = diffuseBlendTex.head<3>().pow(2.2f);
 
-                        diffuseTex = lerp(diffuseTex, diffuseBlendTex, hitColor.w());
+                        diffuseTex = lerp(diffuseTex, diffuseBlendTex, blend);
                     }
 
                     diffuse *= diffuseTex;
                 }
 
-                if (material->textures.diffuseBlend == nullptr || targetEngine == TargetEngine::HE2)
+                if (material->ignoreVertexColor && targetEngine != TargetEngine::HE2)
+                    diffuse.w() *= hitColor.w();
+                else
                     diffuse *= hitColor;
 
                 if (targetEngine == TargetEngine::HE2 && material->textures.alpha != nullptr)
@@ -151,8 +160,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 {
                     float gloss = material->textures.gloss->pickColor(hitUV).x();
 
-                    if (material->textures.glossBlend != nullptr)
-                        gloss = lerp(gloss, material->textures.glossBlend->pickColor(hitUV).x(), hitColor.w());
+                    if (material->type == MaterialType::Blend && material->textures.glossBlend != nullptr)
+                        gloss = lerp(gloss, material->textures.glossBlend->pickColor(hitUV).x(), blend);
 
                     glossPower = std::min(1024.0f, std::max(1.0f, gloss * material->parameters.powerGlossLevel.y() * 500.0f));
                     glossLevel = gloss * material->parameters.powerGlossLevel.z() * 5.0f;
@@ -163,8 +172,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     {
                         Color4 specularTex = material->textures.specular->pickColor(hitUV);
 
-                        if (material->textures.specularBlend != nullptr)
-                            specularTex = lerp(specularTex, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
+                        if (material->type == MaterialType::Blend && material->textures.specularBlend != nullptr)
+                            specularTex = lerp(specularTex, material->textures.specularBlend->pickColor(hitUV), blend);
 
                         specular *= specularTex;
                     }
@@ -176,8 +185,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     {
                         specular = material->textures.specular->pickColor(hitUV);
 
-                        if (material->textures.specularBlend != nullptr)
-                            specular = lerp(specular, material->textures.specularBlend->pickColor(hitUV), hitColor.w());
+                        if (material->type == MaterialType::Blend && material->textures.specularBlend != nullptr)
+                            specular = lerp(specular, material->textures.specularBlend->pickColor(hitUV), blend);
 
                         specular.x() *= 0.25f;
                     }
@@ -185,8 +194,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     {
                         specular.head<2>() = material->parameters.pbrFactor.head<2>();
 
-                        if (material->textures.diffuseBlend != nullptr)
-                            specular.head<2>() = lerp<Eigen::Array2f>(specular.head<2>(), material->parameters.pbrFactor2.head<2>(), hitColor.w());
+                        if (material->type == MaterialType::Blend && material->textures.diffuseBlend != nullptr)
+                            specular.head<2>() = lerp<Eigen::Array2f>(specular.head<2>(), material->parameters.pbrFactor2.head<2>(), blend);
 
                         specular.z() = 1.0f;
                         specular.w() = 1.0f;
@@ -259,7 +268,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             F0 = lerp<Color3>(Color3(0.17), diffuse.head<3>(), metalness);
         }
 
-        if (material == nullptr || material->type == MaterialType::Common)
+        if (material == nullptr || material->type == MaterialType::Common || material->type == MaterialType::Blend)
         {
             for (auto& light : raytracingContext.scene->lights)
             {

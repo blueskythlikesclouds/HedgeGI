@@ -55,7 +55,10 @@ std::unique_ptr<Material> SceneFactory::createMaterial(HlHHMaterialV3* material,
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
     char* shaderName = (char*)hlOff32Get(&material->shaderNameOffset);
-    newMaterial->type = strstr(shaderName, "IgnoreLight") != nullptr ? MaterialType::IgnoreLight : MaterialType::Common;
+    newMaterial->type = strstr(shaderName, "IgnoreLight") != nullptr ? MaterialType::IgnoreLight :
+        strstr(shaderName, "Blend") != nullptr ? MaterialType::Blend : MaterialType::Common;
+
+    newMaterial->ignoreVertexColor = newMaterial->type == MaterialType::Blend || strstr(shaderName, "FadeOutNormal");
 
     HL_OFF32(HlHHMaterialParameter)* parameters = (HL_OFF32(HlHHMaterialParameter)*)hlOff32Get(&material->vec4ParamsOffset);
 
@@ -240,6 +243,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(HlHHMesh* mesh, const Affine3& tr
                 break;
 
             case HL_HH_VERTEX_FORMAT_VECTOR2_HALF:
+                size = std::min<size_t>(size, 2);
 
                 for (size_t j = 0; j < 2; j++)
                     destination[j] = half_to_float(((uint16_t*)source)[j]);
@@ -504,6 +508,10 @@ void SceneFactory::loadResources(HlArchive* archive, Scene& scene)
 
         HlHHLightV1* light = (HlHHLightV1*)hlHHGetData((void*)entry->data, nullptr);
         hlHHLightV1Fix(light);
+
+        // TODO
+        if (light->type == HL_HH_LIGHT_TYPE_POINT)
+            continue;
 
         std::unique_ptr<Light> newLight = createLight(light);
 
