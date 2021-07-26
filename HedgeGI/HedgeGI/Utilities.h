@@ -46,13 +46,18 @@ static std::string getExecutableDirectoryPath()
     return getDirectoryPath(moduleFilePathMultiByte);
 }
 
-constexpr uint64_t computeHash(const char* value)
+constexpr uint64_t strHash(const char* const value)
 {
     uint64_t hash = 5381;
 
-    char c = 0;
-    while ((c = *value++) != 0)
+    for (size_t i = 0; ; i++)
+    {
+        const char c = value[i];
+        if (!c)
+            break;
+
         hash = ((hash << 5) + hash) + c;
+    }
 
     return hash;
 }

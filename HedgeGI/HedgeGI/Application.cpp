@@ -749,9 +749,9 @@ void Application::loadProperties()
 {
     camera.load(propertyBag);
     bakeParams.load(propertyBag);
-    viewportResolutionInvRatio = propertyBag.get("viewportResolutionInvRatio", 2.0f);
-    outputDirectoryPath = propertyBag.getString("outputDirectoryPath", stageDirectoryPath + "-HedgeGI");
-    mode = propertyBag.get("mode", BakingFactoryMode::GI);
+    viewportResolutionInvRatio = propertyBag.get(PROP("viewportResolutionInvRatio"), 2.0f);
+    outputDirectoryPath = propertyBag.getString(PROP("outputDirectoryPath"), stageDirectoryPath + "-HedgeGI");
+    mode = propertyBag.get(PROP("mode"), BakingFactoryMode::GI);
 
     if (game == Game::Forces)
         bakeParams.targetEngine = TargetEngine::HE2;
@@ -761,9 +761,9 @@ void Application::storeProperties()
 {
     camera.store(propertyBag);
     bakeParams.store(propertyBag);
-    propertyBag.set("viewportResolutionInvRatio", viewportResolutionInvRatio);
-    propertyBag.setString("outputDirectoryPath", outputDirectoryPath);
-    propertyBag.set("mode", mode);
+    propertyBag.set(PROP("viewportResolutionInvRatio"), viewportResolutionInvRatio);
+    propertyBag.setString(PROP("outputDirectoryPath"), outputDirectoryPath);
+    propertyBag.set(PROP("mode"), mode);
 }
 
 void Application::destroyScene()
