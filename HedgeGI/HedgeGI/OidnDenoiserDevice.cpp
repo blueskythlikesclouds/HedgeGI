@@ -1,5 +1,6 @@
-﻿#include "Bitmap.h"
-#include "OidnDenoiserDevice.h"
+﻿#include "OidnDenoiserDevice.h"
+
+#include "Bitmap.h"
 #include <OpenImageDenoise/oidn.h>
 
 std::mutex OidnDenoiserDevice::mutex;

@@ -211,7 +211,7 @@
     <ClInclude Include="Math.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="Util.h" />
+    <ClInclude Include="Utilities.h" />
     <ClInclude Include="Pch.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="Scene.h" />

@@ -4,6 +4,7 @@
 
 class Instance;
 class Scene;
+
 struct BakeParams;
 struct RaytracingContext;
 

@@ -1,8 +1,17 @@
 ﻿#include "SceneFactory.h"
-#include "Bitmap.h"
-#include "Instance.h"
-#include "Material.h"
+
 #include "Scene.h"
+
+#include "Bitmap.h"
+#include "Material.h"
+#include "Mesh.h"
+#include "Instance.h"
+#include "Light.h"
+#include "SHLightField.h"
+
+#include "FileStream.h"
+#include "Math.h"
+#include "Utilities.h"
 
 std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const size_t length)
 {

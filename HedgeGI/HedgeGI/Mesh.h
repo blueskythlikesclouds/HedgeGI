@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+class FileStream;
 class Material;
 class Scene;
 

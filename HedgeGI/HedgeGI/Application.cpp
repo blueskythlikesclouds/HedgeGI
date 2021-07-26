@@ -1,19 +1,27 @@
 ﻿#include "Application.h"
+
+#include "BakingFactory.h"
 #include "BitmapHelper.h"
-#include "Input.h"
-#include "Viewport.h"
 #include "Camera.h"
-#include "Framebuffer.h"
 #include "FileDialog.h"
+#include "Framebuffer.h"
+#include "Game.h"
 #include "GIBaker.h"
-#include "LightFieldBaker.h"
-#include "SceneFactory.h"
+#include "Input.h"
+#include "Instance.h"
+#include "Light.h"
 #include "LightField.h"
+#include "LightFieldBaker.h"
+#include "Logger.h"
+#include "Math.h"
+#include "PropertyBag.h"
+#include "SceneFactory.h"
 #include "SeamOptimizer.h"
 #include "SGGIBaker.h"
+#include "SHLightField.h"
 #include "SHLightFieldBaker.h"
-
-#include <fstream>
+#include "Utilities.h"
+#include "Viewport.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -527,7 +535,7 @@ void Application::drawViewportUI()
 
     if (const Texture* texture = viewport.getTexture(); texture != nullptr)
     {
-        ImGui::GetWindowDrawList()->AddImage(reinterpret_cast<ImTextureID>(texture->id), min, max,
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)(size_t)texture->id, min, max,
             { 0, 1 }, { (float)viewportWidth / (float)texture->width, 1.0f - (float)viewportHeight / (float)texture->height });
     }
 

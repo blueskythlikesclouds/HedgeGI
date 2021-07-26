@@ -1,7 +1,8 @@
-﻿#include "BakePoint.h"
+﻿#include "GIBaker.h"
+
+#include "BakePoint.h"
 #include "BakingFactory.h"
 #include "BitmapHelper.h"
-#include "GIBaker.h"
 
 struct GIPoint : BakePoint<1, BAKE_POINT_FLAGS_ALL>
 {

@@ -1,5 +1,9 @@
 ﻿#pragma once
 
+#include "Utilities.h"
+
+class FileStream;
+
 struct Property
 {
     uint64_t key{};

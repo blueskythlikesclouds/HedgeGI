@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+class FileStream;
+
 enum class BitmapType : uint32_t
 {
     _2D,

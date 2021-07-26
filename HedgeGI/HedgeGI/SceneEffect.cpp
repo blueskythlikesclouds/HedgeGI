@@ -1,4 +1,5 @@
 ﻿#include "SceneEffect.h"
+
 #include "FxSceneData.h"
 #include "NeedleFxSceneData.h"
 

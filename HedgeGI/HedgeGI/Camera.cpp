@@ -1,6 +1,8 @@
 ﻿#include "Camera.h"
+
 #include "Application.h"
 #include "Input.h"
+#include "Math.h"
 #include "PropertyBag.h"
 
 Camera::Camera()

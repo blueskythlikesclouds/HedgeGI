@@ -1,4 +1,7 @@
 ﻿#include "Mesh.h"
+
+#include "FileStream.h"
+#include "RaytracingDevice.h"
 #include "Scene.h"
 
 Matrix3 Vertex::getTangentToWorldMatrix() const

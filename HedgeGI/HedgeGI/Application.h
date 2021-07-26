@@ -1,10 +1,13 @@
 ﻿#pragma once
 
-#include "BakingFactory.h"
 #include "Input.h"
-#include "Quad.h"
-#include "Viewport.h"
 #include "Camera.h"
+#include "Viewport.h"
+#include "Quad.h"
+#include "Game.h"
+#include "PropertyBag.h"
+#include "Scene.h"
+#include "BakeParams.h"
 
 enum class BakingFactoryMode
 {

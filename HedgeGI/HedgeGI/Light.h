@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-class Scene;
+class FileStream;
 
 enum class LightType
 {

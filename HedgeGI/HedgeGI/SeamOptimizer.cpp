@@ -1,4 +1,5 @@
 ﻿#include "SeamOptimizer.h"
+
 #include "BakePoint.h"
 #include "Bitmap.h"
 #include "Instance.h"

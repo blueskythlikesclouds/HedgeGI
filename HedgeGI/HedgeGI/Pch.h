@@ -1,7 +1,5 @@
 #pragma once
 
-#include "resource.h"
-
 // DirectXTex
 #include <DirectXTex.h>
 
@@ -51,10 +49,11 @@ using Quaternion = Eigen::Quaternionf;
 #include <cstdio>
 #include <execution>
 #include <filesystem>
+#include <fstream>
+#include <future>
 #include <random>
 #include <unordered_set>
 #include <vector>
-#include <future>
 
 // parallel_hashmap
 #include <phmap.h>
@@ -71,13 +70,3 @@ using Quaternion = Eigen::Quaternionf;
 
 #undef min
 #undef max
-
-// HedgeGI
-#include "Logger.h"
-#include "FileStream.h"
-#include "Math.h"
-#include "Util.h"
-#include "Random.h"
-#include "RaytracingDevice.h"
-#include "Game.h"
-#include "PropertyBag.h"

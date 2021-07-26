@@ -1,4 +1,5 @@
 ﻿#include "ShaderProgram.h"
+#include "resource.h"
 
 const struct ShaderDescriptor
 {

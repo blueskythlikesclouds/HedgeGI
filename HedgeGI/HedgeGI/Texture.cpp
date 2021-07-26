@@ -24,7 +24,7 @@ void Texture::bind() const
 
 void Texture::bind(size_t index) const
 {
-    glActiveTexture(GL_TEXTURE0 + index);
+    glActiveTexture((GLenum)(GL_TEXTURE0 + index));
     glBindTexture(target, id);
 }
 

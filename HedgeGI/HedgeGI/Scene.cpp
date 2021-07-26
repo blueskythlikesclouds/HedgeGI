@@ -1,5 +1,15 @@
 ﻿#include "Scene.h"
 
+#include "Bitmap.h"
+#include "Material.h"
+#include "Mesh.h"
+#include "Instance.h"
+#include "Light.h"
+#include "SHLightField.h"
+
+#include "FileStream.h"
+#include "RaytracingDevice.h"
+
 Scene::~Scene()
 {
     if (rtcScene != nullptr)

@@ -1,9 +1,9 @@
-#include <xmmintrin.h>
-#include <pmmintrin.h>
-
 #include "Application.h"
 
 #pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+
+#include <xmmintrin.h>
+#include <pmmintrin.h>
 
 int32_t main(int32_t argc, const char* argv[])
 {

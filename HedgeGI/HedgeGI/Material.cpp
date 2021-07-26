@@ -1,4 +1,6 @@
 ﻿#include "Material.h"
+
+#include "FileStream.h"
 #include "Scene.h"
 
 const Bitmap* Material::readBitmapReference(const FileStream& file, const Scene& scene)

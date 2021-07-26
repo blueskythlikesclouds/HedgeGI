@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include "Bitmap.h"
-
+class Bitmap;
 class Instance;
 class Scene;
+
 struct BakeParams;
 struct GIPoint;
 struct RaytracingContext;

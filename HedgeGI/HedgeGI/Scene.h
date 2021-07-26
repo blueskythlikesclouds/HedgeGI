@@ -1,12 +1,15 @@
 ﻿#pragma once
 
-#include "Bitmap.h"
-#include "Instance.h"
-#include "Light.h"
-#include "Material.h"
-#include "Mesh.h"
 #include "SceneEffect.h"
-#include "SHLightField.h"
+
+class Bitmap;
+class Material;
+class Mesh;
+class Instance;
+class Light;
+class SHLightField;
+
+class FileStream;
 
 struct RaytracingContext
 {

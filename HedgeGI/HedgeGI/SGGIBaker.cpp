@@ -1,7 +1,9 @@
-﻿#include "BakePoint.h"
+﻿#include "SGGIBaker.h"
+
+#include "BakePoint.h"
 #include "BakingFactory.h"
 #include "BitmapHelper.h"
-#include "SGGIBaker.h"
+#include "Math.h"
 
 const std::array<Vector3, 4> SG_DIRECTIONS =
 {

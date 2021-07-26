@@ -1,4 +1,5 @@
 ﻿#include "PropertyBag.h"
+#include "FileStream.h"
 
 void PropertyBag::read(const FileStream& file)
 {

@@ -2,6 +2,7 @@
 
 class Bitmap;
 class SHLightField;
+
 struct BakeParams;
 struct RaytracingContext;
 struct SHLightFieldPoint;

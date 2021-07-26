@@ -1,9 +1,12 @@
 ﻿#include "Viewport.h"
+
 #include "Application.h"
+#include "BakingFactory.h"
+#include "Bitmap.h"
 #include "Camera.h"
-#include "Texture.h"
 #include "Framebuffer.h"
 #include "ShaderProgram.h"
+#include "Texture.h"
 
 void Viewport::initialize()
 {
@@ -87,7 +90,7 @@ void Viewport::toneMap(const Application& application) const
     hdrFramebufferTex->texture.bind(0);
     avgLuminanceFramebufferTex->texture.bind(1);
 
-    glViewport(0, ldrFramebufferTex->height - viewportHeight, viewportWidth, viewportHeight);
+    glViewport(0, (GLint)(ldrFramebufferTex->height - viewportHeight), (GLsizei)viewportWidth, (GLsizei)viewportHeight);
     application.drawQuad();
 }
 

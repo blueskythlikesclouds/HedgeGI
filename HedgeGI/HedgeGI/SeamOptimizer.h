@@ -2,6 +2,10 @@
 
 class Bitmap;
 class Instance;
+class Mesh;
+
+struct Triangle;
+struct Vertex;
 
 struct SeamNode
 {

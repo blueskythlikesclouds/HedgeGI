@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Instance.h"
+#include "Math.h"
 #include "Scene.h"
 
 enum BakePointFlags : size_t

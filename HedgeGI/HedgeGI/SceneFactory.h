@@ -1,12 +1,13 @@
 ﻿#pragma once
 
 class Bitmap;
-class Instance;
-class Light;
 class Material;
 class Mesh;
-class Scene;
+class Instance;
+class Light;
 class SHLightField;
+
+class Scene;
 
 class SceneFactory
 {

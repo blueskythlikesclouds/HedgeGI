@@ -2,6 +2,10 @@
 
 #include "BakeParams.h"
 #include "BakePoint.h"
+#include "Bitmap.h"
+#include "Light.h"
+#include "Material.h"
+#include "Random.h"
 #include "Scene.h"
 
 class Camera;

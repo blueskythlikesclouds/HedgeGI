@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-class PropertyBag;
 class Application;
+class PropertyBag;
 
 class Camera
 {

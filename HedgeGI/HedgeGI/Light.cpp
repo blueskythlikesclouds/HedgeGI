@@ -1,4 +1,5 @@
 ﻿#include "Light.h"
+#include "FileStream.h"
 
 Matrix3 Light::getTangentToWorldMatrix() const
 {

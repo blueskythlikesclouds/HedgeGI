@@ -1,11 +1,11 @@
 ﻿#pragma once
 
-class ShaderProgram;
-class FramebufferTexture;
-class Texture;
 class Application;
 class Bitmap;
 class Camera;
+class FramebufferTexture;
+class ShaderProgram;
+class Texture;
 
 class Viewport
 {

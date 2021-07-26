@@ -1,7 +1,10 @@
 ﻿#include "LightFieldBaker.h"
+
 #include "BakePoint.h"
 #include "BakingFactory.h"
 #include "LightField.h"
+#include "Logger.h"
+#include "Math.h"
 
 struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
 {

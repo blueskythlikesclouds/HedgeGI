@@ -1,4 +1,7 @@
 ﻿#include "Instance.h"
+
+#include "FileStream.h"
+#include "Mesh.h"
 #include "Scene.h"
 
 void Instance::buildAABB()

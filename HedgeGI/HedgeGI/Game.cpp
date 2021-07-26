@@ -1,5 +1,8 @@
 ﻿#include "Game.h"
 
+#include "FileStream.h"
+#include "Utilities.h"
+
 const char* const GAME_NAMES[] =
 {
     "Unknown",

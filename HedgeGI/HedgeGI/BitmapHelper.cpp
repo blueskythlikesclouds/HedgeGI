@@ -1,9 +1,8 @@
 ﻿#include "BitmapHelper.h"
-#include "BakingFactory.h"
+
+#include "BakeParams.h"
 #include "OidnDenoiserDevice.h"
 #include "OptixDenoiserDevice.h"
-#include "Instance.h"
-#include "Mesh.h"
 #include "SeamOptimizer.h"
 
 std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap, const DenoiserType denoiserType, const bool denoiseAlpha)

@@ -1,4 +1,5 @@
 ﻿#include "FileDialog.h"
+#include "Utilities.h"
 
 std::string FileDialog::openFile(LPCWSTR filter, LPCWSTR title)
 {

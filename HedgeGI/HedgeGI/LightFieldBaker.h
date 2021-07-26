@@ -1,11 +1,15 @@
 ﻿#pragma once
 
-struct BakeParams;
-struct RaytracingContext;
 class LightField;
+
+struct BakeParams;
 struct LightFieldCell;
-struct LightFieldProbe;
 struct LightFieldPoint;
+struct LightFieldProbe;
+struct RaytracingContext;
+
+template<typename T>
+struct EigenHash;
 
 class LightFieldBaker
 {

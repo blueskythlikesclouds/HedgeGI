@@ -1,6 +1,10 @@
 ﻿#include "SHLightFieldBaker.h"
+
 #include "BakePoint.h"
 #include "BakingFactory.h"
+#include "Bitmap.h"
+#include "Math.h"
+#include "SHLightField.h"
 
 const Vector3 SHLF_DIRECTIONS[6] =
 {

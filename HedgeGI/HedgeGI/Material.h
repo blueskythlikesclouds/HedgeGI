@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 class Bitmap;
+class FileStream;
 class Scene;
 
 enum class MaterialType : uint32_t

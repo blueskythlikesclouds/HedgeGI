@@ -1,4 +1,5 @@
 ﻿#include "SHLightField.h"
+#include "FileStream.h"
 
 void SHLightField::read(const FileStream& file)
 {
