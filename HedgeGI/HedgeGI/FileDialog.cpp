@@ -1,6 +1,9 @@
 ﻿#include "FileDialog.h"
 #include "Utilities.h"
 
+#include <ShObjIdl.h>
+#include <atlbase.h>
+
 std::string FileDialog::openFile(LPCWSTR filter, LPCWSTR title)
 {
 	WCHAR fileName[1024] {};
@@ -22,25 +25,29 @@ std::string FileDialog::openFile(LPCWSTR filter, LPCWSTR title)
 	return "";
 }
 
-std::string FileDialog::openFolder(LPCWSTR title)
+std::string FileDialog::openFolder(const LPCWSTR title)
 {
-	WCHAR fileName[1024] {};
-	wcscpy(fileName, L"Enter into a directory and press Save");
+	CComPtr<IFileOpenDialog> folderDialog;
+	folderDialog.CoCreateInstance(CLSID_FileOpenDialog);
 
-	OPENFILENAME ofn;
-	memset(&ofn, 0, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFile = fileName;
-	ofn.nMaxFile = 1024;
-	ofn.lpstrTitle = title;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_LONGNAMES | OFN_EXPLORER
-		| OFN_HIDEREADONLY | OFN_ENABLESIZING;
+	FILEOPENDIALOGOPTIONS options {};
+	folderDialog->GetOptions(&options);
+	folderDialog->SetOptions(options | FOS_PICKFOLDERS | FOS_PATHMUSTEXIST | FOS_FORCEFILESYSTEM);
 
-	if (GetSaveFileName(&ofn))
-		return getDirectoryPath(wideCharToMultiByte(fileName));
+	folderDialog->SetTitle(title);
 
-	return "";
+	if (FAILED(folderDialog->Show(nullptr)))
+		return {};
+
+	CComPtr<IShellItem> result;
+	if (FAILED(folderDialog->GetResult(&result)))
+		return {};
+
+	CComHeapPtr<wchar_t> path;
+	if (FAILED(result->GetDisplayName(SIGDN_FILESYSPATH, &path)))
+		return {};
+
+	return wideCharToMultiByte(path);
 }
 
 std::string FileDialog::saveFile(LPCWSTR filter, LPCWSTR title)
