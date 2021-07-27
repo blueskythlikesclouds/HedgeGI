@@ -251,13 +251,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             }
         }
 
-        if (shouldApplyBakeParam && (!nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f)))
-        {
-            Color3 hsv = rgb2Hsv(diffuse.head<3>());
-            hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
-            hsv.z() = saturate(hsv.z() * bakeParams.diffuseStrength);
-            diffuse.head<3>() = hsv2Rgb(hsv);
-        }
+        if (shouldApplyBakeParam)
+            emission.head<3>() *= bakeParams.emissionStrength;
 
         const Vector3 viewDirection = (rayPosition - hitPosition).normalized();
 
@@ -274,6 +269,14 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         if (material == nullptr || material->type == MaterialType::Common || material->type == MaterialType::Blend)
         {
+            if (shouldApplyBakeParam && !nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f))
+            {
+                Color3 hsv = rgb2Hsv(diffuse.head<3>());
+                hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
+                hsv.z() = saturate(hsv.z() * bakeParams.diffuseStrength);
+                diffuse.head<3>() = hsv2Rgb(hsv);
+            }
+
             for (auto& light : raytracingContext.scene->lights)
             {
                 Vector3 lightDirection;
@@ -386,13 +389,17 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     radiance += throughput * directLighting;
                 }
             }
+
+            radiance += throughput * emission.head<3>();
         }
         else if (material->type == MaterialType::IgnoreLight)
         {
-            radiance += throughput * diffuse.head<3>();
-        }
+            if (shouldApplyBakeParam)
+                diffuse.head<3>() *= bakeParams.emissionStrength;
 
-        radiance += throughput * emission.head<3>() * bakeParams.emissionStrength;
+            radiance += throughput * (diffuse.head<3>() + emission.head<3>());
+            break;
+        }
 
         // Setup next ray
         const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);
