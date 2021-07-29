@@ -1,0 +1,18 @@
+image: Visual Studio 2019
+configuration: Release
+
+before_build:
+    - ps: Start-FileDownload "https://developer.download.nvidia.com/compute/cuda/11.4.0/network_installers/cuda_11.4.0_win10_network.exe" -FileName "CUDA.exe"
+    - ps: Start-Process -Wait "CUDA.exe" "-s nvcc_11.4 cudart_11.4" 
+    - cmd: SET CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.4
+
+build:
+    project: .\Source\HedgeGI.sln
+    
+after_build:
+    - del .\Source\HedgeGI\bin\Release\HedgeGI.pdb
+    - 7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=1024m -ms=on HedgeGI.7z .\Source\HedgeGI\bin\Release\*
+    
+artifacts:
+    - path: HedgeGI.7z
+      name: HedgeGI
