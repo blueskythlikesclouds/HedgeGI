@@ -72,6 +72,9 @@ RTCScene Scene::createSkyRTCScene()
     skyRtcScene = rtcNewScene(RaytracingDevice::get());
     for (size_t i = 0; i < meshes.size(); i++)
     {
+        if (meshes[i]->material == nullptr || meshes[i]->material->type != MaterialType::Sky)
+            continue;
+
         bool found = false;
 
         for (auto& model : models)
