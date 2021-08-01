@@ -58,10 +58,12 @@ void BakeParams::load(const PropertyBag& propertyBag)
 {
     targetEngine = propertyBag.get(PROP("bakeParams.targetEngine"), TargetEngine::HE1);
 
+    environmentColorMode = propertyBag.get(PROP("bakeParams.environmentColorMode"), EnvironmentColorMode::Sky);
     environmentColor.x() = propertyBag.get(PROP("bakeParams.environmentColor.x()"), 106.0f / 255.0f);
     environmentColor.y() = propertyBag.get(PROP("bakeParams.environmentColor.y()"), 113.0f / 255.0f);
     environmentColor.z() = propertyBag.get(PROP("bakeParams.environmentColor.z()"), 179.0f / 255.0f);
-    exposure = propertyBag.get(PROP("bakeParams.exposure"), 1.0f);
+    environmentColorIntensity = propertyBag.get(PROP("bakeParams.environmentColorIntensity"), 1.0f);
+    skyIntensity = propertyBag.get(PROP("bakeParams.skyIntensity"), 1.0f);
 
     lightBounceCount = propertyBag.get(PROP("bakeParams.lightBounceCount"), 10);
     lightSampleCount = propertyBag.get(PROP("bakeParams.lightSampleCount"), 32);
@@ -100,10 +102,12 @@ void BakeParams::store(PropertyBag& propertyBag) const
 {
     propertyBag.set(PROP("bakeParams.targetEngine"), targetEngine);
 
+    propertyBag.set(PROP("bakeParams.environmentColorMode"), environmentColorMode);
     propertyBag.set(PROP("bakeParams.environmentColor.x()"), environmentColor.x());
     propertyBag.set(PROP("bakeParams.environmentColor.y()"), environmentColor.y());
     propertyBag.set(PROP("bakeParams.environmentColor.z()"), environmentColor.z());
-    propertyBag.set(PROP("bakeParams.exposure"), exposure);
+    propertyBag.set(PROP("bakeParams.environmentColorIntensity"), environmentColorIntensity);
+    propertyBag.set(PROP("bakeParams.skyIntensity"), skyIntensity);
 
     propertyBag.set(PROP("bakeParams.lightBounceCount"), lightBounceCount);
     propertyBag.set(PROP("bakeParams.lightSampleCount"), lightSampleCount);

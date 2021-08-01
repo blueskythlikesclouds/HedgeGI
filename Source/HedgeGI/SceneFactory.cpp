@@ -5,6 +5,7 @@
 #include "Bitmap.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "Model.h"
 #include "Instance.h"
 #include "Light.h"
 #include "SHLightField.h"
@@ -62,8 +63,19 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
 {
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
-    newMaterial->type = strstr(material->shaderName.get(), "IgnoreLight") != nullptr ? MaterialType::IgnoreLight :
-        strstr(material->shaderName.get(), "Blend") != nullptr ? MaterialType::Blend : MaterialType::Common;
+    newMaterial->type =
+        strstr(material->shaderName.get(), "Sky") != nullptr ? MaterialType::Sky :
+        strstr(material->shaderName.get(), "IgnoreLight") != nullptr ? MaterialType::IgnoreLight :
+        strstr(material->shaderName.get(), "Blend") != nullptr ? MaterialType::Blend
+        : MaterialType::Common;
+
+    if (newMaterial->type == MaterialType::Sky)
+    {
+        newMaterial->skyType =
+            strstr(material->shaderName.get(), "Sky3") != nullptr ? 3 :
+            strstr(material->shaderName.get(), "Sky2") != nullptr ? 2
+            : 0;
+    }
 
     newMaterial->ignoreVertexColor = newMaterial->type == MaterialType::Blend || strstr(material->shaderName.get(), "FadeOutNormal");
 
@@ -283,6 +295,35 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     return newMesh;
 }
 
+std::unique_ptr<Model> SceneFactory::createModel(hl::hh::mirage::raw_skeletal_model_v5* model, Scene& scene)
+{
+    std::unique_ptr<Model> newModel = std::make_unique<Model>();
+
+    auto addMesh = [&](hl::hh::mirage::raw_mesh* srcMesh, const MeshType type)
+    {
+        std::unique_ptr<Mesh> mesh = createMesh(srcMesh, Affine3::Identity(), scene);
+        mesh->type = type;
+
+        newModel->meshes.push_back(mesh.get());
+
+        scene.meshes.push_back(std::move(mesh));
+    };
+
+    for (auto& meshGroup : model->meshGroups)
+    {
+        for (auto& solid : meshGroup->opaq)
+            addMesh(solid.get(), MeshType::Opaque);
+
+        for (auto& trans : meshGroup->trans)
+            addMesh(trans.get(), MeshType::Transparent);
+
+        for (auto& punch : meshGroup->punch)
+            addMesh(punch.get(), MeshType::Punch);
+    }
+
+    return newModel;
+}
+
 std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, hl::hh::mirage::raw_terrain_model_v5* model, Scene& scene)
 {
     std::unique_ptr<Instance> newInstance = std::make_unique<Instance>();
@@ -324,11 +365,11 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terra
         for (auto& solid : meshGroup->opaq)
             addMesh(solid.get(), MeshType::Opaque);
 
-        for (auto& solid : meshGroup->trans)
-            addMesh(solid.get(), MeshType::Transparent);
+        for (auto& trans : meshGroup->trans)
+            addMesh(trans.get(), MeshType::Transparent);
 
-        for (auto& solid : meshGroup->punch)
-            addMesh(solid.get(), MeshType::Punch);
+        for (auto& punch : meshGroup->punch)
+            addMesh(punch.get(), MeshType::Punch);
 
         for (const auto& specialMeshGroup : meshGroup->special)
         {
@@ -426,6 +467,27 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
         newMaterial->name = getFileNameWithoutExtension(name);
 
         scene.materials.push_back(std::move(newMaterial));
+    }
+
+    for (auto& entry : archive)
+    {
+        if (!hl::text::strstr(entry.name(), HL_NTEXT(".model")))
+            continue;
+
+        void* data = (void*)entry.file_data();
+
+        hl::hh::mirage::fix(data);
+
+        auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_skeletal_model_v5>(data);
+        model->fix();
+
+        std::unique_ptr<Model> newModel = createModel(model, scene);
+
+        char name[0x400];
+        hl::text::native_to_utf8::conv(entry.name(), 0, name, sizeof(name));
+        newModel->name = getFileNameWithoutExtension(name);
+
+        scene.models.push_back(std::move(newModel));
     }
 
     for (auto& entry : archive)
@@ -547,7 +609,7 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, con
             tinyxml2::XMLDocument doc;
 
             if (doc.Parse(entry.file_data<char>(), entry.size()) == tinyxml2::XML_SUCCESS)
-                scene.sceneEffect.load(doc);
+                scene.effect.load(doc);
 
             break;
         }
@@ -557,7 +619,7 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, con
             hl::bina::fix32((void*)entry.file_data(), entry.size());
 
             if (const auto data = hl::bina::get_data<sonic2013::FxSceneData>(entry.file_data()); data)
-                scene.sceneEffect.load(*data);
+                scene.effect.load(*data);
 
             break;
         }
@@ -567,7 +629,7 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, con
             hl::bina::fix64((void*)entry.file_data(), entry.size());
 
             if (const auto data = hl::bina::get_data<wars::NeedleFxSceneData>(entry.file_data()); data)
-                scene.sceneEffect.load(*data);
+                scene.effect.load(*data);
 
             break;
         }
@@ -679,6 +741,12 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
 
         loadTerrain(hl::pacx::load(filePath), *scene);
     }
+
+    hl::nchar skyFilePath[0x400];
+    hl::text::utf8_to_native::conv((directoryPath + "/" + stageName + "_sky.pac").c_str(), 0, skyFilePath, 0x400);
+
+    if (hl::path::exists(skyFilePath))
+        loadResources(hl::pacx::load(skyFilePath), *scene);
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();

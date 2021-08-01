@@ -8,7 +8,8 @@ enum class MaterialType : uint32_t
 {
     Common,
     Blend,
-    IgnoreLight
+    IgnoreLight,
+    Sky
 };
 
 class Material
@@ -19,7 +20,8 @@ private:
 
 public:
     std::string name;
-    MaterialType type{};
+    MaterialType type {};
+    size_t skyType {};
     bool ignoreVertexColor {}; // HE1 only
 
     struct Parameters

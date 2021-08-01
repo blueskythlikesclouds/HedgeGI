@@ -133,13 +133,16 @@
       <Filter>Baker</Filter>
     </ClCompile>
     <ClCompile Include="Game.cpp">
-      <Filter>Other</Filter>
+      <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="SceneEffect.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Dependencies\tinyxml2\tinyxml2.cpp">
       <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -181,16 +184,16 @@
       <Filter>Baker\Subclasses</Filter>
     </ClInclude>
     <ClInclude Include="FileStream.h">
-      <Filter>Other</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Math.h">
-      <Filter>Other</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Utilities.h">
-      <Filter>Other</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Random.h">
-      <Filter>Other</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="BakingFactory.h">
       <Filter>Baker</Filter>
@@ -271,7 +274,7 @@
       <Filter>Baker</Filter>
     </ClInclude>
     <ClInclude Include="Game.h">
-      <Filter>Other</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Resources</Filter>
@@ -285,6 +288,9 @@
     <ClInclude Include="NeedleFxSceneData.h">
       <Filter>HedgehogEngine</Filter>
     </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scene">
@@ -292,9 +298,6 @@
     </Filter>
     <Filter Include="Baker">
       <UniqueIdentifier>{a8078bea-492c-4297-94b8-fcf84f9a0885}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Other">
-      <UniqueIdentifier>{88f2083c-2ca3-4355-b131-bc0be26ef292}</UniqueIdentifier>
     </Filter>
     <Filter Include="Bitmap">
       <UniqueIdentifier>{c41e70d6-bf3f-4bd7-9ddc-a197effc4613}</UniqueIdentifier>
@@ -346,6 +349,9 @@
     </Filter>
     <Filter Include="Resources\Shaders\ToneMap">
       <UniqueIdentifier>{98a68785-cfcd-4b1d-beb5-3529e1b778ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{88f2083c-2ca3-4355-b131-bc0be26ef292}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

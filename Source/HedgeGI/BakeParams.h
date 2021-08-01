@@ -15,12 +15,20 @@ enum class DenoiserType
     Oidn
 };
 
+enum class EnvironmentColorMode
+{
+    Color,
+    Sky
+};
+
 struct BakeParams
 {
     TargetEngine targetEngine;
 
+    EnvironmentColorMode environmentColorMode;
     Color3 environmentColor;
-    float exposure;
+    float environmentColorIntensity;
+    float skyIntensity;
 
     uint32_t lightBounceCount {};
     uint32_t lightSampleCount {};

@@ -8,6 +8,90 @@
 
 std::mutex BakingFactory::mutex;
 
+template <TargetEngine targetEngine>
+Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, const Vector3& direction, const BakeParams& bakeParams)
+{
+    if (bakeParams.environmentColorMode == EnvironmentColorMode::Color)
+    {
+        Color3 color = bakeParams.environmentColor;
+        if (targetEngine == TargetEngine::HE2)
+            color *= bakeParams.environmentColorIntensity;
+
+        return color;
+    }
+    
+    RTCIntersectContext context {};
+
+    std::array<Color4, 8> colors {};
+    Vector3 position { 0, 0, 0 };
+
+    int i;
+    for (i = 0; i < colors.size(); i++)
+    {
+        context = {};
+        rtcInitIntersectContext(&context);
+
+        RTCRayHit query {};
+        query.ray.dir_x = direction[0];
+        query.ray.dir_y = direction[1];
+        query.ray.dir_z = direction[2];
+        query.ray.org_x = position[0];
+        query.ray.org_y = position[1];
+        query.ray.org_z = position[2];
+        query.ray.tnear = 0.001f;
+        query.ray.tfar = INFINITY;
+        query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+        query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+        rtcIntersect1(raytracingContext.skyRtcScene, &context, &query);
+        if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+            break;
+
+        const Vector2 baryUV { query.hit.v, query.hit.u };
+
+        const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
+        const Triangle& triangle = mesh.triangles[query.hit.primID];
+        const Vertex& a = mesh.vertices[triangle.a];
+        const Vertex& b = mesh.vertices[triangle.b];
+        const Vertex& c = mesh.vertices[triangle.c];
+
+        position = barycentricLerp(a.position, b.position, c.position, baryUV);
+
+        const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
+
+        Color4 diffuse = mesh.material->textures.diffuse->pickColor(hitUV);
+
+        if (mesh.material->skyType == 2) // Sky2
+        {
+            diffuse.head<3>() *= expf(diffuse.w() * 16 - 4);
+            diffuse.w() = 1.0f;
+        }
+        else
+        {
+            diffuse *= barycentricLerp(a.color, b.color, c.color, baryUV);
+        }
+
+        if (mesh.material->textures.alpha != nullptr)
+            diffuse.w() *= mesh.material->textures.alpha->pickColor(hitUV).x();
+
+        colors[i] = diffuse;
+
+        if (mesh.material->skyType == 3) // Sky3
+            colors[i].head<3>() = (mesh.material->parameters.diffuse.head<3>() * colors[i].head<3>()).pow(2.2f);
+    }
+
+    if (i == 0) return Color3::Zero();
+
+    Color3 skyColor = colors[i - 1].head<3>();
+    for (int j = i - 2; j >= 0; j--)
+    {
+        const Color4& color = colors[j];
+        skyColor = lerp<Color3>(skyColor, color.head<3>(), color.w());
+    }
+
+    return (skyColor * bakeParams.skyIntensity).cwiseMax(0);
+}
+
 template <TargetEngine targetEngine, bool tracingFromEye>
 Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const BakeParams& bakeParams)
 {
@@ -51,10 +135,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
         {
-            if (targetEngine == TargetEngine::HE2)
-                throughput *= bakeParams.exposure;
-
-            radiance += throughput * bakeParams.environmentColor;
+            radiance += throughput * sampleSky<targetEngine>(raytracingContext, rayNormal, bakeParams);
             break;
         }
 
@@ -456,7 +537,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         rtcInitIntersectContext(&context);
     }
 
-    return { radiance[0], radiance[1], radiance[2], faceFactor };
+    return Color4(radiance[0], radiance[1], radiance[2], faceFactor).cwiseMax(0);
 }
 
 Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position,

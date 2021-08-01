@@ -12,6 +12,11 @@ namespace sonic2013
 
 struct SceneEffect
 {
+    struct Default
+    {
+        float skyIntensityScale;
+    } def { 1.0f };
+
     struct HDR
     {
         float middleGray;

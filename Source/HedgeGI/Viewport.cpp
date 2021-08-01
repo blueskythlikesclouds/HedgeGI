@@ -14,7 +14,7 @@ void Viewport::bakeThreadFunc()
     {
         if (!bakeArgs.baking)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
 
@@ -149,4 +149,10 @@ float Viewport::getNormalizedHeight() const
 bool Viewport::isBaking() const
 {
     return bakeArgs.baking;
+}
+
+void Viewport::waitForBake() const
+{
+    while (bakeArgs.baking)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }

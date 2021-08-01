@@ -92,3 +92,22 @@ namespace hl::text
 #endif
     }
 }
+
+inline const tinyxml2::XMLElement* getElement(const tinyxml2::XMLElement* element, const std::initializer_list<const char*>& names)
+{
+    for (auto& name : names)
+    {
+        element = element->FirstChildElement(name);
+        if (!element) return nullptr;
+    }
+
+    return element;
+}
+
+inline bool getElementValue(const tinyxml2::XMLElement* element, float& value)
+{
+    if (!element) return false;
+
+    value = element->FloatText(value);
+    return true;
+}

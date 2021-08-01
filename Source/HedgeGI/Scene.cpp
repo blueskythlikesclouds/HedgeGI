@@ -3,6 +3,7 @@
 #include "Bitmap.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "Model.h"
 #include "Instance.h"
 #include "Light.h"
 #include "SHLightField.h"
@@ -14,6 +15,9 @@ Scene::~Scene()
 {
     if (rtcScene != nullptr)
         rtcReleaseScene(rtcScene);
+
+    if (skyRtcScene != nullptr)
+        rtcReleaseScene(skyRtcScene);
 }
 
 void Scene::buildAABB()
@@ -32,7 +36,23 @@ RTCScene Scene::createRTCScene()
     rtcScene = rtcNewScene(RaytracingDevice::get());
     for (size_t i = 0; i < meshes.size(); i++)
     {
-        if (meshes[i]->type == MeshType::Transparent || meshes[i]->type == MeshType::Special)
+        bool found = false;
+
+        for (auto& instance : instances)
+        {
+            for (auto& mesh : instance->meshes)
+            {
+                if (mesh != meshes[i].get())
+                    continue;
+
+                found = true;
+                break;
+            }
+
+            if (found) break;
+        }
+
+        if (!found || meshes[i]->type == MeshType::Transparent || meshes[i]->type == MeshType::Special)
             continue;
 
         const RTCGeometry rtcGeometry = meshes[i]->createRTCGeometry();
@@ -44,9 +64,45 @@ RTCScene Scene::createRTCScene()
     return rtcScene;
 }
 
+RTCScene Scene::createSkyRTCScene()
+{
+    if (skyRtcScene != nullptr)
+        return skyRtcScene;
+
+    skyRtcScene = rtcNewScene(RaytracingDevice::get());
+    for (size_t i = 0; i < meshes.size(); i++)
+    {
+        bool found = false;
+
+        for (auto& model : models)
+        {
+            for (auto& mesh : model->meshes)
+            {
+                if (mesh != meshes[i].get())
+                    continue;
+
+                found = true;
+                break;
+            }
+
+            if (found) break;
+        }
+
+        if (!found)
+            continue;
+
+        const RTCGeometry rtcGeometry = meshes[i]->createRTCGeometry();
+        rtcAttachGeometryByID(skyRtcScene, rtcGeometry, (uint32_t)i);
+        rtcReleaseGeometry(rtcGeometry);
+    }
+
+    rtcCommitScene(skyRtcScene);
+    return skyRtcScene;
+}
+
 RaytracingContext Scene::getRaytracingContext()
 {
-    return { this, createRTCScene() };
+    return { this, createRTCScene(), createSkyRTCScene() };
 }
 
 void Scene::removeUnusedBitmaps()

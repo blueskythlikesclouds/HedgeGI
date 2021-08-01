@@ -5,6 +5,7 @@
 class Bitmap;
 class Material;
 class Mesh;
+class Model;
 class Instance;
 class Light;
 class SHLightField;
@@ -13,13 +14,15 @@ class FileStream;
 
 struct RaytracingContext
 {
-    const class Scene* scene{};
-    RTCScene rtcScene{};
+    const class Scene* scene {};
+    RTCScene rtcScene {};
+    RTCScene skyRtcScene {};
 };
 
 class Scene
 {
-    RTCScene rtcScene{};
+    RTCScene rtcScene {};
+    RTCScene skyRtcScene {};
 
 public:
     ~Scene();
@@ -27,6 +30,7 @@ public:
     std::vector<std::unique_ptr<const Bitmap>> bitmaps;
     std::vector<std::unique_ptr<const Material>> materials;
     std::vector<std::unique_ptr<const Mesh>> meshes;
+    std::vector<std::unique_ptr<const Model>> models;
     std::vector<std::unique_ptr<const Instance>> instances;
 
     std::vector<std::unique_ptr<Light>> lights;
@@ -34,11 +38,12 @@ public:
 
     AABB aabb;
 
-    SceneEffect sceneEffect {};
+    SceneEffect effect {};
 
     void buildAABB();
 
     RTCScene createRTCScene();
+    RTCScene createSkyRTCScene();
     RaytracingContext getRaytracingContext();
 
     void removeUnusedBitmaps();

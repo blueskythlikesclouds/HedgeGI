@@ -141,6 +141,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="OidnDenoiserDevice.cpp" />
     <ClCompile Include="OptixDenoiserDevice.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -189,6 +190,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClInclude Include="FxSceneData.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Logger.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="NeedleFxSceneData.h" />
     <ClInclude Include="OidnDenoiserDevice.h" />
     <ClInclude Include="OptixDenoiserDevice.h" />

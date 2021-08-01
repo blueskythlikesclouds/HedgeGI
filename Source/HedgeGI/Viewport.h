@@ -58,4 +58,5 @@ public:
     float getNormalizedWidth() const;
     float getNormalizedHeight() const;
     bool isBaking() const;
+    void waitForBake() const;
 };

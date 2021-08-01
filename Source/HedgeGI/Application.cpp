@@ -62,6 +62,8 @@ GLFWwindow* Application::createGLFWwindow()
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
+    glfwSwapInterval(1);
+
     return window;
 }
 
@@ -290,6 +292,32 @@ void Application::endProperties()
     ImGui::EndTable();
 }
 
+void Application::updateViewport()
+{
+    camera.update(*this);
+    dirty |= camera.hasChanged();
+
+    // Halven viewport resolution if we are dirty
+    if (dirty)
+    {
+        viewportWidth /= 2;
+        viewportHeight /= 2;
+    }
+
+    if (viewport.isBaking())
+        return;
+
+    const BakeParams oldBakeParams = bakeParams;
+    {
+        bakeParams.skyIntensity *= scene->effect.def.skyIntensityScale;
+    }
+
+    viewport.update(*this);
+
+    dirty = false;
+    bakeParams = oldBakeParams;
+}
+
 void Application::draw()
 {
     float dockSpaceY = 0.0f;
@@ -335,9 +363,9 @@ void Application::draw()
         if (scene && ImGui::BeginMenu("Window"))
         {
             showScene ^= ImGui::MenuItem("Scene");
-            showViewport ^= ImGui::MenuItem("Viewport");
             showSettings ^= ImGui::MenuItem("Settings");
             showBakingFactory ^= ImGui::MenuItem("Baking Factory");
+            showViewport ^= ImGui::MenuItem("Viewport");
 
             ImGui::EndMenu();
         }
@@ -357,11 +385,8 @@ void Application::draw()
     drawLoadingPopupUI();
     drawBakingPopupUI();
 
-    if (!scene || futureScene.valid() || futureBake.valid())
-    {
-        viewportVisible = false;
+    if (!scene || openLoadingPopup || openBakingPopup)
         return;
-    }
 
     ImGui::SetNextWindowPos({ 0, dockSpaceY });
     ImGui::SetNextWindowSize({ (float)width, (float)height - dockSpaceY });
@@ -376,9 +401,9 @@ void Application::draw()
     ImGui::DockSpace(ImGui::GetID("MyDockSpace"));
     {
         drawSceneUI();
-        drawViewportUI();
         drawSettingsUI();
         drawBakingFactoryUI();
+        drawViewportUI();
     }
     ImGui::End();
 }
@@ -513,43 +538,6 @@ void Application::drawLightsUI()
     }
 }
 
-void Application::drawViewportUI()
-{
-    if (!showViewport)
-    {
-        viewportVisible = false;
-        return;
-    }
-
-    if (!ImGui::Begin("Viewport", &showViewport))
-        return ImGui::End();
-
-    viewportVisible = true;
-
-    const ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
-    const ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
-    const ImVec2 windowPos = ImGui::GetWindowPos();
-
-    const ImVec2 min = { contentMin.x + windowPos.x, contentMin.y + windowPos.y };
-    const ImVec2 max = { contentMax.x + windowPos.x, contentMax.y + windowPos.y };
-
-    if (const Texture* texture = viewport.getTexture(); texture != nullptr)
-    {
-        ImGui::GetWindowDrawList()->AddImage((ImTextureID)(size_t)texture->id, min, max,
-            { 0, 1 }, { viewport.getNormalizedWidth(), 1.0f - viewport.getNormalizedHeight() });
-    }
-
-    viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
-    viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
-
-    viewportResolutionInvRatio = std::max(viewportResolutionInvRatio, 1.0f);
-    viewportWidth = (int)((float)viewportWidth / viewportResolutionInvRatio);
-    viewportHeight = (int)((float)viewportHeight / viewportResolutionInvRatio);
-    viewportFocused = ImGui::IsMouseHoveringRect(min, max) || ImGui::IsWindowFocused();
-
-    ImGui::End();
-}
-
 void Application::drawSettingsUI()
 {
     if (!showSettings)
@@ -569,18 +557,33 @@ void Application::drawSettingsUI()
 
     if (ImGui::CollapsingHeader("Environment Color") && beginProperties("##Environment Color"))
     {
-        if (bakeParams.targetEngine == TargetEngine::HE2)
+        property("Mode",
+            {
+                { "Color", EnvironmentColorMode::Color },
+                { "Sky", EnvironmentColorMode::Sky }
+            }, bakeParams.environmentColorMode);
+
+        if (bakeParams.environmentColorMode == EnvironmentColorMode::Color)
         {
-            Color3 environmentColor = bakeParams.environmentColor.pow(1.0f / 2.2f);
+            if (bakeParams.targetEngine == TargetEngine::HE2)
+            {
+                Color3 environmentColor = bakeParams.environmentColor.pow(1.0f / 2.2f);
 
-            if (property("Color", environmentColor))
-                bakeParams.environmentColor = environmentColor.pow(2.2f);
+                if (property("Color", environmentColor))
+                    bakeParams.environmentColor = environmentColor.pow(2.2f);
 
-            property("Exposure", ImGuiDataType_Float, &bakeParams.exposure);
+                property("Color Intensity", ImGuiDataType_Float, &bakeParams.environmentColorIntensity);
+            }
+            
+            else
+            {
+                property("Color", bakeParams.environmentColor);
+            }
         }
-        else
+
+        else if (bakeParams.environmentColorMode == EnvironmentColorMode::Sky)
         {
-            property("Color", bakeParams.environmentColor);
+            property("Sky Intensity", ImGuiDataType_Float, &bakeParams.skyIntensity);
         }
 
         endProperties();
@@ -724,6 +727,40 @@ void Application::drawBakingFactoryUI()
     ImGui::End();
 }
 
+void Application::drawViewportUI()
+{
+    if (!showViewport)
+        return;
+
+    if (!ImGui::Begin("Viewport", &showViewport))
+        return ImGui::End();
+
+    const ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
+    const ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
+    const ImVec2 windowPos = ImGui::GetWindowPos();
+
+    const ImVec2 min = { contentMin.x + windowPos.x, contentMin.y + windowPos.y };
+    const ImVec2 max = { contentMax.x + windowPos.x, contentMax.y + windowPos.y };
+
+    updateViewport();
+
+    if (const Texture* texture = viewport.getTexture(); texture != nullptr)
+    {
+        ImGui::GetWindowDrawList()->AddImage((ImTextureID)(size_t)texture->id, min, max,
+            { 0, 1 }, { viewport.getNormalizedWidth(), 1.0f - viewport.getNormalizedHeight() });
+    }
+
+    viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
+    viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
+
+    viewportResolutionInvRatio = std::max(viewportResolutionInvRatio, 1.0f);
+    viewportWidth = (int)((float)viewportWidth / viewportResolutionInvRatio);
+    viewportHeight = (int)((float)viewportHeight / viewportResolutionInvRatio);
+    viewportFocused = ImGui::IsMouseHoveringRect(min, max) || ImGui::IsWindowFocused();
+
+    ImGui::End();
+}
+
 void Application::setTitle(const float fps)
 {
     if (titleUpdateTime < 0.5f)
@@ -767,8 +804,7 @@ void Application::storeProperties()
 void Application::destroyScene()
 {
     // Wait till viewport is done baking since it holds onto the raytracing context
-    while (viewport.isBaking())
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    viewport.waitForBake();
 
     scene = nullptr;
 
@@ -879,6 +915,8 @@ void Application::drawBakingPopupUI()
 void Application::bake()
 {
     openBakingPopup = true;
+    viewport.waitForBake();
+
     bakeProgress = 0;
     lastBakedInstance = nullptr;
     lastBakedShlf = nullptr;
@@ -1202,7 +1240,7 @@ const RaytracingContext Application::getRaytracingContext() const
 
 const SceneEffect& Application::getSceneEffect() const
 {
-    return scene->sceneEffect;
+    return scene->effect;
 }
 
 const BakeParams Application::getBakeParams() const
@@ -1247,36 +1285,6 @@ void Application::update()
 
     glfwGetWindowSize(window, &width, &height);
 
-    // Viewport
-    const bool handleViewport = viewportVisible && scene && showViewport;
-
-    if (handleViewport)
-    {
-        camera.update(*this);
-        dirty |= camera.hasChanged();
-
-        // Halven viewport resolution if we are dirty
-        if (dirty)
-        {
-            viewportWidth /= 2;
-            viewportHeight /= 2;
-        }
-
-        if (!viewport.isBaking())
-        {
-            bakeElapsedTime = (float)(glfwTime - bakeCurrentTime);
-            bakeCurrentTime = glfwTime;
-
-            viewport.update(*this);
-            dirty = false;
-        }
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
-    glClearColor(0.22f, 0.22f, 0.22f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // GUI
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -1285,12 +1293,16 @@ void Application::update()
         draw();
     }
     ImGui::PopFont();
-    ImGui::EndFrame();
     ImGui::Render();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
+    glClearColor(0.22f, 0.22f, 0.22f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     input.postUpdate();
 
     glfwSwapBuffers(window);
-    setTitle(1.0f / (handleViewport ? bakeElapsedTime : elapsedTime));
+    setTitle(1.0f / elapsedTime);
 }

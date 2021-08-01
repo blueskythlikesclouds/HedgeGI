@@ -36,9 +36,6 @@ class Application
     float elapsedTime{};
     double currentTime{};
 
-    float bakeElapsedTime {};
-    double bakeCurrentTime {};
-
     float titleUpdateTime {};
 
     int width {};
@@ -47,7 +44,6 @@ class Application
     int viewportWidth {};
     int viewportHeight {};
     bool viewportFocused {};
-    bool viewportVisible {};
 
     bool showScene { true };
     bool showViewport { true };
@@ -65,7 +61,6 @@ class Application
     PropertyBag propertyBag;
     std::unique_ptr<Scene> scene;
 
-    std::atomic<bool> loadingScene {};
     std::future<std::unique_ptr<Scene>> futureScene;
 
     const Instance* selectedInstance {};
@@ -100,14 +95,16 @@ class Application
     template<typename T> static bool property(const char* label, const std::initializer_list<std::pair<const char*, T>>& values, T& data);
     static void endProperties();
 
+    void updateViewport();
+
     void draw();
     void drawLoadingPopupUI();
     void drawSceneUI();
     void drawInstancesUI();
     void drawLightsUI();
-    void drawViewportUI();
     void drawSettingsUI();
     void drawBakingFactoryUI();
+    void drawViewportUI();
     void setTitle(float fps);
 
     void loadProperties();
