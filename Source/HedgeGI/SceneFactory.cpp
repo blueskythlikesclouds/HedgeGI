@@ -532,56 +532,62 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
     }
 }
 
-void SceneFactory::loadTerrain(const hl::archive& archive, Scene& scene)
+void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& scene)
 {
     std::vector<hl::hh::mirage::raw_terrain_model_v5*> models;
 
-    for (auto& entry : archive)
+    for (auto& archive : archives)
     {
-        if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-model")))
-            continue;
-
-        void* data = (void*)entry.file_data();
-
-        hl::hh::mirage::fix(data);
-
-        if (hl::hh::mirage::has_sample_chunk_header_fixed(data))
+        for (auto& entry : archive)
         {
-            const auto header = (hl::hh::mirage::sample_chunk::raw_header*)data;
-            const auto node = header->get_node("DisableC");
-
-            if (node != nullptr && node->value != 0)
+            if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-model")))
                 continue;
-        }
 
-        auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_model_v5>(data);
-        model->fix();
-        
-        model->flags = false;
-        models.push_back(model);
+            void* data = (void*)entry.file_data();
+
+            hl::hh::mirage::fix(data);
+
+            if (hl::hh::mirage::has_sample_chunk_header_fixed(data))
+            {
+                const auto header = (hl::hh::mirage::sample_chunk::raw_header*)data;
+                const auto node = header->get_node("DisableC");
+
+                if (node != nullptr && node->value != 0)
+                    continue;
+            }
+
+            auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_model_v5>(data);
+            model->fix();
+
+            model->flags = false;
+            models.push_back(model);
+        }
     }
 
-    for (auto& entry : archive)
+    for (auto& archive : archives)
     {
-        if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-instanceinfo")))
-            continue;
-
-        void* data = (void*)entry.file_data();
-
-        hl::hh::mirage::fix(data);
-
-        auto instance = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_instance_info_v0>(data);
-        instance->fix();
-
-        for (auto& model : models)
+        for (auto& entry : archive)
         {
-            if (strcmp(model->name.get(), instance->modelName.get()) != 0)
+            if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-instanceinfo")))
                 continue;
 
-            model->flags = true;
+            void* data = (void*)entry.file_data();
 
-            scene.instances.push_back(createInstance(instance, model, scene));
-            break;
+            hl::hh::mirage::fix(data);
+
+            auto instance = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_instance_info_v0>(data);
+            instance->fix();
+
+            for (auto& model : models)
+            {
+                if (strcmp(model->name.get(), instance->modelName.get()) != 0)
+                    continue;
+
+                model->flags = true;
+
+                scene.instances.push_back(createInstance(instance, model, scene));
+                break;
+            }
         }
     }
 
@@ -696,7 +702,7 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
         CloseHandle(processInformation.hProcess);
         CloseHandle(processInformation.hThread);
 
-        loadTerrain(hl::hh::ar::load(HL_NTEXT("temp.ar")), *scene);
+        loadTerrain({ hl::hh::ar::load(HL_NTEXT("temp.ar")) }, *scene);
     }
 
     std::filesystem::remove("temp.cab");
@@ -718,6 +724,8 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
 {
     std::unique_ptr<Scene> scene = std::make_unique<Scene>();
 
+    std::vector<hl::archive> archives;
+
     const std::string stageName = getFileNameWithoutExtension(directoryPath);
     {
         hl::nchar filePath[0x400];
@@ -726,7 +734,7 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
         const auto archive = hl::pacx::load(filePath);
 
         loadResources(archive, *scene);
-        loadTerrain(archive, *scene);
+        archives.push_back(std::move(archive));
     }
 
     for (uint32_t i = 0; i < 100; i++)
@@ -740,8 +748,12 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
         if (!hl::path::exists(filePath))
             continue;
 
-        loadTerrain(hl::pacx::load(filePath), *scene);
+        archives.push_back(std::move(hl::pacx::load(filePath)));
     }
+
+    loadTerrain(archives, *scene);
+
+    archives.clear();
 
     hl::nchar skyFilePath[0x400];
     hl::text::utf8_to_native::conv((directoryPath + "/" + stageName + "_sky.pac").c_str(), 0, skyFilePath, 0x400);
