@@ -38,6 +38,7 @@ public:
         Color4 emissionParam { 0, 0, 0, 1 };
         Color4 emissive { 0, 0, 0, 0 };
         bool doubleSided{};
+        bool additive{};
     } parameters{};
 
     struct Textures

@@ -23,6 +23,7 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
     RTCIntersectContext context {};
 
     std::array<Color4, 8> colors {};
+    std::array<bool, 8> additive {};
     Vector3 position { 0, 0, 0 };
 
     int i;
@@ -84,6 +85,7 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
             diffuse.w() *= mesh.material->textures.alpha->pickColor(hitUV).x();
 
         colors[i] = diffuse;
+        additive[i] = mesh.material->parameters.additive;
     }
 
     if (i == 0) return Color3::Zero();
@@ -91,8 +93,11 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
     Color3 skyColor = colors[i - 1].head<3>();
     for (int j = i - 2; j >= 0; j--)
     {
-        const Color4& color = colors[j];
-        skyColor = lerp<Color3>(skyColor, color.head<3>(), color.w());
+        Color3 color = colors[j].head<3>();
+        if (additive[j])
+            color += skyColor;
+
+        skyColor = lerp<Color3>(skyColor, color, colors[j].w());
     }
 
     return (skyColor * bakeParams.skyIntensity).cwiseMax(0);

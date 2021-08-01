@@ -98,6 +98,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
     }
 
     newMaterial->parameters.doubleSided = material->noBackfaceCulling;
+    newMaterial->parameters.additive = material->useAdditiveBlending;
 
     for (size_t i = 0; i < material->textureEntryCount; i++)
     {
