@@ -61,12 +61,21 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 
         Color4 diffuse = mesh.material->textures.diffuse->pickColor(hitUV);
 
-        if (mesh.material->skyType == 2) // Sky2
+        if (mesh.material->skyType == 3) // Sky3
+        {
+            diffuse *= barycentricLerp(a.color, b.color, c.color, baryUV);
+            diffuse.head<3>() *= mesh.material->parameters.diffuse.head<3>();
+            diffuse.w() *= mesh.material->parameters.opacityReflectionRefractionSpecType.x();
+            diffuse.head<3>() = diffuse.head<3>().pow(2.2f);
+        }
+
+        else if (mesh.material->skyType == 2) // Sky2
         {
             diffuse.head<3>() *= expf(diffuse.w() * 16 - 4);
             diffuse.w() = 1.0f;
         }
-        else
+
+        else if (targetEngine == TargetEngine::HE1)
         {
             diffuse *= barycentricLerp(a.color, b.color, c.color, baryUV);
         }
@@ -75,9 +84,6 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
             diffuse.w() *= mesh.material->textures.alpha->pickColor(hitUV).x();
 
         colors[i] = diffuse;
-
-        if (mesh.material->skyType == 3) // Sky3
-            colors[i].head<3>() = (mesh.material->parameters.diffuse.head<3>() * colors[i].head<3>()).pow(2.2f);
     }
 
     if (i == 0) return Color3::Zero();
