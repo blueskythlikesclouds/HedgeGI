@@ -8,6 +8,21 @@
 #include "ShaderProgram.h"
 #include "Texture.h"
 
+void Viewport::bakeThreadFunc()
+{
+    while (!bakeArgs.end)
+    {
+        if (!bakeArgs.baking)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            continue;
+        }
+
+        BakingFactory::bake(bakeArgs.raytracingContext, *bitmap, bakeArgs.viewportWidth, bakeArgs.viewportHeight, bakeArgs.camera, bakeArgs.bakeParams, progress++);
+        bakeArgs.baking = false;
+    }
+}
+
 void Viewport::initialize()
 {
     avgLuminanceFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_R32F, 256, 256, GL_RED, GL_FLOAT);
@@ -31,32 +46,14 @@ void Viewport::validate(const Application& application)
         progress = 0;
     }
 
-    else if (previousViewportWidth != viewportWidth || previousViewportHeight != viewportHeight ||
-        application.isDirty() || application.getCamera().hasChanged())
-    {
-        bitmap->clear();
+    else if (bakeArgs.viewportWidth != viewportWidth || bakeArgs.viewportHeight != viewportHeight || application.isDirty())
         progress = 0;
-    }
-
-    normalizedWidth = viewportWidth / (float)bitmap->width;
-    normalizedHeight = viewportHeight / (float)bitmap->height;
-
-    previousViewportWidth = viewportWidth;
-    previousViewportHeight = viewportHeight;
-}
-
-void Viewport::pathTrace(const Application& application)
-{
-    const size_t viewportWidth = application.getViewportWidth();
-    const size_t viewportHeight = application.getViewportHeight();
-    const Camera& camera = application.getCamera();
-
-    BakingFactory::bake(application.getRaytracingContext(), *bitmap, viewportWidth, viewportHeight, camera, application.getBakeParams(), progress++);
-    hdrFramebufferTex->texture.subImage(0, (GLint)(bitmap->height - viewportHeight), (GLsizei)viewportWidth, (GLsizei)viewportHeight, GL_RGBA, GL_FLOAT, bitmap->data.get());
 }
 
 void Viewport::copy(const Application& application) const
 {
+    hdrFramebufferTex->texture.subImage(0, (GLint)(bitmap->height - bakeArgs.viewportHeight), (GLsizei)bakeArgs.viewportWidth, (GLsizei)bakeArgs.viewportHeight, GL_RGBA, GL_FLOAT, bitmap->data.get());
+
     const SceneEffect& sceneEffect = application.getSceneEffect();
 
     copyTexShader.use();
@@ -75,8 +72,6 @@ void Viewport::copy(const Application& application) const
 
 void Viewport::toneMap(const Application& application) const
 {
-    const size_t viewportWidth = application.getViewportWidth();
-    const size_t viewportHeight = application.getViewportHeight();
     const float middleGray = application.getSceneEffect().hdr.middleGray;
 
     toneMapShader.use();
@@ -90,26 +85,68 @@ void Viewport::toneMap(const Application& application) const
     hdrFramebufferTex->texture.bind(0);
     avgLuminanceFramebufferTex->texture.bind(1);
 
-    glViewport(0, (GLint)(ldrFramebufferTex->height - viewportHeight), (GLsizei)viewportWidth, (GLsizei)viewportHeight);
+    glViewport(0, (GLint)(ldrFramebufferTex->height - bakeArgs.viewportHeight), (GLsizei)bakeArgs.viewportWidth, (GLsizei)bakeArgs.viewportHeight);
     application.drawQuad();
+}
+
+void Viewport::notifyBakeThread(const Application& application)
+{
+    bakeArgs.raytracingContext = application.getRaytracingContext();
+    bakeArgs.viewportWidth = application.getViewportWidth();
+    bakeArgs.viewportHeight = application.getViewportHeight();
+    bakeArgs.camera = application.getCamera();
+    bakeArgs.bakeParams = application.getBakeParams();
+    bakeArgs.baking = true;
 }
 
 Viewport::Viewport() :
     copyTexShader(ShaderProgram::get("CopyTexture")),
-    toneMapShader(ShaderProgram::get("ToneMap"))
+    toneMapShader(ShaderProgram::get("ToneMap")),
+    bakeThread(&Viewport::bakeThreadFunc, this)
 {
     initialize();
 }
 
+Viewport::~Viewport()
+{
+    bakeArgs.end = true;
+    bakeThread.join();
+}
+
 void Viewport::update(const Application& application)
 {
+    if (bakeArgs.baking)
+        return;
+
+    if (bitmap != nullptr)
+    {
+        normalizedWidth = bakeArgs.viewportWidth / (float)bitmap->width;
+        normalizedHeight = bakeArgs.viewportHeight / (float)bitmap->height;
+
+        copy(application);
+        toneMap(application);
+    }
+
     validate(application);
-    pathTrace(application);
-    copy(application);
-    toneMap(application);
+    notifyBakeThread(application);
 }
 
 const Texture* Viewport::getTexture() const
 {
     return ldrFramebufferTex ? &ldrFramebufferTex->texture : nullptr;
+}
+
+float Viewport::getNormalizedWidth() const
+{
+    return normalizedWidth;
+}
+
+float Viewport::getNormalizedHeight() const
+{
+    return normalizedHeight;
+}
+
+bool Viewport::isBaking() const
+{
+    return bakeArgs.baking;
 }

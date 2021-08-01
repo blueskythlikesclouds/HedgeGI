@@ -536,7 +536,7 @@ void Application::drawViewportUI()
     if (const Texture* texture = viewport.getTexture(); texture != nullptr)
     {
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)(size_t)texture->id, min, max,
-            { 0, 1 }, { (float)viewportWidth / (float)texture->width, 1.0f - (float)viewportHeight / (float)texture->height });
+            { 0, 1 }, { viewport.getNormalizedWidth(), 1.0f - viewport.getNormalizedHeight() });
     }
 
     viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
@@ -724,7 +724,7 @@ void Application::drawBakingFactoryUI()
     ImGui::End();
 }
 
-void Application::setTitle()
+void Application::setTitle(const float fps)
 {
     if (titleUpdateTime < 0.5f)
     {
@@ -735,12 +735,10 @@ void Application::setTitle()
 
     char title[256];
 
-    const int fps = (int)round(1.0f / elapsedTime);
-
     if (!stageName.empty())
-        sprintf(title, "Hedge GI - %s - %s (FPS: %d)", stageName.c_str(), GAME_NAMES[(size_t)game], fps);
+        sprintf(title, "Hedge GI - %s - %s (FPS: %d)", stageName.c_str(), GAME_NAMES[(size_t)game], (int)fps);
     else
-        sprintf(title, "Hedge GI (FPS: %d)", fps);
+        sprintf(title, "Hedge GI (FPS: %d)", (int)fps);
 
     glfwSetWindowTitle(window, title);
 }
@@ -768,6 +766,10 @@ void Application::storeProperties()
 
 void Application::destroyScene()
 {
+    // Wait till viewport is done baking since it holds onto the raytracing context
+    while (viewport.isBaking())
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
     scene = nullptr;
 
     if (!stageDirectoryPath.empty() && !stageName.empty())
@@ -1246,20 +1248,28 @@ void Application::update()
     glfwGetWindowSize(window, &width, &height);
 
     // Viewport
-    if (viewportVisible && scene && showViewport)
+    const bool handleViewport = viewportVisible && scene && showViewport;
+
+    if (handleViewport)
     {
         camera.update(*this);
+        dirty |= camera.hasChanged();
 
-        // Halven viewport resolution if we are moving
-        if (camera.hasChanged())
+        // Halven viewport resolution if we are dirty
+        if (dirty)
         {
             viewportWidth /= 2;
             viewportHeight /= 2;
         }
 
-        viewport.update(*this);
+        if (!viewport.isBaking())
+        {
+            bakeElapsedTime = (float)(glfwTime - bakeCurrentTime);
+            bakeCurrentTime = glfwTime;
 
-        dirty = false;
+            viewport.update(*this);
+            dirty = false;
+        }
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
@@ -1282,5 +1292,5 @@ void Application::update()
     input.postUpdate();
 
     glfwSwapBuffers(window);
-    setTitle();
+    setTitle(1.0f / (handleViewport ? bakeElapsedTime : elapsedTime));
 }

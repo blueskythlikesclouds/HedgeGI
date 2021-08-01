@@ -35,6 +35,10 @@ class Application
 
     float elapsedTime{};
     double currentTime{};
+
+    float bakeElapsedTime {};
+    double bakeCurrentTime {};
+
     float titleUpdateTime {};
 
     int width {};
@@ -104,7 +108,7 @@ class Application
     void drawViewportUI();
     void drawSettingsUI();
     void drawBakingFactoryUI();
-    void setTitle();
+    void setTitle(float fps);
 
     void loadProperties();
     void storeProperties();
