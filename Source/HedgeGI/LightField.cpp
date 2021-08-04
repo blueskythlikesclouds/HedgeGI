@@ -130,10 +130,7 @@ void LightField::save(const std::string& filePath) const
 {
     hl::off_table offTable;
 
-    hl::nchar nFilePath[0x400];
-    hl::text::utf8_to_native::conv(filePath.c_str(), 0, nFilePath, 0x400);
-
-    hl::file_stream stream(nFilePath, hl::file::mode::write);
+    hl::file_stream stream(toNchar(filePath.c_str()).data(), hl::file::mode::write);
 
     hl::hh::mirage::raw_header::start_write(1, stream);
     {

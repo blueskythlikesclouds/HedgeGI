@@ -14,11 +14,7 @@ bool ModelProcessor::processArchive(hl::archive& archive, ProcModelFunc function
         if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-model")))
             continue;
 
-        {
-            char fileName[0x400];
-            hl::text::native_to_utf8::conv(entry.name(), 0, fileName, 0x400);
-            Logger::logFormatted("Processing %s...", fileName);
-        }
+        Logger::logFormatted("Processing %s...", toUtf8(entry.name()).data());
 
         hl::hh::mirage::terrain_model::fix(entry.file_data());
         hl::hh::mirage::terrain_model model(entry.file_data());
@@ -43,10 +39,9 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
     const std::string fileName = displayName.empty() ? getFileName(filePath) : displayName;
     Logger::logFormatted("Loading %s...", fileName.c_str());
 
-    hl::nchar nArchiveFilePath[0x400];
-    hl::text::utf8_to_native::conv(filePath.c_str(), 0, nArchiveFilePath, 0x400);
+    auto nArchiveFilePath = toNchar(filePath.c_str());
 
-    if (hl::text::strstr(nArchiveFilePath, HL_NTEXT(".pac")))
+    if (hl::text::strstr(nArchiveFilePath.data(), HL_NTEXT(".pac")))
     {
         hl::bina::ver version{0, 0, 0};
         hl::bina::endian_flag endianFlag;
@@ -63,18 +58,18 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
             fileStream.read(&endianFlag, 1);
         }
 
-        hl::archive archive = hl::pacx::load(nArchiveFilePath);
+        hl::archive archive = hl::pacx::load(nArchiveFilePath.data());
         if (!processArchive(archive, function))
             return;
 
         switch (version.major)
         {
         case '2': 
-            hl::pacx::v2::save(archive, endianFlag, hl::pacx::lw_exts, hl::pacx::lw_ext_count, nArchiveFilePath);
+            hl::pacx::v2::save(archive, endianFlag, hl::pacx::lw_exts, hl::pacx::lw_ext_count, nArchiveFilePath.data());
             break;
 
         case '3':
-            hl::pacx::v3::save(archive, endianFlag, hl::pacx::forces_exts, hl::pacx::forces_ext_count, nArchiveFilePath);
+            hl::pacx::v3::save(archive, endianFlag, hl::pacx::forces_exts, hl::pacx::forces_ext_count, nArchiveFilePath.data());
             break;
 
         default:
@@ -83,11 +78,11 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
     }
     else
     {
-        hl::archive archive = hl::hh::ar::load(nArchiveFilePath);
+        hl::archive archive = hl::hh::ar::load(nArchiveFilePath.data());
         if (!processArchive(archive, function))
             return;
 
-        hl::hh::ar::save(archive, nArchiveFilePath, 0, 0x10, hl::compress_type::none, false);
+        hl::hh::ar::save(archive, nArchiveFilePath.data(), 0, 0x10, hl::compress_type::none, false);
     }
 
     Logger::logFormatted("Saved %s", fileName.c_str());
@@ -99,10 +94,9 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
     {
         const std::string pfdFilePath = directoryPath + "/Stage.pfd";
 
-        hl::nchar nPfdFilePath[0x400];
-        hl::text::utf8_to_native::conv(pfdFilePath.c_str(), 0, nPfdFilePath, 0x400);
+        auto nPfdFilePath = toNchar(pfdFilePath.c_str());
 
-        hl::archive pfd = hl::hh::pfd::load(nPfdFilePath);
+        hl::archive pfd = hl::hh::pfd::load(nPfdFilePath.data());
         for (size_t i = 0; i < pfd.size(); i++)
         {
             hl::archive_entry& entry = pfd[i];
@@ -130,7 +124,7 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
             entry = hl::archive_entry::make_regular_file(entry.name(), blob.size(), blob.data());
         }
 
-        hl::hh::pfd::save(pfd, nPfdFilePath, hl::hh::pfd::default_alignment, &pfi);
+        hl::hh::pfd::save(pfd, nPfdFilePath.data(), hl::hh::pfd::default_alignment, &pfi);
     }
 
     {
@@ -138,10 +132,9 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
         if (!std::filesystem::exists(resourcesFilePath))
             return;
 
-        hl::nchar nResourcesFilePath[0x400];
-        hl::text::utf8_to_native::conv(resourcesFilePath.c_str(), 0, nResourcesFilePath, 0x400);
+        auto nResourcesFilePath = toNchar(resourcesFilePath.c_str());
 
-        hl::archive archive = hl::hh::ar::load(nResourcesFilePath);
+        hl::archive archive = hl::hh::ar::load(nResourcesFilePath.data());
         for (size_t i = 0; i < archive.size(); i++)
         {
             hl::archive_entry& entry = archive[i];
@@ -155,7 +148,7 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
             break;
         }
 
-        hl::hh::ar::save(archive, nResourcesFilePath);
+        hl::hh::ar::save(archive, nResourcesFilePath.data());
     }
 }
 

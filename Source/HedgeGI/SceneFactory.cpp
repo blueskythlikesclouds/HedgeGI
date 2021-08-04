@@ -437,9 +437,7 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
         if (!bitmap)
             continue;
 
-        char name[0x400];
-        hl::text::native_to_utf8::conv(entry.name(), 0, name, sizeof(name));
-        bitmap->name = getFileNameWithoutExtension(name);
+        bitmap->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
         scene.bitmaps.push_back(std::move(bitmap));
     }
@@ -462,10 +460,7 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
         material->fix();
 
         std::unique_ptr<Material> newMaterial = createMaterial(material, scene);
-
-        char name[0x400];
-        hl::text::native_to_utf8::conv(entry.name(), 0, name, sizeof(name));
-        newMaterial->name = getFileNameWithoutExtension(name);
+        newMaterial->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
         scene.materials.push_back(std::move(newMaterial));
     }
@@ -483,10 +478,7 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
         model->fix();
 
         std::unique_ptr<Model> newModel = createModel(model, scene);
-
-        char name[0x400];
-        hl::text::native_to_utf8::conv(entry.name(), 0, name, sizeof(name));
-        newModel->name = getFileNameWithoutExtension(name);
+        newModel->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
         scene.models.push_back(std::move(newModel));
     }
@@ -508,10 +500,7 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
             continue;
 
         std::unique_ptr<Light> newLight = createLight(light);
-
-        char name[0x400];
-        hl::text::native_to_utf8::conv(entry.name(), 0, name, sizeof(name));
-        newLight->name = getFileNameWithoutExtension(name);
+        newLight->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
         scene.lights.push_back(std::move(newLight));
     }
@@ -603,11 +592,8 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
 
 void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, const std::string& stageName)
 {
-    hl::nchar hhdName[0x400];
-    hl::text::utf8_to_native::conv((stageName + ".hhd").c_str(), 0, hhdName, 0x100);
-
-    hl::nchar rflName[0x400];
-    hl::text::utf8_to_native::conv((stageName + ".rfl").c_str(), 0, rflName, 0x100);
+    auto hhdName = toNchar((stageName + ".hhd").c_str());
+    auto rflName = toNchar((stageName + ".rfl").c_str());
 
     for (auto& entry : archive)
     {
@@ -621,7 +607,7 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, con
             break;
         }
 
-        if (hl::text::equal(entry.name(), hhdName))
+        if (hl::text::equal(entry.name(), hhdName.data()))
         {
             hl::bina::fix32((void*)entry.file_data(), entry.size());
 
@@ -631,7 +617,7 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, con
             break;
         }
 
-        if (hl::text::equal(entry.name(), rflName))
+        if (hl::text::equal(entry.name(), rflName.data()))
         {
             hl::bina::fix64((void*)entry.file_data(), entry.size());
 
@@ -649,10 +635,9 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
 
     std::unique_ptr<Scene> scene = std::make_unique<Scene>();
 
-    hl::nchar filePath[0x400];
-    hl::text::utf8_to_native::conv((directoryPath + "/" + stageName + ".ar.00").c_str(), 0, filePath, 0x400);
+    auto filePath = toNchar((directoryPath + "/" + stageName + ".ar.00").c_str());
 
-    const auto resArchive = hl::hh::ar::load(filePath);
+    const auto resArchive = hl::hh::ar::load(filePath.data());
     loadResources(resArchive, *scene);
 
     hl::hh::pfi::v0::header* pfi = nullptr;
@@ -704,11 +689,10 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
     scene->removeUnusedBitmaps();
     scene->buildAABB();
 
-    hl::nchar arFilePath[0x400];
-    hl::text::utf8_to_native::conv((directoryPath + "/../../#" + stageName + ".ar.00").c_str(), 0, arFilePath, 0x400);
+    auto arFilePath = toNchar((directoryPath + "/../../#" + stageName + ".ar.00").c_str());
 
-    if (hl::path::exists(arFilePath))
-        loadSceneEffect(hl::hh::ar::load(arFilePath), *scene, stageName);
+    if (hl::path::exists(arFilePath.data()))
+        loadSceneEffect(hl::hh::ar::load(arFilePath.data()), *scene, stageName);
 
     return scene;
 }
@@ -721,10 +705,9 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
 
     const std::string stageName = getFileNameWithoutExtension(directoryPath);
     {
-        hl::nchar filePath[0x400];
-        hl::text::utf8_to_native::conv((directoryPath + "/" + stageName + "_trr_cmn.pac").c_str(), 0, filePath, 0x400);
+        auto filePath = toNchar((directoryPath + "/" + stageName + "_trr_cmn.pac").c_str());
 
-        const auto archive = hl::pacx::load(filePath);
+        const auto archive = hl::pacx::load(filePath.data());
 
         loadResources(archive, *scene);
         archives.push_back(std::move(archive));
@@ -735,33 +718,30 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
         char slot[4];
         sprintf(slot, "%02d", i);
 
-        hl::nchar filePath[0x400];
-        hl::text::utf8_to_native::conv((directoryPath + "/" + stageName + "_trr_s" + slot + ".pac").c_str(), 0, filePath, 0x400);
+        auto filePath = toNchar((directoryPath + "/" + stageName + "_trr_s" + slot + ".pac").c_str());
 
-        if (!hl::path::exists(filePath))
+        if (!hl::path::exists(filePath.data()))
             continue;
 
-        archives.push_back(std::move(hl::pacx::load(filePath)));
+        archives.push_back(std::move(hl::pacx::load(filePath.data())));
     }
 
     loadTerrain(archives, *scene);
 
     archives.clear();
 
-    hl::nchar skyFilePath[0x400];
-    hl::text::utf8_to_native::conv((directoryPath + "/" + stageName + "_sky.pac").c_str(), 0, skyFilePath, 0x400);
+    auto skyFilePath = toNchar((directoryPath + "/" + stageName + "_sky.pac").c_str());
 
-    if (hl::path::exists(skyFilePath))
-        loadResources(hl::pacx::load(skyFilePath), *scene);
+    if (hl::path::exists(skyFilePath.data()))
+        loadResources(hl::pacx::load(skyFilePath.data()), *scene);
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();
 
-    hl::nchar miscFilePath[0x400];
-    hl::text::utf8_to_native::conv((directoryPath + "/" + stageName + "_misc.pac").c_str(), 0, miscFilePath, 0x400);
+    auto miscFilePath = toNchar((directoryPath + "/" + stageName + "_misc.pac").c_str());
 
-    if (hl::path::exists(miscFilePath))
-        loadSceneEffect(hl::pacx::load(miscFilePath), *scene, stageName);
+    if (hl::path::exists(miscFilePath.data()))
+        loadSceneEffect(hl::pacx::load(miscFilePath.data()), *scene, stageName);
 
     return scene;
 }

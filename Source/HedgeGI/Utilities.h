@@ -126,3 +126,19 @@ inline bool executeCommand(TCHAR args[])
 
     return true;
 }
+
+template<int N = 0x400>
+inline std::array<hl::nchar, N> toNchar(const char* value)
+{
+    std::array<hl::nchar, N> array {};
+    hl::text::utf8_to_native::conv(value, 0, array.data(), N);
+    return array;
+}
+
+template<int N = 0x400>
+inline std::array<char, N> toUtf8(const hl::nchar* value)
+{
+    std::array<char, N> array {};
+    hl::text::native_to_utf8::conv(value, 0, array.data(), N);
+    return array;
+}
