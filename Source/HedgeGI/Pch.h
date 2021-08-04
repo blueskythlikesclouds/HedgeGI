@@ -66,5 +66,11 @@ using Quaternion = Eigen::Quaternionf;
 // tinyxml2
 #include <tinyxml2.h>
 
+// meshoptimizer
+#include <meshoptimizer/meshoptimizer.h>
+
+// xatlas
+#include <xatlas/xatlas.h>
+
 #undef min
 #undef max

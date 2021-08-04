@@ -111,3 +111,18 @@ inline bool getElementValue(const tinyxml2::XMLElement* element, float& value)
     value = element->FloatText(value);
     return true;
 }
+
+inline bool executeCommand(TCHAR args[])
+{
+    STARTUPINFO startupInfo = { sizeof(STARTUPINFO) };
+    PROCESS_INFORMATION processInformation = {};
+
+    if (!CreateProcess(nullptr, args, nullptr, nullptr, false, CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, &processInformation))
+        return false;
+
+    WaitForSingleObject(processInformation.hProcess, INFINITE);
+    CloseHandle(processInformation.hProcess);
+    CloseHandle(processInformation.hThread);
+
+    return true;
+}

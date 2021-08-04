@@ -28,6 +28,9 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
 
+#include "ModelProcessor.h"
+#include "UV2Mapper.h"
+
 #define TRY_CANCEL() if (cancelBake) return;
 
 const ImGuiWindowFlags ImGuiWindowFlags_Static = 
@@ -370,6 +373,28 @@ void Application::draw()
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Tools"))
+        {
+            if (ImGui::MenuItem("Generate Lightmap UVs"))
+            {
+                const std::string directoryPath = FileDialog::openFolder(L"Enter into a stage directory.");
+
+                if (!directoryPath.empty())
+                {
+                    process([=]()
+                    {
+                        ModelProcessor::processStage(directoryPath, UV2Mapper::process);
+
+                        // Reload stage if we processed the currently open one
+                        if (scene && std::filesystem::canonical(directoryPath) == std::filesystem::canonical(stageDirectoryPath))
+                            loadScene(directoryPath);
+                    });
+                }
+            }
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
     }
 
@@ -382,10 +407,14 @@ void Application::draw()
     else if (futureBake.valid() && futureBake.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
         futureBake = {};
 
+    else if (futureProcess.valid() && futureProcess.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        futureProcess = {};
+
     drawLoadingPopupUI();
     drawBakingPopupUI();
+    drawProcessingPopupUI();
 
-    if (!scene || openLoadingPopup || openBakingPopup)
+    if (!scene || futureScene.valid() || futureBake.valid() || futureProcess.valid())
         return;
 
     ImGui::SetNextWindowPos({ 0, dockSpaceY });
@@ -410,7 +439,7 @@ void Application::draw()
 
 void Application::drawLoadingPopupUI()
 {
-    if (openLoadingPopup)
+    if (futureScene.valid())
         ImGui::OpenPopup("Loading");
 
     if (!ImGui::BeginPopupModal("Loading", nullptr, ImGuiWindowFlags_Static))
@@ -856,7 +885,7 @@ void Application::saveRecentStages() const
 
 void Application::drawBakingPopupUI()
 {
-    if (openBakingPopup)
+    if (futureBake.valid())
         ImGui::OpenPopup("Baking");
 
     if (!ImGui::BeginPopupModal("Baking", nullptr, ImGuiWindowFlags_Static))
@@ -902,6 +931,11 @@ void Application::drawBakingPopupUI()
         for (auto& log : logs)
             ImGui::TextUnformatted(log.c_str());
 
+        if (previousLogSize != logs.size())
+            ImGui::SetScrollHereY();
+
+        previousLogSize = logs.size();
+
         ImGui::EndListBox();
     }
 
@@ -914,7 +948,6 @@ void Application::drawBakingPopupUI()
 
 void Application::bake()
 {
-    openBakingPopup = true;
     viewport.waitForBake();
 
     bakeProgress = 0;
@@ -936,7 +969,6 @@ void Application::bake()
         bakeLightField();
 
     alert();
-    openBakingPopup = false;
 }
 
 void Application::bakeGI()
@@ -1143,6 +1175,59 @@ void Application::bakeLightField()
     }
 }
 
+void Application::drawProcessingPopupUI()
+{
+    if (futureProcess.valid())
+        ImGui::OpenPopup("Processing");
+
+    const float popupWidth = (float)width / 2;
+    const float popupHeight = (float)height / 2;
+    const float popupX = ((float)width - popupWidth) / 2;
+    const float popupY = ((float)height - popupHeight) / 2;
+
+    ImGui::SetNextWindowSize({ popupWidth, popupHeight });
+    ImGui::SetNextWindowPos({ popupX, popupY });
+
+    if (!ImGui::BeginPopupModal("Processing", nullptr, ImGuiWindowFlags_Static))
+        return;
+
+    ImGui::Text("Logs");
+
+    std::lock_guard lock(logMutex);
+
+    ImGui::Separator();
+    ImGui::BeginListBox("##Logs", { popupWidth, popupHeight - 32 });
+
+    for (auto& log : logs)
+        ImGui::TextUnformatted(log.c_str());
+
+    if (previousLogSize != logs.size())
+        ImGui::SetScrollHereY();
+
+    previousLogSize = logs.size();
+
+    ImGui::EndListBox();
+
+    if (!futureProcess.valid())
+        ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+}
+
+void Application::process(std::function<void()> function)
+{
+    futureProcess = std::async([this, function]()
+    {
+        {
+            std::lock_guard lock(logMutex);
+            logs.clear();
+        }
+
+        function();
+        alert();
+    });
+}
+
 Application::Application()
     : window(createGLFWwindow()), input(window), bakeParams(TargetEngine::HE1)
 {
@@ -1209,8 +1294,6 @@ void Application::loadScene(const std::string& directoryPath)
 {
     destroyScene();
 
-    openLoadingPopup = true;
-
     futureScene = std::async(std::launch::async, [this, directoryPath]()
     {
         stageName = getFileNameWithoutExtension(directoryPath);
@@ -1221,10 +1304,7 @@ void Application::loadScene(const std::string& directoryPath)
         propertyBag.load(directoryPath + "/" + stageName + ".hgi");
         loadProperties();
 
-        std::unique_ptr<Scene> scene = SceneFactory::create(directoryPath);
-
-        openLoadingPopup = false;
-        return scene;
+        return SceneFactory::create(directoryPath);
     });
 }
 
@@ -1273,7 +1353,7 @@ void Application::update()
 {
     glfwPollEvents();
 
-    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED) && !openLoadingPopup && !openBakingPopup)
+    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         return;

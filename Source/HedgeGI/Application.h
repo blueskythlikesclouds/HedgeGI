@@ -26,6 +26,7 @@ class Application
     const Quad quad;
 
     std::vector<std::string> logs;
+    size_t previousLogSize;
     std::mutex logMutex;
 
     struct ImFont* font {};
@@ -51,9 +52,6 @@ class Application
     bool showBakingFactory { true };
     bool dirty {};
 
-    bool openLoadingPopup {};
-    bool openBakingPopup {};
-
     std::string stageName;
     std::string stageDirectoryPath;
     std::list<std::string> recentStages;
@@ -77,6 +75,8 @@ class Application
     std::atomic<const Instance*> lastBakedInstance {};
     std::atomic<const SHLightField*> lastBakedShlf {};
     std::atomic<bool> cancelBake {};
+
+    std::future<void> futureProcess;
 
     static GLFWwindow* createGLFWwindow();
     static void logListener(void* owner, const char* text);
@@ -119,6 +119,9 @@ class Application
     void bake();
     void bakeGI();
     void bakeLightField();
+
+    void drawProcessingPopupUI();
+    void process(std::function<void()> function);
 
 public:
     Application();

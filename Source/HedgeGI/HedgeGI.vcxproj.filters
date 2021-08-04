@@ -144,6 +144,60 @@
     <ClCompile Include="Model.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Dependencies\xatlas\xatlas.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\allocator.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\clusterizer.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\indexcodec.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\indexgenerator.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\overdrawanalyzer.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\overdrawoptimizer.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\simplifier.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\spatialorder.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\stripifier.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\vcacheanalyzer.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\vcacheoptimizer.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\vertexcodec.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\vertexfilter.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\vfetchanalyzer.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\meshoptimizer\vfetchoptimizer.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="UV2Mapper.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelProcessor.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -290,6 +344,12 @@
     </ClInclude>
     <ClInclude Include="Model.h">
       <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="UV2Mapper.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelProcessor.h">
+      <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -691,16 +691,9 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
             tgFile.write(data.get(), entry->dataSize);
         }
 
-        STARTUPINFO startupInfo = { sizeof(STARTUPINFO) };
-        PROCESS_INFORMATION processInformation = {};
-
         TCHAR args[] = TEXT("expand temp.cab temp.ar");
-        if (!CreateProcess(nullptr, args, nullptr, nullptr, false, CREATE_NO_WINDOW, nullptr, nullptr, &startupInfo, &processInformation))
+        if (!executeCommand(args))
             continue;
-
-        WaitForSingleObject(processInformation.hProcess, INFINITE);
-        CloseHandle(processInformation.hProcess);
-        CloseHandle(processInformation.hThread);
 
         loadTerrain({ hl::hh::ar::load(HL_NTEXT("temp.ar")) }, *scene);
     }

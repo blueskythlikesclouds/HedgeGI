@@ -12,10 +12,14 @@ int32_t main(int32_t argc, const char* argv[])
 
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
-    Application application;
-    if (argc > 1)
-        application.loadScene(argv[1]);
+    {
+        Application application;
+        if (argc > 1)
+            application.loadScene(argv[1]);
 
-    application.run();
-    return 0;
+        application.run();
+    }
+
+    // Calling exit forces any async tasks to quit
+    exit(0);
 }
