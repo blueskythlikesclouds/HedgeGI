@@ -235,7 +235,7 @@ bool Application::beginProperties(const char* name)
     return ImGui::BeginTable(name, 2);
 }
 
-void Application::beginProperty(const char* label)
+void Application::beginProperty(const char* label, const float width)
 {
     ImGui::TableNextColumn();
     const ImVec2 cursorPos = ImGui::GetCursorPos();
@@ -243,7 +243,7 @@ void Application::beginProperty(const char* label)
     ImGui::TextUnformatted(label);
 
     ImGui::TableNextColumn();
-    ImGui::SetNextItemWidth(-1);
+    ImGui::SetNextItemWidth(width);
 }
 
 bool Application::property(const char* label, const enum ImGuiDataType_ dataType, void* data)
@@ -264,9 +264,9 @@ bool Application::property(const char* label, Color3& data)
     return ImGui::ColorEdit3((std::string("##") + label).c_str(), data.data());
 }
 
-bool Application::property(const char* label, char* data, size_t dataSize)
+bool Application::property(const char* label, char* data, size_t dataSize, const float width)
 {
-    beginProperty(label);
+    beginProperty(label, width);
     return ImGui::InputText((std::string("##") + label).c_str(), data, dataSize);
 }
 
@@ -593,7 +593,6 @@ void Application::drawSettingsUI()
         property("Viewport Resolution", ImGuiDataType_Float, &viewportResolutionInvRatio);
         endProperties();
     }
-    ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Environment Color") && beginProperties("##Environment Color"))
     {
@@ -628,7 +627,6 @@ void Application::drawSettingsUI()
 
         endProperties();
     }
-    ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Light Sampling") && beginProperties("##Light Sampling"))
     {
@@ -637,7 +635,6 @@ void Application::drawSettingsUI()
         property("Russian Roulette Max Depth", ImGuiDataType_U32, &bakeParams.russianRouletteMaxDepth);
         endProperties();
     }
-    ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Shadow Sampling") && beginProperties("##Shadow Sampling"))
     {
@@ -646,7 +643,6 @@ void Application::drawSettingsUI()
         property("Shadow Bias", ImGuiDataType_Float, &bakeParams.shadowBias);
         endProperties();
     }
-    ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Ambient Occlusion") && beginProperties("##Ambient Occlusion"))
     {
@@ -657,7 +653,6 @@ void Application::drawSettingsUI()
         property("AO Fade Strength", ImGuiDataType_Float, &bakeParams.aoStrength);
         endProperties();
     }
-    ImGui::Separator();
 
     if (ImGui::CollapsingHeader("Strength Modifiers") && beginProperties("##Strength Modifiers"))
     {
@@ -681,87 +676,121 @@ void Application::drawBakingFactoryUI()
     if (!ImGui::Begin("Baking Factory", &showBakingFactory))
         return ImGui::End();
 
-    if (beginProperties("##Mode Settings"))
+    if (ImGui::CollapsingHeader("Output"))
     {
-        property("Mode",
-            {
-                { "Global Illumination", BakingFactoryMode::GI },
-                { "Light Field", BakingFactoryMode::LightField }
-            },
-            mode
-            );
+        if (beginProperties("##Baking Factory Settings"))
+        {
+            char outputDirPath[1024];
+            strcpy(outputDirPath, outputDirectoryPath.c_str());
 
-        dirty |= property("Engine",
-            {
-                { "Hedgehog Engine 1", TargetEngine::HE1},
-                { "Hedgehog Engine 2", TargetEngine::HE2}
-            },
-            bakeParams.targetEngine
-            );
+            if (property("Output Directory", outputDirPath, sizeof(outputDirPath), -32))
+                outputDirectoryPath = outputDirPath;
 
-        endProperties();
-        ImGui::Separator();
+            ImGui::SameLine();
+
+            if (ImGui::Button("..."))
+            {
+                if (const std::string newOutputDirectoryPath = FileDialog::openFolder(L"Open Output Folder"); !newOutputDirectoryPath.empty())
+                    outputDirectoryPath = newOutputDirectoryPath;
+            }
+
+            endProperties();
+        }
+
+        const float buttonWidth = (ImGui::GetWindowSize().x - ImGui::GetStyle().ItemSpacing.x * 2) / 2;
+
+        if (ImGui::Button("Open in Explorer", { buttonWidth, 0 }))
+        {
+            std::filesystem::create_directory(outputDirectoryPath);
+            std::system(("explorer \"" + outputDirectoryPath + "\"").c_str());
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Clean Directory", { buttonWidth, 0 }))
+            clean();
     }
 
-    if (beginProperties("##Mode Specific Settings"))
+    if (ImGui::CollapsingHeader("Baker"))
     {
-        if (mode == BakingFactoryMode::LightField && bakeParams.targetEngine == TargetEngine::HE1)
+        if (beginProperties("##Mode Settings"))
         {
-            property("Minimum Cell Radius", ImGuiDataType_Float, &bakeParams.lightFieldMinCellRadius);
-            property("AABB Size Multiplier", ImGuiDataType_Float, &bakeParams.lightFieldAabbSizeMultiplier);
-        }
-        else if (mode == BakingFactoryMode::GI)
-        {
-            property("Denoise Shadow Map", bakeParams.denoiseShadowMap);
-            property("Optimize Seams", bakeParams.optimizeSeams);
-
-            property("Denoiser Type",
+            property("Mode",
                 {
-                    {"None", DenoiserType::None},
-                    {"Optix AI", DenoiserType::Optix},
-                    {"oidn", DenoiserType::Oidn},
+                    { "Global Illumination", BakingFactoryMode::GI },
+                    { "Light Field", BakingFactoryMode::LightField }
                 },
-                bakeParams.denoiserType);
+                mode
+                );
 
-            property("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
+            dirty |= property("Engine",
+                {
+                    { "Hedgehog Engine 1", TargetEngine::HE1},
+                    { "Hedgehog Engine 2", TargetEngine::HE2}
+                },
+                bakeParams.targetEngine
+                );
+
+            endProperties();
+            ImGui::Separator();
         }
 
-        endProperties();
-        ImGui::Separator();
-    }
-
-    if (beginProperties("##Baking Factory Settings"))
-    {
-        char outputDirPath[1024];
-        strcpy(outputDirPath, outputDirectoryPath.c_str());
-
-        if (property("Output Directory", outputDirPath, sizeof(outputDirPath)))
-            outputDirectoryPath = outputDirPath;
-
-        endProperties();
-        ImGui::Separator();
-    }
-
-    if (ImGui::Button("Browse"))
-    {
-        if (const std::string newOutputDirectoryPath = FileDialog::openFolder(L"Open Output Folder"); !newOutputDirectoryPath.empty())
-            outputDirectoryPath = newOutputDirectoryPath;
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Button("Open in Explorer"))
-    {
-        std::filesystem::create_directory(outputDirectoryPath);
-        std::system(("explorer \"" + outputDirectoryPath + "\"").c_str());
-    }
-
-    ImGui::Separator();
-    if (ImGui::Button("Bake"))
-    {
-        futureBake = std::async(std::launch::async, [&]()
+        if (beginProperties("##Mode Specific Settings"))
         {
-            bake();
-        });
+            if (mode == BakingFactoryMode::LightField && bakeParams.targetEngine == TargetEngine::HE1)
+            {
+                property("Minimum Cell Radius", ImGuiDataType_Float, &bakeParams.lightFieldMinCellRadius);
+                property("AABB Size Multiplier", ImGuiDataType_Float, &bakeParams.lightFieldAabbSizeMultiplier);
+            }
+            else if (mode == BakingFactoryMode::GI)
+            {
+                property("Denoise Shadow Map", bakeParams.denoiseShadowMap);
+                property("Optimize Seams", bakeParams.optimizeSeams);
+                property("Skip Existing Files", skipExistingFiles);
+
+                property("Denoiser Type",
+                    {
+                        {"None", DenoiserType::None},
+                        {"Optix AI", DenoiserType::Optix},
+                        {"oidn", DenoiserType::Oidn},
+                    },
+                    bakeParams.denoiserType);
+
+                property("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
+            }
+
+            endProperties();
+        }
+
+        const float buttonWidth = (ImGui::GetWindowSize().x - ImGui::GetStyle().ItemSpacing.x * 3) / 3;
+
+        if (ImGui::Button("Bake", { buttonWidth / 2, 0 }))
+        {
+            futureBake = std::async(std::launch::async, [&]()
+                {
+                    bake();
+                });
+        }
+
+        // TODO: Generations
+        if (game != Game::Generations || mode != BakingFactoryMode::GI)
+        {
+            ImGui::SameLine();
+
+            if (ImGui::Button("Bake and Pack", { buttonWidth * 2, 0 }))
+            {
+                futureBake = std::async(std::launch::async, [&]()
+                    {
+                        bake();
+                        pack();
+                    });
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Pack", { buttonWidth / 2, 0 }))
+                pack();
+        }
     }
 
     ImGui::End();
@@ -870,6 +899,7 @@ void Application::loadProperties()
     viewportResolutionInvRatio = propertyBag.get(PROP("viewportResolutionInvRatio"), 2.0f);
     outputDirectoryPath = propertyBag.getString(PROP("outputDirectoryPath"), stageDirectoryPath + "-HedgeGI");
     mode = propertyBag.get(PROP("mode"), BakingFactoryMode::GI);
+    skipExistingFiles = propertyBag.get(PROP("skipExistingFiles"), false);
 
     if (game == Game::Forces)
         bakeParams.targetEngine = TargetEngine::HE2;
@@ -882,6 +912,7 @@ void Application::storeProperties()
     propertyBag.set(PROP("viewportResolutionInvRatio"), viewportResolutionInvRatio);
     propertyBag.setString(PROP("outputDirectoryPath"), outputDirectoryPath);
     propertyBag.set(PROP("mode"), mode);
+    propertyBag.set(PROP("skipExistingFiles"), skipExistingFiles);
 }
 
 void Application::destroyScene()
@@ -1057,12 +1088,12 @@ void Application::bakeGI()
         }
     
         lightMapFileName = outputDirectoryPath + "/" + lightMapFileName;
-        skip |= std::filesystem::exists(lightMapFileName);
+        skip |= skipExistingFiles && std::filesystem::exists(lightMapFileName);
     
         if (!shadowMapFileName.empty())
         {
             shadowMapFileName = outputDirectoryPath + "/" + shadowMapFileName;
-            skip |= std::filesystem::exists(shadowMapFileName);
+            skip |= skipExistingFiles && std::filesystem::exists(shadowMapFileName);
         }
     
         if (skip)
@@ -1231,6 +1262,237 @@ void Application::bakeLightField()
     }
 }
 
+void Application::clean()
+{
+    process([&]()
+    {
+        for (auto& file : std::filesystem::directory_iterator(outputDirectoryPath))
+        {
+            if (!file.is_regular_file())
+                continue;
+
+            std::string extension = file.path().extension().string();
+            std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
+
+            if (extension != ".png" && extension != ".dds" && extension != ".lft")
+                continue;
+
+            std::filesystem::remove(file);
+            Logger::logFormatted(LogType::Normal, "Deleted %s", toUtf8(file.path().filename().c_str()));
+        }
+    });
+}
+
+void Application::pack()
+{
+    process([this]()
+    {
+        if (mode == BakingFactoryMode::LightField)
+            packLightField();
+
+        else if (mode == BakingFactoryMode::GI)
+        {
+            switch (game)
+            {
+            case Game::Generations:
+                packGenerationsGI();
+                break;
+
+            case Game::LostWorld:
+            case Game::Forces:
+                packLostWorldOrForcesGI();
+                break;
+
+            default: break;
+            }
+        }
+    });
+}
+
+void Application::packLightField()
+{
+    std::string archiveFileName;
+
+    if (game == Game::Generations)
+        archiveFileName = stageName + ".ar.00";
+
+    else if (game == Game::LostWorld || game == Game::Forces)
+        archiveFileName = stageName + "_trr_cmn.pac";
+
+    else return;
+
+    auto nArchiveFilePath = toNchar((stageDirectoryPath + "/" + archiveFileName).c_str());
+
+    hl::archive archive = game == Game::Generations ? hl::hh::ar::load(nArchiveFilePath.data()) : hl::pacx::load(nArchiveFilePath.data());
+
+    if (bakeParams.targetEngine == TargetEngine::HE1)
+    {
+        const std::string lightFieldFilePath = outputDirectoryPath + "/light-field.lft";
+        if (!std::filesystem::exists(lightFieldFilePath))
+        {
+            Logger::log(LogType::Error, "Failed to find light-field.lft");
+            return;
+        }
+
+        Logger::log(LogType::Normal, "Packed light-field.lft");
+
+        addOrReplace(archive, HL_NTEXT("light-field.lft"), hl::blob(toNchar(lightFieldFilePath.c_str()).data()));
+    }
+
+    else if (bakeParams.targetEngine == TargetEngine::HE2)
+    {
+        bool any = false;
+
+        for (auto& shLightField : scene->shLightFields)
+        {
+            const std::string textureFileName = shLightField->name + ".dds";
+            const std::string textureFilePath = outputDirectoryPath + "/" + textureFileName;
+            if (!std::filesystem::exists(textureFilePath))
+                continue;
+
+            Logger::logFormatted(LogType::Normal, "Packing %s", textureFileName.c_str());
+
+            addOrReplace(archive, toNchar(textureFileName.c_str()).data(), hl::blob(toNchar(textureFilePath.c_str()).data()));
+            any = true;
+        }
+
+        if (!any) 
+        {
+            Logger::log(LogType::Error, "Failed to find light field textures");
+            return;
+        }
+    }
+
+    else return;
+
+    switch (game)
+    {
+    case Game::Generations:
+        hl::hh::ar::save(archive, nArchiveFilePath.data());
+        break;
+
+    case Game::LostWorld:
+        hl::pacx::v2::save(archive, hl::bina::endian_flag::little, hl::pacx::lw_exts, hl::pacx::lw_ext_count, nArchiveFilePath.data());
+        break;
+
+    case Game::Forces:
+        hl::pacx::v3::save(archive, hl::bina::endian_flag::little, hl::pacx::forces_exts, hl::pacx::forces_ext_count, nArchiveFilePath.data());
+        break;
+
+    default: return;
+    }
+
+    Logger::logFormatted(LogType::Normal, "Saved %s", archiveFileName.c_str());
+}
+
+void Application::packGenerationsGI()
+{
+    // TODO
+}
+
+void Application::packLostWorldOrForcesGI()
+{
+    static const char* lwSuffixes[] = { ".dds" };
+    static const char* forcesSuffixes[] = { ".dds", "_sg.dds", "_occlusion.dds" };
+
+    const char** suffixes;
+    size_t suffixCount;
+
+    if (game == Game::LostWorld)
+    {
+        suffixes = lwSuffixes;
+        suffixCount = _countof(lwSuffixes);
+    }
+    else if (game == Game::Forces)
+    {
+        suffixes = forcesSuffixes;
+        suffixCount = _countof(forcesSuffixes);
+    }
+    else return;
+
+    auto processArchive = [&](const std::string& archiveFileName)
+    {
+        const std::string archiveFilePath = stageDirectoryPath + "/" + archiveFileName;
+        if (!std::filesystem::exists(archiveFilePath))
+            return;
+
+        auto nArchiveFilePath = toNchar(archiveFilePath.c_str());
+
+        hl::archive archive = hl::pacx::load(nArchiveFilePath.data());
+
+        bool any = false;
+
+        for (auto& instance : scene->instances)
+        {
+            for (size_t i = 0; i < suffixCount; i++)
+            {
+                // If the texture exists, clean it from the archive, 
+                // then add it to the archive if the corresponding terrain model/instance info exists.
+                const std::string textureFileName = instance->name + suffixes[i];
+                const std::string textureFilePath = outputDirectoryPath + "/" + textureFileName;
+
+                if (!std::filesystem::exists(textureFilePath))
+                    continue;
+
+                auto nTextureFileName = toNchar(textureFileName.c_str());
+                auto nTextureFilePath = toNchar(textureFilePath.c_str());
+
+                for (size_t j = 0; j < archive.size();)
+                {
+                    const hl::archive_entry& entry = archive[j];
+                    if (!hl::text::iequal(entry.name(), nTextureFileName.data()))
+                    {
+                        j++;
+                        continue;
+                    }
+
+                    archive.erase(archive.begin() + j);
+                    any = true;
+                }
+
+                auto instanceFileName = toNchar((instance->name + ".terrain-instanceinfo").c_str());
+                auto modelFileName = toNchar((instance->name + ".terrain-model").c_str());
+
+                for (size_t j = 0; j < archive.size(); j++)
+                {
+                    const hl::archive_entry& entry = archive[j];
+                    if (!hl::text::iequal(entry.name(), instanceFileName.data()) &&
+                        !hl::text::iequal(entry.name(), modelFileName.data()))
+                        continue;
+
+                    Logger::logFormatted(LogType::Normal, "Packing %s", textureFileName.c_str());
+
+                    hl::blob blob(nTextureFilePath.data());
+                    archive.push_back(std::move(hl::archive_entry::make_regular_file(nTextureFileName.data(), blob.size(), blob.data())));
+
+                    any = true;
+                    break;
+                }
+            }
+        }
+
+        if (!any) return;
+
+        if (game == Game::LostWorld)
+            hl::pacx::v2::save(archive, hl::bina::endian_flag::little, hl::pacx::lw_exts, hl::pacx::lw_ext_count, nArchiveFilePath.data());
+
+        else if (game == Game::Forces)
+            hl::pacx::v3::save(archive, hl::bina::endian_flag::little, hl::pacx::forces_exts, hl::pacx::forces_ext_count, nArchiveFilePath.data());
+
+        Logger::logFormatted(LogType::Normal, "Saved %s", archiveFileName.c_str());
+    };
+
+    processArchive(stageName + "_trr_cmn.pac");
+
+    for (size_t i = 0; i < 100; i++)
+    {
+        char sector[4];
+        sprintf(sector, "%02d", (int)i);
+
+        processArchive(stageName + "_trr_s" + sector + ".pac");
+    }
+}
+
 void Application::drawProcessingPopupUI()
 {
     if (futureProcess.valid())
@@ -1262,7 +1524,9 @@ void Application::process(std::function<void()> function)
 {
     futureProcess = std::async([this, function]()
     {
-        clearLogs();
+        if (!futureBake.valid())
+            clearLogs();
+
         function();
         alert();
     });
@@ -1411,7 +1675,7 @@ void Application::update()
 {
     glfwPollEvents();
 
-    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED))
+    if (!glfwGetWindowAttrib(window, GLFW_FOCUSED) && !futureScene.valid() && !futureBake.valid() && !futureProcess.valid())
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         return;

@@ -75,6 +75,7 @@ class Application
     BakingFactoryMode mode {};
     std::string outputDirectoryPath;
 
+    bool skipExistingFiles { true };
     std::future<void> futureBake;
     std::atomic<size_t> bakeProgress {};
     std::atomic<const Instance*> lastBakedInstance {};
@@ -94,11 +95,11 @@ class Application
     void initializeDocks();
 
     static bool beginProperties(const char* name);
-    static void beginProperty(const char* label);
+    static void beginProperty(const char* label, float width = -1);
     static bool property(const char* label, enum ImGuiDataType_ dataType, void* data);
     static bool property(const char* label, bool& data);
     static bool property(const char* label, Color3& data);
-    static bool property(const char* label, char* data, size_t dataSize);
+    static bool property(const char* label, char* data, size_t dataSize, float width = -1);
     template<typename T> static bool property(const char* label, const std::initializer_list<std::pair<const char*, T>>& values, T& data);
     static void endProperties();
 
@@ -128,6 +129,12 @@ class Application
     void bake();
     void bakeGI();
     void bakeLightField();
+
+    void clean();
+    void pack();
+    void packLightField();
+    void packGenerationsGI();
+    void packLostWorldOrForcesGI();
 
     void drawProcessingPopupUI();
     void process(std::function<void()> function);

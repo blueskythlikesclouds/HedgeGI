@@ -127,6 +127,22 @@ inline bool executeCommand(TCHAR args[])
     return true;
 }
 
+inline void addOrReplace(hl::archive& archive, const hl::nchar* fileName, const hl::blob& blob)
+{
+    hl::archive_entry entry = hl::archive_entry::make_regular_file(fileName, blob.size(), blob.data());
+
+    for (size_t i = 0; i < archive.size(); i++)
+    {
+        if (!hl::text::equal(archive[i].name(), fileName))
+            continue;
+
+        archive[i] = std::move(entry);
+        return;
+    }
+
+    archive.push_back(std::move(entry));
+}
+
 template<int N = 0x400>
 inline std::array<hl::nchar, N> toNchar(const char* value)
 {
