@@ -153,7 +153,7 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
     std::unique_ptr<LightField> lightField = std::make_unique<LightField>();
     lightField->cells.emplace_back();
 
-    Logger::log("Generating bake points...");
+    Logger::log(LogType::Normal, "Generating bake points...");
 
     std::vector<LightFieldPoint> bakePoints;
     phmap::parallel_flat_hash_map<Vector3, std::vector<uint32_t>, EigenHash<Vector3>> corners;
@@ -165,11 +165,11 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
 
     createBakePointsRecursively(raytracingContext, *lightField, 0, lightField->aabb, bakePoints, corners, bakeParams);
 
-    Logger::log("Baking points...");
+    Logger::log(LogType::Normal, "Baking points...");
 
     BakingFactory::bake(raytracingContext, bakePoints, bakeParams);
 
-    Logger::log("Finalizing...");
+    Logger::log(LogType::Normal, "Finalizing...");
 
     // Average every probe sharing the same cell corner.
     for (auto& cornerPair : corners)

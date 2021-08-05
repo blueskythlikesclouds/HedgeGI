@@ -14,7 +14,7 @@ bool ModelProcessor::processArchive(hl::archive& archive, ProcModelFunc function
         if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-model")))
             continue;
 
-        Logger::logFormatted("Processing %s...", toUtf8(entry.name()).data());
+        Logger::logFormatted(LogType::Normal, "Processing %s...", toUtf8(entry.name()).data());
 
         hl::hh::mirage::terrain_model::fix(entry.file_data());
         hl::hh::mirage::terrain_model model(entry.file_data());
@@ -37,7 +37,7 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
         return;
 
     const std::string fileName = displayName.empty() ? getFileName(filePath) : displayName;
-    Logger::logFormatted("Loading %s...", fileName.c_str());
+    Logger::logFormatted(LogType::Normal, "Loading %s...", fileName.c_str());
 
     auto nArchiveFilePath = toNchar(filePath.c_str());
 
@@ -85,7 +85,7 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
         hl::hh::ar::save(archive, nArchiveFilePath.data(), 0, 0x10, hl::compress_type::none, false);
     }
 
-    Logger::logFormatted("Saved %s", fileName.c_str());
+    Logger::logFormatted(LogType::Normal, "Saved %s", fileName.c_str());
 }
 
 void ModelProcessor::processGenerationsStage(const std::string& directoryPath, ProcModelFunc function)
@@ -115,7 +115,7 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
             const std::string displayName = hl::text::conv<hl::text::native_to_utf8>(entry.name());
             processArchive("temp.ar", function, displayName);
 
-            Logger::logFormatted("Compressing %s...", displayName.c_str());
+            Logger::logFormatted(LogType::Normal, "Compressing %s...", displayName.c_str());
 
             TCHAR args2[] = TEXT("makecab temp.ar temp.ar");
             executeCommand(args2);

@@ -11,6 +11,7 @@
 #include "SHLightField.h"
 
 #include "FileStream.h"
+#include "Logger.h"
 #include "Utilities.h"
 
 std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const size_t length)
@@ -116,7 +117,10 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
         }
 
         if (bitmap == nullptr)
+        {
+            Logger::logFormatted(LogType::Error, "Failed to find %s.dds", texture->texName.get());
             continue;
+        }
 
         if (strcmp(texture->type.get(), "diffuse") == 0)
         {
@@ -291,6 +295,9 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
         break;
     }
 
+    if (!newMesh->material)
+        Logger::logFormatted(LogType::Error, "Failed to find %s.material", mesh->materialName.get());
+
     newMesh->buildAABB();
 
     return newMesh;
@@ -435,7 +442,10 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
 
         std::unique_ptr<Bitmap> bitmap = createBitmap(entry.file_data<uint8_t>(), entry.size());
         if (!bitmap)
+        {
+            Logger::logFormatted(LogType::Error, "Failed to load %s", toUtf8(entry.name()));
             continue;
+        }
 
         bitmap->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
@@ -454,8 +464,12 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
         hl::u32 version;
         auto material = hl::hh::mirage::get_data<hl::hh::mirage::raw_material_v3>(data, &version);
 
-        if (version != 3)
+        // Allow version 0 to account for HedgeLib C#'s faulty writing
+        if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 0 && version != 3)
+        {
+            Logger::logFormatted(LogType::Error, "Failed to load %s", toUtf8(entry.name()));
             continue;
+        }
 
         material->fix();
 
@@ -658,7 +672,10 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
     }
 
     if (!pfi)
+    {
+        Logger::log(LogType::Error, "Failed to find Stage.pfi");
         return nullptr;
+    }
 
     const FileStream pfdFile((directoryPath + "/Stage.pfd").c_str(), "rb");
 

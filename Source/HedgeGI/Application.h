@@ -9,6 +9,9 @@
 #include "Scene.h"
 #include "BakeParams.h"
 
+struct ImVec2;
+enum class LogType;
+
 enum class BakingFactoryMode
 {
     GI,
@@ -25,7 +28,7 @@ class Application
     Viewport viewport;
     const Quad quad;
 
-    std::vector<std::string> logs;
+    std::list<std::pair<LogType, std::string>> logs;
     size_t previousLogSize;
     std::mutex logMutex;
 
@@ -50,6 +53,7 @@ class Application
     bool showViewport { true };
     bool showSettings { true };
     bool showBakingFactory { true };
+    bool showLogs { true };
     bool dirty {};
 
     std::string stageName;
@@ -79,7 +83,9 @@ class Application
     std::future<void> futureProcess;
 
     static GLFWwindow* createGLFWwindow();
-    static void logListener(void* owner, const char* text);
+    static void logListener(void* owner, LogType logType, const char* text);
+
+    void clearLogs();
 
     void initializeImGui();
     void initializeStyle();
@@ -105,6 +111,8 @@ class Application
     void drawSettingsUI();
     void drawBakingFactoryUI();
     void drawViewportUI();
+    bool drawLogsContainerUI(const ImVec2& size);
+    void drawLogsUI();
     void setTitle(float fps);
 
     void loadProperties();

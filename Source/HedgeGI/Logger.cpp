@@ -2,7 +2,7 @@
 
 std::list<Logger::Listener> Logger::listeners;
 
-void Logger::addListener(void* owner, void(* function)(void*, const char*))
+void Logger::addListener(void* owner, void(*function)(void*, LogType, const char*))
 {
     listeners.push_back({ owner, function });
 }
@@ -19,13 +19,13 @@ void Logger::removeListener(void* owner)
     }
 }
 
-void Logger::log(const char* text)
+void Logger::log(const LogType logType, const char* text)
 {
     for (auto& listener : listeners)
-        listener.function(listener.owner, text);
+        listener.function(listener.owner, logType, text);
 }
 
-void Logger::logFormatted(const char* format, ...)
+void Logger::logFormatted(const LogType logType, const char* format, ...)
 {
     char text[1024];
 
@@ -34,5 +34,5 @@ void Logger::logFormatted(const char* format, ...)
     vsprintf(text, format, args);
     va_end(args);
 
-    log(text);
+    log(logType, text);
 }

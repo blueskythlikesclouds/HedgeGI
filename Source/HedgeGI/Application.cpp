@@ -70,11 +70,20 @@ GLFWwindow* Application::createGLFWwindow()
     return window;
 }
 
-void Application::logListener(void* owner, const char* text)
+void Application::logListener(void* owner, const LogType logType, const char* text)
 {
     Application* application = (Application*)owner;
     std::lock_guard lock(application->logMutex);
-    application->logs.emplace_back(text);
+
+    const auto value = std::make_pair(logType, text);
+    application->logs.remove(value);
+    application->logs.push_back(value);
+}
+
+void Application::clearLogs()
+{
+    std::lock_guard lock(logMutex);
+    logs.clear();
 }
 
 void Application::initializeImGui()
@@ -203,16 +212,19 @@ void Application::initializeDocks()
     ImGuiID topLeftId;
     ImGuiID bottomLeftId;
     ImGuiID centerId;
-    ImGuiID rightId;
+    ImGuiID topRightId;
+    ImGuiID bottomRightId;
 
     ImGui::DockBuilderSplitNode(mainId, ImGuiDir_Left, 0.21f, &topLeftId, &centerId);
-    ImGui::DockBuilderSplitNode(centerId, ImGuiDir_Right, 0.3f, &rightId, &centerId);
+    ImGui::DockBuilderSplitNode(centerId, ImGuiDir_Right, 0.3f, &topRightId, &centerId);
     ImGui::DockBuilderSplitNode(topLeftId, ImGuiDir_Up, 0.5f, &topLeftId, &bottomLeftId);
+    ImGui::DockBuilderSplitNode(topRightId, ImGuiDir_Up, 0.75f, &topRightId, &bottomRightId);
 
     ImGui::DockBuilderDockWindow("Scene", topLeftId);
     ImGui::DockBuilderDockWindow("Baking Factory", bottomLeftId);
     ImGui::DockBuilderDockWindow("Viewport", centerId);
-    ImGui::DockBuilderDockWindow("Settings", rightId);
+    ImGui::DockBuilderDockWindow("Settings", topRightId);
+    ImGui::DockBuilderDockWindow("Logs", bottomRightId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
 }
@@ -369,6 +381,7 @@ void Application::draw()
             showSettings ^= ImGui::MenuItem("Settings");
             showBakingFactory ^= ImGui::MenuItem("Baking Factory");
             showViewport ^= ImGui::MenuItem("Viewport");
+            showLogs ^= ImGui::MenuItem("Logs");
 
             ImGui::EndMenu();
         }
@@ -419,7 +432,9 @@ void Application::draw()
 
     ImGui::SetNextWindowPos({ 0, dockSpaceY });
     ImGui::SetNextWindowSize({ (float)width, (float)height - dockSpaceY });
-    ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_Static);
+
+    if (!ImGui::Begin("DockSpace", nullptr, ImGuiWindowFlags_Static))
+        return ImGui::End();
 
     if (!docksInitialized)
     {
@@ -433,6 +448,7 @@ void Application::draw()
         drawSettingsUI();
         drawBakingFactoryUI();
         drawViewportUI();
+        drawLogsUI();
     }
     ImGui::End();
 }
@@ -474,23 +490,24 @@ void Application::drawInstancesUI()
     const bool doSearch = ImGui::InputText("##SearchInstances", search, sizeof(search));
 
     ImGui::SetNextItemWidth(-1);
-    ImGui::BeginListBox("##Instances");
-
-    for (auto& instance : scene->instances)
+    if (ImGui::BeginListBox("##Instances"))
     {
-        const uint16_t resolution = propertyBag.get<uint16_t>(instance->name + ".resolution", 256);
+        for (auto& instance : scene->instances)
+        {
+            const uint16_t resolution = propertyBag.get<uint16_t>(instance->name + ".resolution", 256);
 
-        char name[1024];
-        sprintf(name, "%s (%dx%d)", instance->name.c_str(), resolution, resolution);
+            char name[1024];
+            sprintf(name, "%s (%dx%d)", instance->name.c_str(), resolution, resolution);
 
-        if (doSearch && !strstr(name, search))
-            continue;
+            if (doSearch && !strstr(name, search))
+                continue;
 
-        if (ImGui::Selectable(name, selectedInstance == instance.get()))
-            selectedInstance = instance.get();
+            if (ImGui::Selectable(name, selectedInstance == instance.get()))
+                selectedInstance = instance.get();
+        }
+
+        ImGui::EndListBox();
     }
-
-    ImGui::EndListBox();
 
     if (selectedInstance != nullptr)
     {
@@ -540,18 +557,19 @@ void Application::drawLightsUI()
     const bool doSearch = ImGui::InputText("##SearchLights", search, sizeof(search));
 
     ImGui::SetNextItemWidth(-1);
-    ImGui::BeginListBox("##Lights");
-
-    for (auto& light : scene->lights)
+    if (ImGui::BeginListBox("##Lights"))
     {
-        if (doSearch && light->name.find(search) == std::string::npos)
-            continue;
+        for (auto& light : scene->lights)
+        {
+            if (doSearch && light->name.find(search) == std::string::npos)
+                continue;
 
-        if (ImGui::Selectable(light->name.c_str(), selectedLight == light.get()))
-            selectedLight = light.get();
+            if (ImGui::Selectable(light->name.c_str(), selectedLight == light.get()))
+                selectedLight = light.get();
+        }
+
+        ImGui::EndListBox();
     }
-
-    ImGui::EndListBox();
 
     if (selectedLight != nullptr)
     {
@@ -790,6 +808,49 @@ void Application::drawViewportUI()
     ImGui::End();
 }
 
+bool Application::drawLogsContainerUI(const ImVec2& size)
+{
+    std::lock_guard lock(logMutex);
+    if (logs.empty() || !ImGui::BeginListBox("##Logs", size))
+        return false;
+
+    for (auto& log : logs)
+    {
+        const ImVec4 colors[] =
+        {
+            ImVec4(0.13f, 0.7f, 0.3f, 1.0f), // Success
+            ImVec4(1.0f, 1.0f, 1.0f, 1.0f), // Normal
+            ImVec4(1.0f, 0.78f, 0.054f, 1.0f), // Warning
+            ImVec4(1.0f, 0.02f, 0.02f, 1.0f) // Error
+        };
+
+        ImGui::TextColored(colors[(size_t)log.first], log.second.c_str());
+    }
+
+    if (previousLogSize != logs.size())
+        ImGui::SetScrollHereY();
+
+    previousLogSize = logs.size();
+
+    ImGui::EndListBox();
+    return true;
+}
+
+void Application::drawLogsUI()
+{
+    if (!showLogs)
+        return;
+
+    if (!ImGui::Begin("Logs", &showLogs))
+        return ImGui::End();
+
+    const ImVec2 min = ImGui::GetWindowContentRegionMin();
+    const ImVec2 max = ImGui::GetWindowContentRegionMax();
+
+    drawLogsContainerUI({ max.x - min.x, max.y - min.y });
+    ImGui::End();
+}
+
 void Application::setTitle(const float fps)
 {
     if (titleUpdateTime < 0.5f)
@@ -893,11 +954,21 @@ void Application::drawBakingPopupUI()
 
     ImGui::Text(cancelBake ? "Cancelling..." : "Baking...");
 
+    ImGui::Separator();
+
+    const float popupWidth = (float)width / 4;
+    const float popupHeight = (float)height / 4;
+
+    if (drawLogsContainerUI({ popupWidth, popupHeight }))
+        ImGui::Separator();
+
     if (mode == BakingFactoryMode::GI || bakeParams.targetEngine == TargetEngine::HE2)
     {
         const Instance* const lastBakedInstance = this->lastBakedInstance;
         const SHLightField* const lastBakedShlf = this->lastBakedShlf;
         const size_t bakeProgress = this->bakeProgress;
+
+        ImGui::SetNextItemWidth(popupWidth);
 
         if (mode == BakingFactoryMode::GI)
         {
@@ -908,7 +979,6 @@ void Application::drawBakingPopupUI()
                 sprintf(overlay, "%s (%dx%d)", lastBakedInstance->name.c_str(), resolution, resolution);
             }
 
-            ImGui::Separator();
             ImGui::ProgressBar(bakeProgress / ((float)scene->instances.size() + 1), { 0, 0 }, lastBakedInstance ? overlay : nullptr);
         }
         else if (mode == BakingFactoryMode::LightField)
@@ -917,29 +987,12 @@ void Application::drawBakingPopupUI()
             if (lastBakedShlf != nullptr)
                 sprintf(overlay, "%s (%dx%dx%d)", lastBakedShlf->name.c_str(), lastBakedShlf->resolution.x(), lastBakedShlf->resolution.y(), lastBakedShlf->resolution.z());
 
-            ImGui::Separator();
             ImGui::ProgressBar(bakeProgress / ((float)scene->shLightFields.size() + 1), { 0, 0 }, lastBakedShlf ? overlay : nullptr);
         }
-    }
-    else if (mode == BakingFactoryMode::LightField)
-    {
-        std::lock_guard lock(logMutex);
 
         ImGui::Separator();
-        ImGui::BeginListBox("##Logs");
-
-        for (auto& log : logs)
-            ImGui::TextUnformatted(log.c_str());
-
-        if (previousLogSize != logs.size())
-            ImGui::SetScrollHereY();
-
-        previousLogSize = logs.size();
-
-        ImGui::EndListBox();
     }
 
-    ImGui::Separator();
     if (ImGui::Button("Cancel"))
         cancelBake = true;
 
@@ -955,18 +1008,26 @@ void Application::bake()
     lastBakedShlf = nullptr;
     cancelBake = false;
 
-    {
-        std::lock_guard lock(logMutex);
-        logs.clear();
-    }
+    clearLogs();
 
     std::filesystem::create_directory(outputDirectoryPath);
+
+    const auto begin = std::chrono::high_resolution_clock::now();
 
     if (mode == BakingFactoryMode::GI)
         bakeGI();
 
     else if (mode == BakingFactoryMode::LightField)
         bakeLightField();
+
+    const auto end = std::chrono::high_resolution_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - begin);
+
+    const int seconds = (int)(duration.count() % 60);
+    const int minutes = (int)((duration.count() / 60) % 60);
+    const int hours = (int)(duration.count() / (60 * 60));
+
+    Logger::logFormatted(LogType::Success, "Bake completed in %02dh:%02dm:%02ds!", hours, minutes, seconds);
 
     alert();
 }
@@ -1013,6 +1074,8 @@ void Application::bakeGI()
     
         if (skip)
         {
+            Logger::logFormatted(LogType::Normal, "Skipped %s", instance->name.c_str());
+
             ++bakeProgress;
             lastBakedInstance = instance.get();
             return;
@@ -1167,7 +1230,7 @@ void Application::bakeLightField()
 
         std::unique_ptr<LightField> lightField = LightFieldBaker::bake(scene->getRaytracingContext(), bakeParams);
 
-        Logger::log("Saving...\n");
+        Logger::log(LogType::Normal, "Saving...\n");
 
         TRY_CANCEL()
 
@@ -1193,20 +1256,8 @@ void Application::drawProcessingPopupUI()
 
     ImGui::Text("Logs");
 
-    std::lock_guard lock(logMutex);
-
     ImGui::Separator();
-    ImGui::BeginListBox("##Logs", { popupWidth, popupHeight - 32 });
-
-    for (auto& log : logs)
-        ImGui::TextUnformatted(log.c_str());
-
-    if (previousLogSize != logs.size())
-        ImGui::SetScrollHereY();
-
-    previousLogSize = logs.size();
-
-    ImGui::EndListBox();
+    drawLogsContainerUI({ popupWidth, popupHeight - 32 });
 
     if (!futureProcess.valid())
         ImGui::CloseCurrentPopup();
@@ -1218,11 +1269,7 @@ void Application::process(std::function<void()> function)
 {
     futureProcess = std::async([this, function]()
     {
-        {
-            std::lock_guard lock(logMutex);
-            logs.clear();
-        }
-
+        clearLogs();
         function();
         alert();
     });
@@ -1296,6 +1343,7 @@ void Application::loadScene(const std::string& directoryPath)
 
     futureScene = std::async(std::launch::async, [this, directoryPath]()
     {
+        clearLogs();
         stageName = getFileNameWithoutExtension(directoryPath);
         stageDirectoryPath = directoryPath;
         addRecentStage(directoryPath);

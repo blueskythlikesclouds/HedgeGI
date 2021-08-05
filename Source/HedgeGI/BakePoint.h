@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Instance.h"
+#include "Logger.h"
 #include "Math.h"
 #include "Scene.h"
 
@@ -106,6 +107,13 @@ static const Vector2 BAKE_POINT_OFFSETS[] =
     {0, 0}
 };
 
+inline bool validateVPos(const Vector2& vPos, Vector2& vPosTmp)
+{
+    const bool result = vPos != vPosTmp && vPos.x() >= 0 && vPos.x() <= 1 && vPos.y() >= 0 && vPos.y() <= 1;
+    vPosTmp = vPos;
+    return result;
+}
+
 template <typename TBakePoint>
 std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingContext, const Instance& instance, const uint16_t size)
 {
@@ -113,6 +121,9 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
 
     std::vector<TBakePoint> bakePoints;
     bakePoints.resize(size * size);
+
+    bool invalid = true;
+    Vector2 vPos(0, 0);
 
     for (auto& offset : BAKE_POINT_OFFSETS)
     {
@@ -124,6 +135,11 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                 const Vertex& a = mesh->vertices[triangle.a];
                 const Vertex& b = mesh->vertices[triangle.b];
                 const Vertex& c = mesh->vertices[triangle.c];
+
+                // Check whether the UV2 is proper
+                if (invalid) invalid = !validateVPos(a.vPos, vPos);
+                if (invalid) invalid = !validateVPos(b.vPos, vPos);
+                if (invalid) invalid = !validateVPos(c.vPos, vPos);
 
                 Vector3 aVPos(a.vPos[0] + offset.x() * factor, a.vPos[1] + offset.y() * factor, 0);
                 Vector3 bVPos(b.vPos[0] + offset.x() * factor, b.vPos[1] + offset.y() * factor, 0);
@@ -176,6 +192,9 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
             }
         }
     }
+
+    if (invalid)
+        Logger::logFormatted(LogType::Warning, "Instance \"%s\" has invalid lightmap UV data", instance.name.c_str());
 
     return bakePoints;
 }
