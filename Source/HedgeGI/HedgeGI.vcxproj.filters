@@ -198,6 +198,12 @@
     <ClCompile Include="ModelProcessor.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="VertexColorRemover.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshOptimizer.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -349,6 +355,12 @@
       <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="ModelProcessor.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexColorRemover.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshOptimizer.h">
       <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>

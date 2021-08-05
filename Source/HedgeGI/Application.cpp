@@ -22,14 +22,15 @@
 #include "SHLightFieldBaker.h"
 #include "Utilities.h"
 #include "Viewport.h"
+#include "ModelProcessor.h"
+#include "VertexColorRemover.h"
+#include "UV2Mapper.h"
+#include "MeshOptimizer.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
-
-#include "ModelProcessor.h"
-#include "UV2Mapper.h"
 
 #define TRY_CANCEL() if (cancelBake) return;
 
@@ -389,21 +390,13 @@ void Application::draw()
         if (ImGui::BeginMenu("Tools"))
         {
             if (ImGui::MenuItem("Generate Lightmap UVs"))
-            {
-                const std::string directoryPath = FileDialog::openFolder(L"Enter into a stage directory.");
+                processStage(UV2Mapper::process);
 
-                if (!directoryPath.empty())
-                {
-                    process([=]()
-                    {
-                        ModelProcessor::processStage(directoryPath, UV2Mapper::process);
+            if (ImGui::MenuItem("Remove Vertex Colors"))
+                processStage(VertexColorRemover::process);
 
-                        // Reload stage if we processed the currently open one
-                        if (scene && std::filesystem::canonical(directoryPath) == std::filesystem::canonical(stageDirectoryPath))
-                            loadScene(directoryPath);
-                    });
-                }
-            }
+            if (ImGui::MenuItem("Optimize Models"))
+                processStage(MeshOptimizer::process);
 
             ImGui::EndMenu();
         }
@@ -1272,6 +1265,23 @@ void Application::process(std::function<void()> function)
         clearLogs();
         function();
         alert();
+    });
+}
+
+void Application::processStage(ModelProcessor::ProcModelFunc function)
+{
+    const std::string directoryPath = FileDialog::openFolder(L"Enter into a stage directory.");
+    
+    if (directoryPath.empty())
+        return;
+
+    process([=]()
+    {
+        ModelProcessor::processStage(directoryPath, function);
+    
+        // Reload stage if we processed the currently open one
+        if (scene && std::filesystem::canonical(directoryPath) == std::filesystem::canonical(stageDirectoryPath))
+            loadScene(directoryPath);
     });
 }
 

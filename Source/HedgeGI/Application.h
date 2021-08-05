@@ -8,6 +8,7 @@
 #include "PropertyBag.h"
 #include "Scene.h"
 #include "BakeParams.h"
+#include "ModelProcessor.h"
 
 struct ImVec2;
 enum class LogType;
@@ -130,6 +131,7 @@ class Application
 
     void drawProcessingPopupUI();
     void process(std::function<void()> function);
+    void processStage(ModelProcessor::ProcModelFunc function);
 
 public:
     Application();
