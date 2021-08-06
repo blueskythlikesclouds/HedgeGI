@@ -512,6 +512,21 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                 texture.y);
         }
 
+        if (targetEngine == TargetEngine::HE1)
+        {
+            std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
+
+            DirectX::GenerateMipMaps(
+                atlasImage->GetImages(),
+                atlasImage->GetImageCount(),
+                atlasImage->GetMetadata(),
+                DirectX::TEX_FILTER_BOX | DirectX::TEX_FILTER_SEPARATE_ALPHA,
+                0,
+                *tmpImage);
+
+            atlasImage.swap(tmpImage);
+        }
+
         {
             std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
 
