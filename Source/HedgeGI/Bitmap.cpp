@@ -122,10 +122,24 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transfo
 
     else
     {
-        const DirectX::ScratchImage images = toScratchImage(transformer);
+        DirectX::ScratchImage images = toScratchImage(transformer);
 
         if (DirectX::IsCompressed(format))
         {
+            {
+                DirectX::ScratchImage tmpImage;
+
+                DirectX::GenerateMipMaps(
+                    images.GetImages(),
+                    images.GetImageCount(),
+                    images.GetMetadata(),
+                    DirectX::TEX_FILTER_BOX | DirectX::TEX_FILTER_FORCE_NON_WIC | DirectX::TEX_FILTER_SEPARATE_ALPHA,
+                    0,
+                    tmpImage);
+
+                std::swap(images, tmpImage);
+            }
+
             if (format >= DXGI_FORMAT_BC6H_TYPELESS && format <= DXGI_FORMAT_BC7_UNORM_SRGB)
             {
                 std::unique_lock<std::mutex> lock = D3D11Device::lock();

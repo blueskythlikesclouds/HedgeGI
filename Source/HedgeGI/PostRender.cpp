@@ -520,7 +520,7 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                 atlasImage->GetImages(),
                 atlasImage->GetImageCount(),
                 atlasImage->GetMetadata(),
-                DirectX::TEX_FILTER_BOX | DirectX::TEX_FILTER_SEPARATE_ALPHA,
+                DirectX::TEX_FILTER_BOX | DirectX::TEX_FILTER_FORCE_NON_WIC | DirectX::TEX_FILTER_SEPARATE_ALPHA,
                 0,
                 *tmpImage);
 
