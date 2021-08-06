@@ -616,6 +616,7 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
     hl::archive resourcesArchive = hl::hh::ar::load(nResourcesFilePath.data());
 
     std::unique_ptr<hl::u8[]> groupInfoData;
+    hl::u8* groupInfoOriginalData = nullptr;
 
     hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo = nullptr;
     for (auto& entry : resourcesArchive)
@@ -624,9 +625,12 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
             continue;
 
         // We have to copy to our own buffer otherwise when we resave the archive,
-        // the contents are going to be corrupted due to the "fix" function
+        // the contents are going to be corrupted due to the "fix" function.
         groupInfoData = std::make_unique<hl::u8[]>(entry.size());
         memcpy(groupInfoData.get(), entry.file_data(), entry.size());
+
+        // At the same time, store the original pointer to fix memory sizes later on.
+        groupInfoOriginalData = entry.file_data<hl::u8>();
         break;
     }
 
@@ -682,8 +686,15 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
 
         Logger::logFormatted(LogType::Normal, "Processing %s", name);
 
-        hl::hh::ar::save(createArchive(inputDirectoryPath, targetEngine, group.get(), groupInfo, nTempName.data()), 
-            nTempName.data(), 0, 0x10, hl::compress_type::none, false);
+        hl::u32 memorySize = 0;
+        {
+            const hl::archive archive = createArchive(inputDirectoryPath, targetEngine, group.get(), groupInfo, nTempName.data());
+
+            for (auto& entry : archive)
+                memorySize += (hl::u32)entry.size();
+
+            hl::hh::ar::save(archive, nTempName.data(), 0, 0x10, hl::compress_type::none, false);
+        }
 
         auto args = multiByteToWideChar((std::string("makecab ") + tempName + " " + tempName).c_str());
         if (!executeCommand(args.data()))
@@ -691,6 +702,12 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
             Logger::log(LogType::Error, "Failed to execute makecab");
             return;
         }
+
+        // HACK: We update the memory size in the original file by getting the offset of the value from the fixed data.
+        // The modifications are going to be reflected to the resaved resources archive.
+        hl::endian_swap(memorySize);
+        const size_t memorySizeOffset = (size_t)((hl::u8*)&group->memorySize - groupInfoData.get());
+        *(hl::u32*)(groupInfoOriginalData + memorySizeOffset) = memorySize;
 
         hl::blob blob(nTempName.data());
 
