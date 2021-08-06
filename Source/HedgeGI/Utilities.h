@@ -76,14 +76,14 @@ inline std::wstring multiByteToWideChar(const char* value)
     return std::wstring(wideChar);
 }
 
-inline void alert()
+inline void alert(GLFWwindow* window)
 {
     FLASHWINFO flashInfo;
     flashInfo.cbSize = sizeof(FLASHWINFO);
     flashInfo.dwFlags = FLASHW_TRAY | FLASHW_TIMERNOFG;
     flashInfo.uCount = 5;
     flashInfo.dwTimeout = 0;
-    flashInfo.hwnd = GetConsoleWindow();
+    flashInfo.hwnd = glfwGetWin32Window(window);
     FlashWindowEx(&flashInfo);
     MessageBeep(MB_OK);
 }

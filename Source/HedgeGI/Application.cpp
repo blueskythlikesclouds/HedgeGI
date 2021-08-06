@@ -26,13 +26,12 @@
 #include "VertexColorRemover.h"
 #include "UV2Mapper.h"
 #include "MeshOptimizer.h"
+#include "PostRender.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
-
-#include "PostRender.h"
 
 #define TRY_CANCEL() if (cancelBake) return;
 
@@ -775,6 +774,7 @@ void Application::drawBakingFactoryUI()
             futureBake = std::async(std::launch::async, [&]()
             {
                 bake();
+                alert(window);
             });
         }
 
@@ -785,7 +785,11 @@ void Application::drawBakingFactoryUI()
             futureBake = std::async(std::launch::async, [&]()
             {
                 bake();
-                pack();
+
+                if (!cancelBake)
+                    pack();
+                else
+                    alert(window);
             });
         }
 
@@ -1056,8 +1060,6 @@ void Application::bake()
     const int hours = (int)(duration.count() / (60 * 60));
 
     Logger::logFormatted(LogType::Success, "Bake completed in %02dh:%02dm:%02ds!", hours, minutes, seconds);
-
-    alert();
 }
 
 void Application::bakeGI()
@@ -1310,6 +1312,8 @@ void Application::pack()
             default: break;
             }
         }
+
+        alert(window);
     });
 }
 
@@ -1532,7 +1536,6 @@ void Application::process(std::function<void()> function)
             clearLogs();
 
         function();
-        alert();
     });
 }
 
@@ -1550,6 +1553,8 @@ void Application::processStage(ModelProcessor::ProcModelFunc function)
         // Reload stage if we processed the currently open one
         if (scene && std::filesystem::canonical(directoryPath) == std::filesystem::canonical(stageDirectoryPath))
             loadScene(directoryPath);
+        else
+            alert(window);
     });
 }
 
