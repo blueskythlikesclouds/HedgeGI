@@ -79,7 +79,10 @@ void Viewport::toneMap(const Application& application) const
     toneMapShader.set("uMiddleGray", application.getGame() == Game::Forces ? middleGray * 0.5f : middleGray);
     toneMapShader.set("uTexture", 0);
     toneMapShader.set("uAvgLuminanceTex", 1);
-    toneMapShader.set("uGamma", application.getBakeParams().targetEngine == TargetEngine::HE2 ? 1.0f / 2.2f : application.getGame() == Game::Generations ? 1.5f : 1.0f);
+    toneMapShader.set("uGamma",
+        application.getBakeParams().targetEngine == TargetEngine::HE2 ? 1.0f / 2.2f :
+        application.getGame() == Game::Generations && application.getGammaCorrectionFlag() ? 1.5f :
+        1.0f);
 
     ldrFramebufferTex->bind();
     hdrFramebufferTex->texture.bind(0);

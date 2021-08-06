@@ -592,7 +592,11 @@ void Application::drawSettingsUI()
 
     if (beginProperties("##Viewport Settings"))
     {
+        if (game == Game::Generations && bakeParams.targetEngine == TargetEngine::HE1)
+            property("Gamma Correction", gammaCorrectionFlag);
+
         property("Viewport Resolution", ImGuiDataType_Float, &viewportResolutionInvRatio);
+
         endProperties();
     }
 
@@ -895,6 +899,7 @@ void Application::loadProperties()
     camera.load(propertyBag);
     bakeParams.load(propertyBag);
     viewportResolutionInvRatio = propertyBag.get(PROP("viewportResolutionInvRatio"), 2.0f);
+    gammaCorrectionFlag = propertyBag.get(PROP("gammaCorrectionFlag"), true);
     outputDirectoryPath = propertyBag.getString(PROP("outputDirectoryPath"), stageDirectoryPath + "-HedgeGI");
     mode = propertyBag.get(PROP("mode"), BakingFactoryMode::GI);
     skipExistingFiles = propertyBag.get(PROP("skipExistingFiles"), false);
@@ -908,6 +913,7 @@ void Application::storeProperties()
     camera.store(propertyBag);
     bakeParams.store(propertyBag);
     propertyBag.set(PROP("viewportResolutionInvRatio"), viewportResolutionInvRatio);
+    propertyBag.set(PROP("gammaCorrectionFlag"), gammaCorrectionFlag);
     propertyBag.setString(PROP("outputDirectoryPath"), outputDirectoryPath);
     propertyBag.set(PROP("mode"), mode);
     propertyBag.set(PROP("skipExistingFiles"), skipExistingFiles);
@@ -1641,6 +1647,11 @@ const RaytracingContext Application::getRaytracingContext() const
 const SceneEffect& Application::getSceneEffect() const
 {
     return scene->effect;
+}
+
+bool Application::getGammaCorrectionFlag() const
+{
+    return gammaCorrectionFlag;
 }
 
 const BakeParams Application::getBakeParams() const

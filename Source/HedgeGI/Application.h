@@ -68,8 +68,9 @@ class Application
 
     const Instance* selectedInstance {};
     Light* selectedLight {};
-    
+
     float viewportResolutionInvRatio {};
+    bool gammaCorrectionFlag {};
     BakeParams bakeParams;
 
     BakingFactoryMode mode {};
@@ -164,6 +165,7 @@ public:
     PropertyBag& getPropertyBag();
     const RaytracingContext getRaytracingContext() const;
     const SceneEffect& getSceneEffect() const;
+    bool getGammaCorrectionFlag() const;
     const BakeParams getBakeParams() const;
 
     void drawQuad() const;
