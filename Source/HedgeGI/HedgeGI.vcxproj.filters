@@ -204,6 +204,9 @@
     <ClCompile Include="MeshOptimizer.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="PostRender.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -361,6 +364,12 @@
       <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="MeshOptimizer.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="hl_hh_gi_texture.h">
+      <Filter>HedgehogEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="PostRender.h">
       <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>

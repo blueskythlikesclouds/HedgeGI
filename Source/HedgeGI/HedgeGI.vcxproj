@@ -344,6 +344,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pch.h</PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="PostRender.cpp" />
     <ClCompile Include="PropertyBag.cpp" />
     <ClCompile Include="Quad.cpp" />
     <ClCompile Include="RaytracingDevice.cpp" />
@@ -376,6 +377,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClInclude Include="Framebuffer.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="FxSceneData.h" />
+    <ClInclude Include="hl_hh_gi_texture.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="MeshOptimizer.h" />
@@ -388,6 +390,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClInclude Include="Light.h" />
     <ClInclude Include="BakingFactory.h" />
     <ClInclude Include="LightField.h" />
+    <ClInclude Include="PostRender.h" />
     <ClInclude Include="PropertyBag.h" />
     <ClInclude Include="Quad.h" />
     <ClInclude Include="RaytracingDevice.h" />

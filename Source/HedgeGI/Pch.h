@@ -23,6 +23,7 @@
 
 #include "hl_hh_light.h"
 #include "hl_hh_shlf.h"
+#include "hl_hh_gi_texture.h"
 
 // Eigen
 #include <Eigen/Core>

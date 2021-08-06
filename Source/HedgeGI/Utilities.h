@@ -69,6 +69,13 @@ inline std::string wideCharToMultiByte(LPCWSTR value)
     return std::string(multiByte);
 }
 
+inline std::wstring multiByteToWideChar(const char* value)
+{
+    WCHAR wideChar[1024];
+    MultiByteToWideChar(CP_UTF8, 0, value, -1, wideChar, _countof(wideChar));
+    return std::wstring(wideChar);
+}
+
 inline void alert()
 {
     FLASHWINFO flashInfo;

@@ -32,6 +32,8 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_glfw.h>
 
+#include "PostRender.h"
+
 #define TRY_CANCEL() if (cancelBake) return;
 
 const ImGuiWindowFlags ImGuiWindowFlags_Static = 
@@ -767,30 +769,26 @@ void Application::drawBakingFactoryUI()
         if (ImGui::Button("Bake", { buttonWidth / 2, 0 }))
         {
             futureBake = std::async(std::launch::async, [&]()
-                {
-                    bake();
-                });
-        }
-
-        // TODO: Generations
-        if (game != Game::Generations || mode != BakingFactoryMode::GI)
-        {
-            ImGui::SameLine();
-
-            if (ImGui::Button("Bake and Pack", { buttonWidth * 2, 0 }))
             {
-                futureBake = std::async(std::launch::async, [&]()
-                    {
-                        bake();
-                        pack();
-                    });
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("Pack", { buttonWidth / 2, 0 }))
-                pack();
+                bake();
+            });
         }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Bake and Pack", { buttonWidth * 2, 0 }))
+        {
+            futureBake = std::async(std::launch::async, [&]()
+            {
+                bake();
+                pack();
+            });
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Pack", { buttonWidth / 2, 0 }))
+            pack();
     }
 
     ImGui::End();
@@ -1387,7 +1385,7 @@ void Application::packLightField()
 
 void Application::packGenerationsGI()
 {
-    // TODO
+    PostRender::process(stageDirectoryPath, outputDirectoryPath, bakeParams.targetEngine);
 }
 
 void Application::packLostWorldOrForcesGI()
