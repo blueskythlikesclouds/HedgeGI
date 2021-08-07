@@ -361,7 +361,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         if (material == nullptr || material->type == MaterialType::Common || material->type == MaterialType::Blend)
         {
-            if (shouldApplyBakeParam && !nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f))
+            if (shouldApplyBakeParam && (!nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f)))
             {
                 Color3 hsv = rgb2Hsv(diffuse.head<3>());
                 hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
