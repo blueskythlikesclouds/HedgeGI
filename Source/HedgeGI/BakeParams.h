@@ -29,6 +29,7 @@ struct BakeParams
     Color3 environmentColor;
     float environmentColorIntensity;
     float skyIntensity;
+    float skyIntensityScale;
 
     uint32_t lightBounceCount {};
     uint32_t lightSampleCount {};
@@ -62,8 +63,8 @@ struct BakeParams
     float lightFieldMinCellRadius {};
     float lightFieldAabbSizeMultiplier {};
 
-    BakeParams() : targetEngine(TargetEngine::HE1) {}
-    BakeParams(const TargetEngine targetEngine) : targetEngine(targetEngine) {}
+    BakeParams() : targetEngine(TargetEngine::HE1), skyIntensityScale(1) {}
+    BakeParams(const TargetEngine targetEngine) : targetEngine(targetEngine), skyIntensityScale(1) {}
 
     void load(const std::string& filePath);
 

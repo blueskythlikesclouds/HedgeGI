@@ -324,15 +324,8 @@ void Application::updateViewport()
     if (viewport.isBaking())
         return;
 
-    const BakeParams oldBakeParams = bakeParams;
-    {
-        bakeParams.skyIntensity *= scene->effect.def.skyIntensityScale;
-    }
-
     viewport.update(*this);
-
     dirty = false;
-    bakeParams = oldBakeParams;
 }
 
 void Application::draw()
@@ -1635,7 +1628,9 @@ void Application::loadScene(const std::string& directoryPath)
         propertyBag.load(directoryPath + "/" + stageName + ".hgi");
         loadProperties();
 
-        return SceneFactory::create(directoryPath);
+        auto scene = SceneFactory::create(directoryPath);
+        bakeParams.skyIntensityScale = scene->effect.def.skyIntensityScale;
+        return scene;
     });
 }
 

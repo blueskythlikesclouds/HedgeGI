@@ -100,7 +100,7 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
         skyColor = lerp<Color3>(skyColor, color, colors[j].w());
     }
 
-    return (skyColor * bakeParams.skyIntensity).cwiseMax(0);
+    return (skyColor * bakeParams.skyIntensity * bakeParams.skyIntensityScale).cwiseMax(0);
 }
 
 template <TargetEngine targetEngine, bool tracingFromEye>
