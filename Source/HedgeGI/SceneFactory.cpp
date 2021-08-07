@@ -238,9 +238,12 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     Affine3 rotation;
     rotation = transformation.rotation();
 
+    bool anyInvalid = false;
+
     for (size_t i = 0; i < newMesh->vertexCount; i++)
     {
         Vertex& vertex = newMesh->vertices[i];
+        anyInvalid |= vertex.tangent == Vector3::Zero() || vertex.binormal == Vector3::Zero();
 
         vertex.position = transformation * Eigen::Vector3f(vertex.position);
         vertex.normal = (rotation * Eigen::Vector3f(vertex.normal)).normalized();
@@ -297,6 +300,9 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
 
     if (!newMesh->material)
         Logger::logFormatted(LogType::Error, "Failed to find %s.material", mesh->materialName.get());
+
+    if (anyInvalid)
+        newMesh->generateTangents();
 
     newMesh->buildAABB();
 

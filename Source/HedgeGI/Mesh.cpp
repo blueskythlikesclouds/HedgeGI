@@ -39,37 +39,11 @@ void Mesh::generateTangents() const
     for (uint32_t i = 0; i < vertexCount; i++)
     {
         Vertex& vertex = vertices[i];
-        vertex.tangent = Vector3::Zero();
-        vertex.binormal = Vector3::Zero();
-    }
 
-    for (uint32_t i = 0; i < triangleCount; i++)
-    {
-        const Triangle& triangle = triangles[i];
-        Vertex& a = vertices[triangle.a];
-        Vertex& b = vertices[triangle.b];
-        Vertex& c = vertices[triangle.c];
-
-        const Vector3 e1 = c.position - a.position;
-        const Vector3 e2 = b.position - a.position;
-
-        const Vector2 uv1 = c.vPos - a.vPos;
-        const Vector2 uv2 = b.vPos - a.vPos;
-
-        float r = 1.0f / (uv1[0] * uv2[1] - uv1[1] * uv2[0]);
-        const Vector3 tangent = (e1 * uv2[1] - e2 * uv1[1]) * r;
-        const Vector3 binormal = (e2 * uv1[0] - e1 * uv2[0]) * r;
-
-        a.tangent += tangent; b.tangent += tangent; c.tangent += tangent;
-        a.binormal += binormal; b.binormal += binormal; c.binormal += binormal;
-    }
-
-    for (uint32_t i = 0; i < vertexCount; i++)
-    {
-        Vertex& vertex = vertices[i];
-        vertex.normal.normalize();
-        vertex.tangent.normalize();
-        vertex.binormal.normalize();
+        const Vector3 t1 = vertex.normal.cross(Vector3(0, 0, 1));
+        const Vector3 t2 = vertex.normal.cross(Vector3(0, 1, 0));
+        vertex.tangent = (t1.norm() > t2.norm() ? t1 : t2).normalized();
+        vertex.binormal = vertex.tangent.cross(vertex.normal).normalized();
     }
 }
 
