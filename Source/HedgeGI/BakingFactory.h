@@ -50,8 +50,6 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         break;
     }
 
-    const uint32_t lightSampleCount = bakeParams.lightSampleCount * TBakePoint::BASIS_COUNT;
-
     Matrix3 lightTangentToWorldMatrix;
     if (sunLight != nullptr)
         lightTangentToWorldMatrix = sunLight->getTangentToWorldMatrix();
@@ -65,9 +63,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
         float faceFactor = 1.0f;
 
-        for (uint32_t i = 0; i < lightSampleCount; i++)
+        for (uint32_t i = 0; i < bakeParams.lightSampleCount; i++)
         {
-            const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, lightSampleCount, Random::next(), Random::next()).normalized();
+            const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.lightSampleCount, Random::next(), Random::next()).normalized();
             const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
             const Color4 radiance = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams);
 
@@ -79,14 +77,14 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         // This will fix the shadow leaks when dilated.
         if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_DISCARD_BACKFACE) != 0)
         {
-            if (faceFactor / (float)lightSampleCount < 0.5f)
+            if (faceFactor / (float)bakeParams.lightSampleCount < 0.5f)
             {
                 bakePoint.discard();
                 return;
             }
         }
 
-        bakePoint.end(lightSampleCount);
+        bakePoint.end(bakeParams.lightSampleCount);
 
         if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_AO) != 0)
         {
