@@ -524,7 +524,7 @@ inline float getRadius(const AABB& aabb)
 
 inline float computeAttenuationHE1(const float distance, const Vector4& range)
 {
-    return 1 - saturate(((1.0f / distance) - range.z()) / (range.w() - range.z()));
+    return 1 - saturate((distance - range.z()) / (range.w() - range.z()));
 }
 
 inline void computeDirectionAndAttenuationHE1(const Vector3& position, const Vector3& lightPosition, const Vector4& range, Vector3& lightDirection, float& attenuation)
@@ -533,4 +533,18 @@ inline void computeDirectionAndAttenuationHE1(const Vector3& position, const Vec
     const float distance = lightDirection.norm();
     lightDirection /= distance;
     attenuation = computeAttenuationHE1(distance, range);
+}
+
+inline float computeAttenuationHE2(const float distance, const Vector4& range)
+{
+    // TODO: This is not correct. At all. I do the same in PBR shaders mod, but it's not what HE2 actually does.
+    return 1.0f / (range.y() + range.z() * distance + range.w() * distance * distance);
+}
+
+inline void computeDirectionAndAttenuationHE2(const Vector3& position, const Vector3& lightPosition, const Vector4& range, Vector3& lightDirection, float& attenuation)
+{
+    lightDirection = position - lightPosition;
+    const float distance = lightDirection.norm();
+    lightDirection /= distance;
+    attenuation = computeAttenuationHE2(distance, range);
 }

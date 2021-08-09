@@ -369,20 +369,25 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 diffuse.head<3>() = hsv2Rgb(hsv);
             }
 
-            for (auto& light : raytracingContext.scene->lights)
+            raytracingContext.lightBVH->traverse(hitPosition, [&](const Light* light)
             {
                 Vector3 lightDirection;
                 float attenuation;
 
                 if (light->type == LightType::Point)
                 {
-                    computeDirectionAndAttenuationHE1(hitPosition, light->positionOrDirection, light->range, lightDirection, attenuation);
+                    if (targetEngine == TargetEngine::HE1)
+                        computeDirectionAndAttenuationHE1(hitPosition, light->position, light->range, lightDirection, attenuation);
+
+                    else if (targetEngine == TargetEngine::HE2)
+                        computeDirectionAndAttenuationHE2(hitPosition, light->position, light->range, lightDirection, attenuation);
+
                     if (attenuation == 0.0f)
-                        continue;
+                        return;
                 }
                 else
                 {
-                    lightDirection = light->positionOrDirection;
+                    lightDirection = light->position;
                     attenuation = 1.0f;
                 }
 
@@ -404,7 +409,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     shadowQuery.ray.org_y = shadowPosition[1];
                     shadowQuery.ray.org_z = shadowPosition[2];
                     shadowQuery.ray.tnear = bakeParams.shadowBias;
-                    shadowQuery.ray.tfar = light->type == LightType::Point ? (light->positionOrDirection - shadowPosition).norm() : INFINITY;
+                    shadowQuery.ray.tfar = light->type == LightType::Point ? (light->position - shadowPosition).norm() : INFINITY;
                     shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
                     shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
@@ -439,7 +444,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                 } while (receiveLight && ++shadowDepth < 8);
 
                 if (!receiveLight)
-                    continue;
+                    return;
 
                 const float cosLightDirection = saturate(hitNormal.dot(-lightDirection));
 
@@ -480,7 +485,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
                     radiance += throughput * directLighting;
                 }
-            }
+            });
 
             radiance += throughput * emission.head<3>();
         }
@@ -566,7 +571,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         pathTrace<TargetEngine::HE1, false>(raytracingContext, position, direction, bakeParams);
 }
 
-void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress)
+void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress, bool antiAliasing)
 {
     const float tanFovy = tanf(camera.fieldOfView / 2);
 
@@ -576,10 +581,20 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const size_t x = i % width;
         const size_t y = i / width;
 
-        const float u1 = 2.0f * Random::next();
-        const float u2 = 2.0f * Random::next();
-        const float dx = u1 < 1 ? sqrtf(u1) - 1.0f : 1.0f - sqrtf(2.0f - u1);
-        const float dy = u2 < 1 ? sqrtf(u2) - 1.0f : 1.0f - sqrtf(2.0f - u2);
+        float dx, dy;
+
+        if (antiAliasing)
+        {
+            const float u1 = 2.0f * Random::next();
+            const float u2 = 2.0f * Random::next();
+            dx = u1 < 1 ? sqrtf(u1) - 1.0f : 1.0f - sqrtf(2.0f - u1);
+            dy = u2 < 1 ? sqrtf(u2) - 1.0f : 1.0f - sqrtf(2.0f - u2);
+        }
+        else
+        {
+            dx = 0;
+            dy = 0;
+        }
 
         const float xNormalized = (x + 0.5f + dx) / width * 2 - 1;
         const float yNormalized = (y + 0.5f + dy) / height * 2 - 1;

@@ -31,6 +31,7 @@ class Viewport
         size_t viewportHeight{};
         Camera camera;
         BakeParams bakeParams;
+        bool antiAliasing{};
         std::atomic<bool> end;
     } bakeArgs{};
 

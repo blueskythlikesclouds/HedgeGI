@@ -13,7 +13,7 @@ class Light
 public:
     std::string name;
     LightType type{};
-    Vector3 positionOrDirection;
+    Vector3 position;
     Color3 color;
     Vector4 range;
 

@@ -207,6 +207,9 @@
     <ClCompile Include="PostRender.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="LightBVH.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -371,6 +374,9 @@
     </ClInclude>
     <ClInclude Include="PostRender.h">
       <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="LightBVH.h">
+      <Filter>Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

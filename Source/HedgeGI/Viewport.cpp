@@ -18,7 +18,7 @@ void Viewport::bakeThreadFunc()
             continue;
         }
 
-        BakingFactory::bake(bakeArgs.raytracingContext, *bitmap, bakeArgs.viewportWidth, bakeArgs.viewportHeight, bakeArgs.camera, bakeArgs.bakeParams, progress++);
+        BakingFactory::bake(bakeArgs.raytracingContext, *bitmap, bakeArgs.viewportWidth, bakeArgs.viewportHeight, bakeArgs.camera, bakeArgs.bakeParams, progress++, bakeArgs.antiAliasing);
         bakeArgs.baking = false;
     }
 }
@@ -48,6 +48,11 @@ void Viewport::validate(const Application& application)
 
     else if (bakeArgs.viewportWidth != viewportWidth || bakeArgs.viewportHeight != viewportHeight || application.isDirty())
         progress = 0;
+
+    if (application.isDirtyBVH())
+        application.getScene().createLightBVH(true);
+
+    bakeArgs.antiAliasing = !application.isDirty(); // Random jitter is very eye-killing when moving/modifying values
 }
 
 void Viewport::copy(const Application& application) const

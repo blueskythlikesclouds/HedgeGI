@@ -103,9 +103,17 @@ RTCScene Scene::createSkyRTCScene()
     return skyRtcScene;
 }
 
+const LightBVH* Scene::createLightBVH(const bool force)
+{
+    if ((force || !lightBVH.valid()) && !lights.empty())
+        lightBVH.build(*this);
+
+    return &lightBVH;
+}
+
 RaytracingContext Scene::getRaytracingContext()
 {
-    return { this, createRTCScene(), createSkyRTCScene() };
+    return { this, createRTCScene(), createSkyRTCScene(), createLightBVH() };
 }
 
 void Scene::removeUnusedBitmaps()

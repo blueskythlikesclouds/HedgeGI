@@ -401,16 +401,16 @@ std::unique_ptr<Light> SceneFactory::createLight(hl::hh::mirage::raw_light* ligh
     std::unique_ptr<Light> newLight = std::make_unique<Light>();
 
     newLight->type = (LightType)light->type;
-    newLight->positionOrDirection[0] = light->position.x;
-    newLight->positionOrDirection[1] = light->position.y;
-    newLight->positionOrDirection[2] = light->position.z;
+    newLight->position[0] = light->position.x;
+    newLight->position[1] = light->position.y;
+    newLight->position[2] = light->position.z;
     newLight->color[0] = light->color.x;
     newLight->color[1] = light->color.y;
     newLight->color[2] = light->color.z;
 
     if (newLight->type != LightType::Point)
     {
-        newLight->positionOrDirection.normalize();
+        newLight->position.normalize();
         return newLight;
     }
 
@@ -514,10 +514,6 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
 
         auto light = hl::hh::mirage::get_data<hl::hh::mirage::raw_light>(data);
         light->endian_swap();
-
-        // TODO
-        if (light->type == hl::hh::mirage::light_type::point)
-            continue;
 
         std::unique_ptr<Light> newLight = createLight(light);
         newLight->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
@@ -711,6 +707,7 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();
+    scene->createLightBVH();
 
     auto arFilePath = toNchar((directoryPath + "/../../#" + stageName + ".ar.00").c_str());
 
@@ -760,6 +757,7 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();
+    scene->createLightBVH();
 
     auto miscFilePath = toNchar((directoryPath + "/" + stageName + "_misc.pac").c_str());
 

@@ -324,6 +324,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClCompile Include="Framebuffer.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Input.cpp" />
+    <ClCompile Include="LightBVH.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="MeshOptimizer.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -379,6 +380,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClInclude Include="FxSceneData.h" />
     <ClInclude Include="hl_hh_gi_texture.h" />
     <ClInclude Include="Input.h" />
+    <ClInclude Include="LightBVH.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="MeshOptimizer.h" />
     <ClInclude Include="Model.h" />

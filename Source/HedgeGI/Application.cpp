@@ -304,6 +304,18 @@ bool Application::property(const char* label, const std::initializer_list<std::p
     return any;
 }
 
+bool Application::dragProperty(const char* label, float& data, float speed, float min, float max)
+{
+    beginProperty(label);
+    return ImGui::DragFloat((std::string("##") + label).c_str(), &data, speed, min, max);
+}
+
+bool Application::dragProperty(const char* label, Vector3& data, float speed, float min, float max)
+{
+    beginProperty(label);
+    return ImGui::DragFloat3(label, data.data(), speed, min, max);
+}
+
 void Application::endProperties()
 {
     ImGui::EndTable();
@@ -325,7 +337,9 @@ void Application::updateViewport()
         return;
 
     viewport.update(*this);
+
     dirty = false;
+    dirtyBVH = false;
 }
 
 void Application::draw()
@@ -498,8 +512,6 @@ void Application::drawInstancesUI()
 
     if (selectedInstance != nullptr)
     {
-        ImGui::Separator();
-
         uint16_t resolution = propertyBag.get<uint16_t>(selectedInstance->name + ".resolution", 256);
         if (beginProperties("##Instance Settings"))
         {
@@ -507,10 +519,9 @@ void Application::drawInstancesUI()
                 propertyBag.set(selectedInstance->name + ".resolution", resolution);
 
             endProperties();
+            ImGui::Separator();
         }
     }
-
-    ImGui::Separator();
 
     if (beginProperties("##Resolution Settings"))
     {
@@ -558,17 +569,35 @@ void Application::drawLightsUI()
         ImGui::EndListBox();
     }
 
-    if (selectedLight != nullptr)
+    if (selectedLight != nullptr && beginProperties("##Light Settings"))
     {
-        ImGui::Separator();
+        if (selectedLight->type == LightType::Point)
+            dirtyBVH |= dragProperty("Position", selectedLight->position);
 
-        dirty |= ImGui::InputFloat3(selectedLight->type == LightType::Point ? "Position" : "Direction", selectedLight->positionOrDirection.data());
-        dirty |= ImGui::InputFloat3("Color", selectedLight->color.data());
+        else if (selectedLight->type == LightType::Directional)
+            dirty |= dragProperty("Direction", selectedLight->position);
+
+        dirty |= property("Color", selectedLight->color);
 
         if (selectedLight->type == LightType::Point)
-            dirty |= ImGui::InputFloat4("Range", selectedLight->range.data());
-        else
-            selectedLight->positionOrDirection.normalize();
+        {
+            if (bakeParams.targetEngine == TargetEngine::HE1)
+            {
+                dirtyBVH |= dragProperty("Range Inner", selectedLight->range.z(), 0.1f, 0.0f, selectedLight->range.w());
+                dirtyBVH |= dragProperty("Range Outer", selectedLight->range.w(), 0.1f, selectedLight->range.z(), INFINITY);
+            }
+            else if (bakeParams.targetEngine == TargetEngine::HE2)
+            {
+                // TODO: THIS IS WRONG!!!
+                dirtyBVH |= dragProperty("Range Constant", selectedLight->range.y());
+                dirtyBVH |= dragProperty("Range Linear", selectedLight->range.z());
+                dirtyBVH |= dragProperty("Range Quadratic", selectedLight->range.w());
+            }
+        }
+
+        dirty |= dirtyBVH;
+
+        endProperties();
     }
 }
 
@@ -1611,6 +1640,16 @@ bool Application::isViewportFocused() const
 bool Application::isDirty() const
 {
     return dirty;
+}
+
+bool Application::isDirtyBVH() const
+{
+    return dirtyBVH;
+}
+
+Scene& Application::getScene() const
+{
+    return *scene;
 }
 
 void Application::loadScene(const std::string& directoryPath)

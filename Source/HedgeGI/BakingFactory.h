@@ -29,7 +29,7 @@ public:
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
 
     static void bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap,
-        size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress = 0);
+        size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress = 0, bool antiAliasing = true);
 
     static std::lock_guard<std::mutex> lock()
     {
@@ -169,7 +169,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 }
                 else
                 {
-                    direction = sunLight->positionOrDirection;
+                    direction = sunLight->position;
                 }
 
                 Vector3 position = bakePoint.smoothPosition;

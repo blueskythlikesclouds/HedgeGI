@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "LightBVH.h"
 #include "SceneEffect.h"
 
 class Bitmap;
@@ -17,12 +18,14 @@ struct RaytracingContext
     const class Scene* scene {};
     RTCScene rtcScene {};
     RTCScene skyRtcScene {};
+    const LightBVH* lightBVH;
 };
 
 class Scene
 {
     RTCScene rtcScene {};
     RTCScene skyRtcScene {};
+    LightBVH lightBVH {};
 
 public:
     ~Scene();
@@ -44,6 +47,7 @@ public:
 
     RTCScene createRTCScene();
     RTCScene createSkyRTCScene();
+    const LightBVH* createLightBVH(bool force = false);
     RaytracingContext getRaytracingContext();
 
     void removeUnusedBitmaps();

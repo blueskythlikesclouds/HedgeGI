@@ -56,6 +56,7 @@ class Application
     bool showBakingFactory { true };
     bool showLogs { true };
     bool dirty {};
+    bool dirtyBVH {};
 
     std::string stageName;
     std::string stageDirectoryPath;
@@ -102,6 +103,10 @@ class Application
     static bool property(const char* label, Color3& data);
     static bool property(const char* label, char* data, size_t dataSize, float width = -1);
     template<typename T> static bool property(const char* label, const std::initializer_list<std::pair<const char*, T>>& values, T& data);
+
+    static bool dragProperty(const char* label, float& data, float speed = 0.1f, float min = 0, float max = 0);
+    static bool dragProperty(const char* label, Vector3& data, float speed = 0.1f, float min = 0, float max = 0);
+
     static void endProperties();
 
     void updateViewport();
@@ -158,7 +163,9 @@ public:
     bool isViewportFocused() const;
 
     bool isDirty() const;
+    bool isDirtyBVH() const;
 
+    Scene& getScene() const;
     void loadScene(const std::string& directoryPath);
 
     Game getGame() const;
