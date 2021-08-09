@@ -210,6 +210,9 @@
     <ClCompile Include="LightBVH.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Dependencies\im3d\im3d.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -440,6 +443,9 @@
     <Filter Include="Common">
       <UniqueIdentifier>{88f2083c-2ca3-4355-b131-bc0be26ef292}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources\Shaders\Im3d">
+      <UniqueIdentifier>{a9876139-a6aa-4d5e-ad19-1085e9ace7c1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="HedgeGI.rc">
@@ -458,6 +464,12 @@
     </None>
     <None Include="ToneMap.vert.glsl">
       <Filter>Resources\Shaders\ToneMap</Filter>
+    </None>
+    <None Include="Im3d.vert.glsl">
+      <Filter>Resources\Shaders\Im3d</Filter>
+    </None>
+    <None Include="Im3d.frag.glsl">
+      <Filter>Resources\Shaders\Im3d</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@ uint8_t Quad::indices[] =
     0, 3, 2
 };
 
-Quad::Quad() : vertexArray(sizeof(vertices), vertices, {{0, 3, GL_FLOAT, sizeof(Vector3), 0}}),
+Quad::Quad() : vertexArray(sizeof(vertices), vertices, {{0, 3, GL_FLOAT, false, sizeof(Vector3), 0}}),
     elementArray(sizeof(indices), indices, GL_TRIANGLES, _countof(indices), GL_UNSIGNED_BYTE)
 {
 }

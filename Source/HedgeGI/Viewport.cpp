@@ -18,7 +18,7 @@ void Viewport::bakeThreadFunc()
             continue;
         }
 
-        BakingFactory::bake(bakeArgs.raytracingContext, *bitmap, bakeArgs.viewportWidth, bakeArgs.viewportHeight, bakeArgs.camera, bakeArgs.bakeParams, progress++, bakeArgs.antiAliasing);
+        BakingFactory::bake(bakeArgs.raytracingContext, *bitmap, bakeArgs.bakeWidth, bakeArgs.bakeHeight, bakeArgs.camera, bakeArgs.bakeParams, progress++, bakeArgs.antiAliasing);
         bakeArgs.baking = false;
     }
 }
@@ -32,13 +32,13 @@ void Viewport::initialize()
 
 void Viewport::validate(const Application& application)
 {
-    const size_t viewportWidth = application.getViewportWidth();
-    const size_t viewportHeight = application.getViewportHeight();
+    const size_t bakeWidth = application.getBakeWidth();
+    const size_t bakeHeight = application.getBakeHeight();
 
-    if (bitmap == nullptr || bitmap->width < viewportWidth || bitmap->height < viewportHeight)
+    if (bitmap == nullptr || bitmap->width < bakeWidth || bitmap->height < bakeHeight)
     {
-        const size_t bitmapWidth = bitmap != nullptr ? std::max<size_t>(bitmap->width, viewportWidth) : viewportWidth;
-        const size_t bitmapHeight = bitmap != nullptr ? std::max<size_t>(bitmap->height, viewportHeight) : viewportHeight;
+        const size_t bitmapWidth = bitmap != nullptr ? std::max<size_t>(bitmap->width, bakeWidth) : bakeWidth;
+        const size_t bitmapHeight = bitmap != nullptr ? std::max<size_t>(bitmap->height, bakeHeight) : bakeHeight;
 
         bitmap = std::make_unique<Bitmap>((uint32_t)bitmapWidth, (uint32_t)bitmapHeight);
         hdrFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_RGBA32F, bitmap->width, bitmap->height, GL_RGBA, GL_FLOAT);
@@ -46,7 +46,7 @@ void Viewport::validate(const Application& application)
         progress = 0;
     }
 
-    else if (bakeArgs.viewportWidth != viewportWidth || bakeArgs.viewportHeight != viewportHeight || application.isDirty())
+    else if (bakeArgs.bakeWidth != bakeWidth || bakeArgs.bakeHeight != bakeHeight || application.isDirty())
         progress = 0;
 
     if (application.isDirtyBVH())
@@ -57,7 +57,7 @@ void Viewport::validate(const Application& application)
 
 void Viewport::copy(const Application& application) const
 {
-    hdrFramebufferTex->texture.subImage(0, (GLint)(bitmap->height - bakeArgs.viewportHeight), (GLsizei)bakeArgs.viewportWidth, (GLsizei)bakeArgs.viewportHeight, GL_RGBA, GL_FLOAT, bitmap->data.get());
+    hdrFramebufferTex->texture.subImage(0, (GLint)(bitmap->height - bakeArgs.bakeHeight), (GLsizei)bakeArgs.bakeWidth, (GLsizei)bakeArgs.bakeHeight, GL_RGBA, GL_FLOAT, bitmap->data.get());
 
     const SceneEffect& sceneEffect = application.getSceneEffect();
 
@@ -93,15 +93,15 @@ void Viewport::toneMap(const Application& application) const
     hdrFramebufferTex->texture.bind(0);
     avgLuminanceFramebufferTex->texture.bind(1);
 
-    glViewport(0, (GLint)(ldrFramebufferTex->height - bakeArgs.viewportHeight), (GLsizei)bakeArgs.viewportWidth, (GLsizei)bakeArgs.viewportHeight);
+    glViewport(0, (GLint)(ldrFramebufferTex->height - bakeArgs.bakeHeight), (GLsizei)bakeArgs.bakeWidth, (GLsizei)bakeArgs.bakeHeight);
     application.drawQuad();
 }
 
 void Viewport::notifyBakeThread(const Application& application)
 {
     bakeArgs.raytracingContext = application.getRaytracingContext();
-    bakeArgs.viewportWidth = application.getViewportWidth();
-    bakeArgs.viewportHeight = application.getViewportHeight();
+    bakeArgs.bakeWidth = application.getBakeWidth();
+    bakeArgs.bakeHeight = application.getBakeHeight();
     bakeArgs.camera = application.getCamera();
     bakeArgs.bakeParams = application.getBakeParams();
     bakeArgs.baking = true;
@@ -128,8 +128,8 @@ void Viewport::update(const Application& application)
 
     if (bitmap != nullptr)
     {
-        normalizedWidth = bakeArgs.viewportWidth / (float)bitmap->width;
-        normalizedHeight = bakeArgs.viewportHeight / (float)bitmap->height;
+        normalizedWidth = bakeArgs.bakeWidth / (float)bitmap->width;
+        normalizedHeight = bakeArgs.bakeHeight / (float)bitmap->height;
 
         copy(application);
         toneMap(application);

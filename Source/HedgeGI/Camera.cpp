@@ -13,6 +13,26 @@ Camera::Camera()
     history.rotation.setIdentity();
 }
 
+Vector3 Camera::getDirection() const
+{
+    return (rotation * -Vector3::UnitZ()).normalized();
+}
+
+Matrix4 Camera::getView() const
+{
+    return (Eigen::Translation3f(position) * rotation).inverse().matrix();
+}
+
+Matrix4 Camera::getProjection() const
+{
+    return Eigen::CreatePerspectiveMatrix(fieldOfView, aspectRatio, 0.01f, 1000.0f);
+}
+
+Vector3 Camera::getNewObjectPosition() const
+{
+    return position + getDirection() * 2.0f * (4.0f / PI / fieldOfView);
+}
+
 bool Camera::hasChanged() const
 {
     return history.position != position || 
@@ -58,7 +78,7 @@ void Camera::update(const Application& application)
     history.aspectRatio = aspectRatio;
     history.fieldOfView = fieldOfView;
 
-    aspectRatio = (float)application.getViewportWidth() / (float)application.getViewportHeight();
+    aspectRatio = (float)application.getBakeWidth() / (float)application.getBakeHeight();
     fieldOfView = (75.0f / 180.0f) * PI;
 
     if (!application.isViewportFocused())

@@ -28,11 +28,6 @@
 #include "MeshOptimizer.h"
 #include "PostRender.h"
 
-#include <imgui.h>
-#include <imgui_internal.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_impl_glfw.h>
-
 #define TRY_CANCEL() if (cancelBake) return;
 
 const ImGuiWindowFlags ImGuiWindowFlags_Static = 
@@ -80,6 +75,11 @@ void Application::logListener(void* owner, const LogType logType, const char* te
     const auto value = std::make_pair(logType, text);
     application->logs.remove(value);
     application->logs.push_back(value);
+}
+
+void Application::im3dDrawCallback(const ImDrawList* list, const ImDrawCmd* cmd)
+{
+    ((Application*)cmd->UserCallbackData)->im3dEndFrame();
 }
 
 void Application::clearLogs()
@@ -329,17 +329,94 @@ void Application::updateViewport()
     // Halven viewport resolution if we are dirty
     if (dirty)
     {
-        viewportWidth /= 2;
-        viewportHeight /= 2;
+        bakeWidth /= 2;
+        bakeHeight /= 2;
     }
 
-    if (viewport.isBaking())
-        return;
+    if (!viewport.isBaking())
+    {
+        viewport.update(*this);
 
-    viewport.update(*this);
+        dirty = false;
+        dirtyBVH = false;
+    }
+}
 
-    dirty = false;
-    dirtyBVH = false;
+void Application::im3dNewFrame() const
+{
+    const Vector3 viewDirection = camera.getDirection();
+
+    const float xNormalized = viewportMouseX * 2 - 1;
+    const float yNormalized = viewportMouseY * -2 + 1;
+    const float tanFovy = tanf(camera.fieldOfView / 2.0f);
+    const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio, yNormalized * tanFovy, -1)).normalized();
+
+    Im3d::AppData& appData = Im3d::GetAppData();
+    appData.m_keyDown[Im3d::Mouse_Left] = input.heldMouseButtons[GLFW_MOUSE_BUTTON_LEFT];
+    appData.m_keyDown[Im3d::Key_L] = input.tappedKeys['L'];
+    appData.m_keyDown[Im3d::Key_R] = input.tappedKeys['R'];
+    appData.m_keyDown[Im3d::Key_S] = input.tappedKeys['S'];
+    appData.m_keyDown[Im3d::Key_T] = input.tappedKeys['T'];
+    appData.m_cursorRayOrigin = { camera.position.x(), camera.position.y(), camera.position.z() };
+    appData.m_cursorRayDirection = { rayDirection.x(), rayDirection.y(), rayDirection.z() };
+    appData.m_viewOrigin = { camera.position.x(), camera.position.y(), camera.position.z() };
+    appData.m_viewDirection = { viewDirection.x(), viewDirection.y(), viewDirection.z() };
+    appData.m_viewportSize = { (float)viewportWidth, (float)viewportHeight };
+    appData.m_projScaleY = tanFovy * 2.0f;
+    appData.m_deltaTime = elapsedTime;
+
+    Im3d::NewFrame();
+}
+
+void Application::im3dEndFrame() const
+{
+    Im3d::EndFrame();
+
+    glViewport(viewportX, (int)(ImGui::GetIO().DisplaySize.y - (float)viewportY - (float)viewportHeight), viewportWidth, viewportHeight);
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glDisable(GL_CULL_FACE);
+
+    im3dShader.use();
+    im3dShader.set("uView", camera.getView());
+    im3dShader.set("uProjection", camera.getProjection());
+
+    im3dVertexArray.buffer.bind();
+    im3dVertexArray.bind();
+
+    for (Im3d::U32 i = 0; i < Im3d::GetDrawListCount(); i++)
+    {
+        const auto& drawList = Im3d::GetDrawLists()[i];
+        for (Im3d::U32 j = 0; j < drawList.m_vertexCount; j += 3072)
+        {
+            const GLsizei vertexCount = std::min<GLsizei>(drawList.m_vertexCount - j, 3072);
+
+            glBufferSubData(im3dVertexArray.buffer.target, 0,
+                vertexCount * sizeof(Im3d::VertexData), &drawList.m_vertexData[j]);
+
+            GLenum mode;
+
+            switch (drawList.m_primType)
+            {
+            case Im3d::DrawPrimitive_Triangles:
+                mode = GL_TRIANGLES;
+                break;
+
+            case Im3d::DrawPrimitive_Lines:
+                mode = GL_LINES;
+                break;
+
+            case Im3d::DrawPrimitive_Points:
+                mode = GL_POINTS;
+                break;
+
+            default:
+                continue;
+            }
+
+            glDrawArrays(mode, 0, vertexCount);
+        }
+    }
 }
 
 void Application::draw()
@@ -569,36 +646,78 @@ void Application::drawLightsUI()
         ImGui::EndListBox();
     }
 
-    if (selectedLight != nullptr && beginProperties("##Light Settings"))
+    if (ImGui::Button("Add"))
     {
-        if (selectedLight->type == LightType::Point)
-            dirtyBVH |= dragProperty("Position", selectedLight->position);
+        std::unique_ptr<Light> light = std::make_unique<Light>();
+        light->type = LightType::Point;
+        light->position = camera.getNewObjectPosition();
+        light->color = Color3::Ones();
+        light->range = Vector4(0, 0, 0, 25);
+        light->name = "NewPointLight";
 
-        else if (selectedLight->type == LightType::Directional)
-            dirty |= dragProperty("Direction", selectedLight->position);
-
-        dirty |= property("Color", selectedLight->color);
-
-        if (selectedLight->type == LightType::Point)
-        {
-            if (bakeParams.targetEngine == TargetEngine::HE1)
-            {
-                dirtyBVH |= dragProperty("Range Inner", selectedLight->range.z(), 0.1f, 0.0f, selectedLight->range.w());
-                dirtyBVH |= dragProperty("Range Outer", selectedLight->range.w(), 0.1f, selectedLight->range.z(), INFINITY);
-            }
-            else if (bakeParams.targetEngine == TargetEngine::HE2)
-            {
-                // TODO: THIS IS WRONG!!!
-                dirtyBVH |= dragProperty("Range Constant", selectedLight->range.y());
-                dirtyBVH |= dragProperty("Range Linear", selectedLight->range.z());
-                dirtyBVH |= dragProperty("Range Quadratic", selectedLight->range.w());
-            }
-        }
-
-        dirty |= dirtyBVH;
-
-        endProperties();
+        selectedLight = light.get();
+        scene->lights.push_back(std::move(light));
+        dirtyBVH = true;
     }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Remove"))
+    {
+        if (selectedLight != nullptr)
+        {
+            for (auto it = scene->lights.begin(); it != scene->lights.end(); ++it)
+            {
+                if ((*it).get() != selectedLight)
+                    continue;
+
+                scene->lights.erase(it);
+                dirtyBVH = true;
+
+                break;
+            }
+
+            selectedLight = nullptr;
+        }
+    }
+
+    if (selectedLight != nullptr)
+    {
+        ImGui::Separator();
+
+        dirtyBVH |= Im3d::GizmoTranslation(selectedLight->name.c_str(), selectedLight->position.data());
+
+        if (beginProperties("##Light Settings"))
+        {
+            if (selectedLight->type == LightType::Point)
+                dirtyBVH |= dragProperty("Position", selectedLight->position);
+
+            else if (selectedLight->type == LightType::Directional)
+                dirty |= dragProperty("Direction", selectedLight->position);
+
+            dirty |= property("Color", selectedLight->color);
+
+            if (selectedLight->type == LightType::Point)
+            {
+                if (bakeParams.targetEngine == TargetEngine::HE1)
+                {
+                    dirtyBVH |= dragProperty("Range Inner", selectedLight->range.z(), 0.1f, 0.0f, selectedLight->range.w());
+                    dirtyBVH |= dragProperty("Range Outer", selectedLight->range.w(), 0.1f, selectedLight->range.z(), INFINITY);
+                }
+                else if (bakeParams.targetEngine == TargetEngine::HE2)
+                {
+                    // TODO: THIS IS WRONG!!!
+                    dirtyBVH |= dragProperty("Range Constant", selectedLight->range.y());
+                    dirtyBVH |= dragProperty("Range Linear", selectedLight->range.z());
+                    dirtyBVH |= dragProperty("Range Quadratic", selectedLight->range.w());
+                }
+            }
+
+            endProperties();
+        }
+    }
+
+    dirty |= dirtyBVH;
 }
 
 void Application::drawSettingsUI()
@@ -845,14 +964,25 @@ void Application::drawViewportUI()
     {
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)(size_t)texture->id, min, max,
             { 0, 1 }, { viewport.getNormalizedWidth(), 1.0f - viewport.getNormalizedHeight() });
+
+        ImGui::GetWindowDrawList()->AddCallback(im3dDrawCallback, this);
+        ImGui::GetWindowDrawList()->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
     }
 
-    viewportWidth = std::max(1, (int)(contentMax.x - contentMin.x));
-    viewportHeight = std::max(1, (int)(contentMax.y - contentMin.y));
+    viewportX = (int)min.x;
+    viewportY = (int)min.y;
+    viewportWidth = (int)(max.x - min.x);
+    viewportHeight = (int)(max.y - min.y);
+
+    bakeWidth = std::max(1, viewportWidth);
+    bakeHeight = std::max(1, viewportHeight);
+
+    viewportMouseX = saturate((ImGui::GetMousePos().x - min.x) / (max.x - min.x));
+    viewportMouseY = saturate((ImGui::GetMousePos().y - min.y) / (max.y - min.y));
 
     viewportResolutionInvRatio = std::max(viewportResolutionInvRatio, 1.0f);
-    viewportWidth = (int)((float)viewportWidth / viewportResolutionInvRatio);
-    viewportHeight = (int)((float)viewportHeight / viewportResolutionInvRatio);
+    bakeWidth = (int)((float)bakeWidth / viewportResolutionInvRatio);
+    bakeHeight = (int)((float)bakeHeight / viewportResolutionInvRatio);
     viewportFocused = ImGui::IsMouseHoveringRect(min, max) || ImGui::IsWindowFocused();
 
     ImGui::End();
@@ -951,6 +1081,8 @@ void Application::destroyScene()
     viewport.waitForBake();
 
     scene = nullptr;
+    selectedInstance = nullptr;
+    selectedLight = nullptr;
 
     if (!stageDirectoryPath.empty() && !stageName.empty())
     {
@@ -1581,7 +1713,11 @@ void Application::processStage(ModelProcessor::ProcModelFunc function)
 }
 
 Application::Application()
-    : window(createGLFWwindow()), input(window), bakeParams(TargetEngine::HE1)
+    : window(createGLFWwindow()), input(window), bakeParams(TargetEngine::HE1), im3dShader(ShaderProgram::get("Im3d")), im3dVertexArray(3072 * sizeof(Im3d::VertexData), nullptr, 
+        {
+                { 0, 4, GL_FLOAT, false, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_positionSize) },
+                { 1, 4, GL_UNSIGNED_BYTE, true, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_color) },
+        })
 {
     Logger::addListener(this, logListener);
     initializeImGui();
@@ -1622,14 +1758,14 @@ int Application::getHeight() const
     return height;
 }
 
-int Application::getViewportWidth() const
+int Application::getBakeWidth() const
 {
-    return viewportWidth;
+    return bakeWidth;
 }
 
-int Application::getViewportHeight() const
+int Application::getBakeHeight() const
 {
-    return viewportHeight;
+    return bakeHeight;
 }
 
 bool Application::isViewportFocused() const
@@ -1734,6 +1870,8 @@ void Application::update()
     currentTime = glfwTime;
 
     glfwGetWindowSize(window, &width, &height);
+
+    im3dNewFrame();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();

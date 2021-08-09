@@ -9,6 +9,7 @@
 #include "Scene.h"
 #include "BakeParams.h"
 #include "ModelProcessor.h"
+#include "ShaderProgram.h"
 
 struct ImVec2;
 enum class LogType;
@@ -28,6 +29,8 @@ class Application
     Camera camera;
     Viewport viewport;
     const Quad quad;
+    const ShaderProgram im3dShader;
+    const VertexArray im3dVertexArray;
 
     std::list<std::pair<LogType, std::string>> logs;
     size_t previousLogSize;
@@ -46,8 +49,17 @@ class Application
     int width {};
     int height {};
 
+    int viewportX {};
+    int viewportY {};
     int viewportWidth {};
     int viewportHeight {};
+
+    int bakeWidth {};
+    int bakeHeight {};
+
+    float viewportMouseX {};
+    float viewportMouseY {};
+
     bool viewportFocused {};
 
     bool showScene { true };
@@ -88,6 +100,7 @@ class Application
 
     static GLFWwindow* createGLFWwindow();
     static void logListener(void* owner, LogType logType, const char* text);
+    static void im3dDrawCallback(const ImDrawList* list, const ImDrawCmd* cmd);
 
     void clearLogs();
 
@@ -110,6 +123,8 @@ class Application
     static void endProperties();
 
     void updateViewport();
+    void im3dNewFrame() const;
+    void im3dEndFrame() const;
 
     void draw();
     void drawLoadingPopupUI();
@@ -157,8 +172,8 @@ public:
     int getWidth() const;
     int getHeight() const;
 
-    int getViewportWidth() const;
-    int getViewportHeight() const;
+    int getBakeWidth() const;
+    int getBakeHeight() const;
 
     bool isViewportFocused() const;
 

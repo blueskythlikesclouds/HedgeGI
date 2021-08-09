@@ -4,3 +4,6 @@ ResVertexShader_CopyTexture          TEXT        "CopyTexture.vert.glsl"
 ResFragmentShader_CopyTexture        TEXT        "CopyTexture.frag.glsl"
 ResVertexShader_ToneMap              TEXT        "ToneMap.vert.glsl"
 ResFragmentShader_ToneMap            TEXT        "ToneMap.frag.glsl"
+ResVertexShader_Im3d                 TEXT        "Im3d.vert.glsl"
+ResFragmentShader_Im3d               TEXT        "Im3d.frag.glsl"
+    

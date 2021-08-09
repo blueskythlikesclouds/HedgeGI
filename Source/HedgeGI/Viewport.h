@@ -27,8 +27,8 @@ class Viewport
     {
         std::atomic<bool> baking;
         RaytracingContext raytracingContext;
-        size_t viewportWidth{};
-        size_t viewportHeight{};
+        size_t bakeWidth{};
+        size_t bakeHeight{};
         Camera camera;
         BakeParams bakeParams;
         bool antiAliasing{};

@@ -7,7 +7,7 @@ VertexArray::VertexArray(GLsizeiptr size, const void* data, const std::initializ
 
     for (auto& attribute : attributes)
     {
-        glVertexAttribPointer(attribute.index, attribute.size, attribute.type, false, attribute.stride, (const void*)attribute.pointer);
+        glVertexAttribPointer(attribute.index, attribute.size, attribute.type, attribute.normalized, attribute.stride, (const void*)attribute.pointer);
         glEnableVertexAttribArray(attribute.index);
     }
 }

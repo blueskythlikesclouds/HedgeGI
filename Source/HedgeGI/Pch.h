@@ -76,5 +76,16 @@ using Quaternion = Eigen::Quaternionf;
 // xatlas
 #include <xatlas/xatlas.h>
 
+// imgui
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_glfw.h>
+
+// im3d
+#include <im3d/im3d.h>
+#include <im3d/im3d_config.h>
+#include <im3d/im3d_math.h>
+
 #undef min
 #undef max

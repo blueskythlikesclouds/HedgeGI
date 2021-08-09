@@ -21,6 +21,12 @@ public:
 
     Camera();
 
+    Vector3 getDirection() const;
+    Matrix4 getView() const;
+    Matrix4 getProjection() const;
+
+    Vector3 getNewObjectPosition() const;
+
     bool hasChanged() const;
     void setFieldOfView(float fieldOfView);
 

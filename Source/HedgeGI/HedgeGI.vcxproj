@@ -121,6 +121,14 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ForcedIncludeFiles>
     </ClCompile>
+    <ClCompile Include="..\..\Dependencies\im3d\im3d.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="..\..\Dependencies\imgui\backends\imgui_impl_glfw.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -424,6 +432,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClInclude Include="Viewport.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Im3d.vert.glsl" />
     <None Include="ToneMap.frag.glsl">
       <FileType>Document</FileType>
     </None>
@@ -439,6 +448,11 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
       <FileType>Document</FileType>
     </None>
     <None Include="CopyTexture.vert.glsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Im3d.frag.glsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

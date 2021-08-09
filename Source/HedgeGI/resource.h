@@ -4,3 +4,5 @@
 #define ResFragmentShader_CopyTexture        102
 #define ResVertexShader_ToneMap              103
 #define ResFragmentShader_ToneMap            104
+#define ResVertexShader_Im3d                 105
+#define ResFragmentShader_Im3d               106

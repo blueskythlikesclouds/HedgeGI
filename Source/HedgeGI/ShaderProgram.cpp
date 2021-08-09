@@ -9,7 +9,8 @@ const struct ShaderDescriptor
 } shaderDescriptors[] =
 {
     { "CopyTexture", ResVertexShader_CopyTexture, ResFragmentShader_CopyTexture },
-    { "ToneMap", ResVertexShader_ToneMap, ResFragmentShader_ToneMap }
+    { "ToneMap", ResVertexShader_ToneMap, ResFragmentShader_ToneMap },
+    { "Im3d", ResVertexShader_Im3d, ResFragmentShader_Im3d }
 };
 
 std::unordered_map<std::string, std::unique_ptr<ShaderProgram>> ShaderProgram::shaders;
@@ -159,4 +160,9 @@ void ShaderProgram::set(const std::string& name, const Vector3& value) const
 void ShaderProgram::set(const std::string& name, const Vector4& value) const
 {
     glUniform4fv(getUniformLocation(name), 1, value.data());
+}
+
+void ShaderProgram::set(const std::string& name, const Matrix4& value) const
+{
+    glUniformMatrix4fv(getUniformLocation(name), 1, false, value.data());
 }
