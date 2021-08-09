@@ -695,14 +695,52 @@ void Application::drawLightsUI()
             else if (selectedLight->type == LightType::Directional)
                 dirty |= dragProperty("Direction", selectedLight->position);
 
-            dirty |= property("Color", selectedLight->color);
+            // Store color/intensity in the property bag, however we should reset the values
+            // if the light values were modified in the stage files by the user
+            Color3 color =
+            {
+                propertyBag.get<float>(selectedLight->name + ".color.x()"),
+                propertyBag.get<float>(selectedLight->name + ".color.y()"),
+                propertyBag.get<float>(selectedLight->name + ".color.z()"),
+            };
+
+            float intensity = propertyBag.get<float>(selectedLight->name + ".intensity");
+
+            if (color.maxCoeff() > 1.0f || !nearlyEqual<Color3>(color * intensity, selectedLight->color))
+            {
+                intensity = selectedLight->color.maxCoeff();
+
+                if (intensity > 1.0f)
+                    intensity *= 2.0f;
+                else
+                    intensity = 1.0f;
+
+                color = selectedLight->color / intensity;
+            }
+
+            // Convert to SRGB when dealing with HE2
+            if (bakeParams.targetEngine == TargetEngine::HE2)
+                color = color.pow(1.0f / 2.2f);
+
+            dirty |= property("Color", color);
+            dirty |= dragProperty("Color Intensity", intensity, 0.01f, 0, INFINITY);
+
+            if (bakeParams.targetEngine == TargetEngine::HE2)
+                color = color.pow(2.2f);
+
+            selectedLight->color = color * intensity;
+
+            propertyBag.set(selectedLight->name + ".color.x()", color.x());
+            propertyBag.set(selectedLight->name + ".color.y()", color.y());
+            propertyBag.set(selectedLight->name + ".color.z()", color.z());
+            propertyBag.set(selectedLight->name + ".intensity", intensity);
 
             if (selectedLight->type == LightType::Point)
             {
                 if (bakeParams.targetEngine == TargetEngine::HE1)
                 {
-                    dirtyBVH |= dragProperty("Range Inner", selectedLight->range.z(), 0.1f, 0.0f, selectedLight->range.w());
-                    dirtyBVH |= dragProperty("Range Outer", selectedLight->range.w(), 0.1f, selectedLight->range.z(), INFINITY);
+                    dirtyBVH |= dragProperty("Inner Range", selectedLight->range.z(), 0.1f, 0.0f, selectedLight->range.w());
+                    dirtyBVH |= dragProperty("Outer Range", selectedLight->range.w(), 0.1f, selectedLight->range.z(), INFINITY);
                 }
                 else if (bakeParams.targetEngine == TargetEngine::HE2)
                 {
