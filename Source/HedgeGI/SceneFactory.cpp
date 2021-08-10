@@ -444,6 +444,27 @@ std::unique_ptr<SHLightField> SceneFactory::createSHLightField(hl::hh::needle::r
     return newSHLightField;
 }
 
+void SceneFactory::loadLights(const hl::archive& archive, Scene& scene)
+{
+    for (auto& entry : archive)
+    {
+        if (!hl::text::strstr(entry.name(), HL_NTEXT(".light")) || hl::text::strstr(entry.name(), HL_NTEXT(".light-list")))
+            continue;
+
+        void* data = (void*)entry.file_data();
+
+        hl::hh::mirage::fix(data);
+
+        auto light = hl::hh::mirage::get_data<hl::hh::mirage::raw_light>(data);
+        light->endian_swap();
+
+        std::unique_ptr<Light> newLight = createLight(light);
+        newLight->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
+
+        scene.lights.push_back(std::move(newLight));
+    }
+}
+
 void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
 {
     for (auto& entry : archive)
@@ -506,24 +527,6 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
         newModel->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
         scene.models.push_back(std::move(newModel));
-    }
-
-    for (auto& entry : archive)
-    {
-        if (!hl::text::strstr(entry.name(), HL_NTEXT(".light")) || hl::text::strstr(entry.name(), HL_NTEXT(".light-list")))
-            continue;
-
-        void* data = (void*)entry.file_data();
-
-        hl::hh::mirage::fix(data);
-
-        auto light = hl::hh::mirage::get_data<hl::hh::mirage::raw_light>(data);
-        light->endian_swap();
-
-        std::unique_ptr<Light> newLight = createLight(light);
-        newLight->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
-
-        scene.lights.push_back(std::move(newLight));
     }
 
     for (auto& entry : archive)
@@ -660,6 +663,7 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
 
     const auto resArchive = hl::hh::ar::load(filePath.data());
     loadResources(resArchive, *scene);
+    loadLights(resArchive, *scene);
 
     hl::hh::pfi::v0::header* pfi = nullptr;
 
@@ -752,6 +756,10 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
     }
 
     loadTerrain(archives, *scene);
+
+    // Load lights from sectors
+    for (auto& archive : archives)
+        loadLights(archive, *scene);
 
     archives.clear();
 

@@ -21,6 +21,7 @@ public:
     static std::unique_ptr<Light> createLight(hl::hh::mirage::raw_light* light);
     static std::unique_ptr<SHLightField> createSHLightField(hl::hh::needle::raw_sh_light_field_node* shlf);
 
+    static void loadLights(const hl::archive& archive, Scene& scene);
     static void loadResources(const hl::archive& archive, Scene& scene);
     static void loadTerrain(const std::vector<hl::archive>& archives, Scene& scene);
 
