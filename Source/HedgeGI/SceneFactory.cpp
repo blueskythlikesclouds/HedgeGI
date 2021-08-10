@@ -80,6 +80,11 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
 
     newMaterial->ignoreVertexColor = newMaterial->type == MaterialType::Blend || strstr(material->shaderName.get(), "FadeOutNormal");
 
+    newMaterial->hasMetalness =
+        strstr(material->shaderName.get(), "MCommon") != nullptr ||
+        strstr(material->shaderName.get(), "MBlend") != nullptr ||
+        strstr(material->shaderName.get(), "MEmission") != nullptr;
+
     for (size_t i = 0; i < material->float4ParamCount; i++)
     {
         const auto& param = material->float4Params[i];

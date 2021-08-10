@@ -284,6 +284,9 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                         if (material->type == MaterialType::Blend && material->textures.specularBlend != nullptr)
                             specular = lerp(specular, material->textures.specularBlend->pickColor(hitUV), blend);
 
+                        if (!material->hasMetalness)
+                            specular.w() = specular.x() > 0.9f ? 1.0f : 0.0f;
+
                         specular.x() *= 0.25f;
                     }
                     else
@@ -294,7 +297,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                             specular.head<2>() = lerp<Eigen::Array2f>(specular.head<2>(), material->parameters.pbrFactor2.head<2>(), blend);
 
                         specular.z() = 1.0f;
-                        specular.w() = 1.0f;
+                        specular.w() = 0.0f;
                     }
                 }
 
@@ -348,13 +351,13 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         const Vector3 viewDirection = (rayPosition - hitPosition).normalized();
 
-        float metalness;
-        float roughness;
-        Color3 F0;
+        float metalness = 0.0f;
+        float roughness = 0.5f;
+        Color3 F0(0.04f);
 
         if (targetEngine == TargetEngine::HE2)
         {
-            metalness = specular.x() > 0.225f;
+            metalness = specular.w();
             roughness = std::max(0.01f, 1 - specular.y());
             F0 = lerp<Color3>(Color3(specular.x()), diffuse.head<3>(), metalness);
         }

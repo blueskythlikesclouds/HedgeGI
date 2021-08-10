@@ -23,6 +23,7 @@ public:
     MaterialType type {};
     size_t skyType {};
     bool ignoreVertexColor {}; // HE1 only
+    bool hasMetalness {}; // HE2 only
 
     struct Parameters
     {
