@@ -356,7 +356,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         {
             metalness = specular.x() > 0.225f;
             roughness = std::max(0.01f, 1 - specular.y());
-            F0 = lerp<Color3>(Color3(0.17), diffuse.head<3>(), metalness);
+            F0 = lerp<Color3>(Color3(specular.x()), diffuse.head<3>(), metalness);
         }
 
         if (material == nullptr || material->type == MaterialType::Common || material->type == MaterialType::Blend)
