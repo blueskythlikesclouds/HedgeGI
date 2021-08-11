@@ -67,7 +67,7 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
             diffuse *= barycentricLerp(a.color, b.color, c.color, baryUV);
             diffuse.head<3>() *= mesh.material->parameters.diffuse.head<3>();
             diffuse.w() *= mesh.material->parameters.opacityReflectionRefractionSpecType.x();
-            diffuse.head<3>() = diffuse.head<3>().pow(2.2f);
+            diffuse.head<3>() = srgbToLinear(diffuse.head<3>());
         }
 
         else if (mesh.material->skyType == 2) // Sky2
@@ -211,14 +211,14 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     Color4 diffuseTex = material->textures.diffuse->pickColor(hitUV);
 
                     if (targetEngine == TargetEngine::HE2)
-                        diffuseTex.head<3>() = diffuseTex.head<3>().pow(2.2f);
+                        diffuseTex.head<3>() = srgbToLinear(diffuseTex.head<3>());
 
                     if (material->type == MaterialType::Blend && material->textures.diffuseBlend != nullptr)
                     {
                         Color4 diffuseBlendTex = material->textures.diffuseBlend->pickColor(hitUV);
 
                         if (targetEngine == TargetEngine::HE2)
-                            diffuseBlendTex.head<3>() = diffuseBlendTex.head<3>().pow(2.2f);
+                            diffuseBlendTex.head<3>() = srgbToLinear(diffuseBlendTex.head<3>());
 
                         diffuseTex = lerp(diffuseTex, diffuseBlendTex, blend);
                     }

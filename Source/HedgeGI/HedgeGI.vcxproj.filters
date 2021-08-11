@@ -213,6 +213,9 @@
     <ClCompile Include="..\..\Dependencies\im3d\im3d.cpp">
       <Filter>Dependencies</Filter>
     </ClCompile>
+    <ClCompile Include="Math.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />

@@ -568,3 +568,15 @@ namespace Eigen
         return matrix;
     }
 }
+
+extern alignas(64) std::array<float, 256> srgbToLinearLUT;
+
+inline Color3 srgbToLinear(const Color3& value)
+{
+    return
+    {
+        srgbToLinearLUT[static_cast<uint8_t>(value.x() * 255.0f)],
+        srgbToLinearLUT[static_cast<uint8_t>(value.y() * 255.0f)],
+        srgbToLinearLUT[static_cast<uint8_t>(value.z() * 255.0f)],
+    };
+}
