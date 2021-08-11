@@ -1,8 +1,6 @@
 ﻿#pragma once
 
-class FileStream;
 class Material;
-class Scene;
 
 struct Vertex
 {
@@ -46,7 +44,4 @@ public:
     void buildAABB();
     RTCGeometry createRTCGeometry() const;
     void generateTangents() const;
-
-    void read(const FileStream& file, const Scene& scene);
-    void write(const FileStream& file, const Scene& scene) const;
 };

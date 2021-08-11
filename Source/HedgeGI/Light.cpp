@@ -1,5 +1,4 @@
 ﻿#include "Light.h"
-#include "FileStream.h"
 
 Matrix3 Light::getTangentToWorldMatrix() const
 {
@@ -15,28 +14,4 @@ Matrix3 Light::getTangentToWorldMatrix() const
         tangent[2], binormal[2], position[2];
 
     return tangentToWorld;
-}
-
-void Light::read(const FileStream& file)
-{
-    type = (LightType)file.read<uint32_t>();
-    position = file.read<Vector3>();
-    color = file.read<Color3>();
-
-    if (type != LightType::Point)
-        return;
-
-    range = file.read<Vector4>();
-}
-
-void Light::write(const FileStream& file) const
-{
-    file.write((uint32_t)type);
-    file.write(position);
-    file.write(color);
-
-    if (type != LightType::Point)
-        return;
-
-    file.write(range);
 }

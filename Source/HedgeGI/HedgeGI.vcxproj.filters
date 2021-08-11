@@ -5,9 +5,6 @@
     <ClCompile Include="Scene.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Material.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
     <ClCompile Include="Mesh.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
@@ -50,9 +47,6 @@
     </ClCompile>
     <ClCompile Include="D3D11Device.cpp">
       <Filter>Devices</Filter>
-    </ClCompile>
-    <ClCompile Include="SHLightField.cpp">
-      <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="OptixDenoiserDevice.cpp">
       <Filter>Devices</Filter>
@@ -140,9 +134,6 @@
     </ClCompile>
     <ClCompile Include="..\..\Dependencies\tinyxml2\tinyxml2.cpp">
       <Filter>Dependencies</Filter>
-    </ClCompile>
-    <ClCompile Include="Model.cpp">
-      <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Dependencies\xatlas\xatlas.cpp">
       <Filter>Dependencies</Filter>

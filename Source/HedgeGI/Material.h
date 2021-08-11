@@ -1,8 +1,6 @@
 ﻿#pragma once
 
 class Bitmap;
-class FileStream;
-class Scene;
 
 enum class MaterialType : uint32_t
 {
@@ -14,10 +12,6 @@ enum class MaterialType : uint32_t
 
 class Material
 {
-private:
-    static const Bitmap* readBitmapReference(const FileStream& file, const Scene& scene);
-    static void writeBitmapReference(const FileStream& file, const Scene& scene, const Bitmap* bitmap);
-
 public:
     std::string name;
     MaterialType type {};
@@ -54,7 +48,4 @@ public:
         const Bitmap* emission {};
         const Bitmap* environment {};
     } textures{};
-
-    void read(const FileStream& file, const Scene& scene);
-    void write(const FileStream& file, const Scene& scene) const;
 };

@@ -11,8 +11,6 @@ class Instance;
 class Light;
 class SHLightField;
 
-class FileStream;
-
 struct RaytracingContext
 {
     const class Scene* scene {};
@@ -51,10 +49,4 @@ public:
     RaytracingContext getRaytracingContext();
 
     void removeUnusedBitmaps();
-
-    void read(const FileStream& file);
-    void write(const FileStream& file) const;
-
-    bool load(const std::string& filePath);
-    void save(const std::string& filePath) const;
 };

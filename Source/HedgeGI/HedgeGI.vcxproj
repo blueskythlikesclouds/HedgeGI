@@ -336,7 +336,6 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Math.cpp" />
     <ClCompile Include="MeshOptimizer.cpp" />
-    <ClCompile Include="Model.cpp" />
     <ClCompile Include="OidnDenoiserDevice.cpp" />
     <ClCompile Include="OptixDenoiserDevice.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -347,7 +346,6 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClCompile Include="LightFieldBaker.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="Material.cpp" />
     <ClCompile Include="Pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pch.h</PrecompiledHeaderFile>
@@ -365,7 +363,6 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClCompile Include="SeamOptimizer.cpp" />
     <ClCompile Include="SGGIBaker.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
-    <ClCompile Include="SHLightField.cpp" />
     <ClCompile Include="SHLightFieldBaker.cpp" />
     <ClCompile Include="Bitmap.cpp" />
     <ClCompile Include="ModelProcessor.cpp" />
