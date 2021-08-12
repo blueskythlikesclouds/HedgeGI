@@ -15,7 +15,7 @@ class BakingFactory
     static std::mutex mutex;
 
 public:
-    template<TargetEngine targetEngine>
+    template<TargetEngine targetEngine, bool tracingFromEye>
     static Color3 sampleSky(const RaytracingContext& raytracingContext, const Vector3& direction, const BakeParams& bakeParams);
 
     template <TargetEngine targetEngine, bool tracingFromEye>

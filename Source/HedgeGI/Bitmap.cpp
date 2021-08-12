@@ -2,6 +2,7 @@
 
 #include "D3D11Device.h"
 #include "FileStream.h"
+#include "Math.h"
 
 void Bitmap::transformToLightMap(Color4* color)
 {
@@ -45,13 +46,44 @@ void Bitmap::getPixelCoords(const Vector2& uv, uint32_t& x, uint32_t& y) const
     y = (int32_t)(height * uv.y()) % height;
 }
 
+template<bool useLinearFiltering>
 Color4 Bitmap::pickColor(const Vector2& uv, const uint32_t arrayIndex) const
 {
-    uint32_t x, y;
-    getPixelCoords(uv, x, y);
+    if (!useLinearFiltering)
+    {
+        uint32_t x, y;
+        getPixelCoords(uv, x, y);
+        
+        return data[width * height * arrayIndex + y * width + x];
+    }
 
-    return data[width * height * arrayIndex + y * width + x];
+    const float x = width * uv.x();
+    const float y = height * uv.y();
+
+    const int32_t cX = (int32_t)x;
+    const int32_t cY = (int32_t)y;
+
+    const int32_t x0 = cX % width;
+    const int32_t x1 = (cX + 1) % width;
+    const int32_t y0 = cY % height;
+    const int32_t y1 = (cY + 1) % height;
+
+    const Color4& x0y0 = data[y0 * width + x0];
+    const Color4& x1y0 = data[y0 * width + x1];
+    const Color4& x0y1 = data[y1 * width + x0];
+    const Color4& x1y1 = data[y1 * width + x1];
+
+    float factorX = x - (float)cX;
+    if (factorX < 0) factorX += 1;
+
+    float factorY = y - (float)cY;
+    if (factorY < 0) factorY += 1;
+
+    return lerp(lerp(x0y0, x1y0, factorX), lerp(x0y1, x1y1, factorX), factorY);
 }
+
+template Color4 Bitmap::pickColor<false>(const Vector2& uv, uint32_t arrayIndex) const;
+template Color4 Bitmap::pickColor<true>(const Vector2& uv, uint32_t arrayIndex) const;
 
 Color4 Bitmap::pickColor(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
 {

@@ -806,7 +806,7 @@ void Application::drawSHLightFieldUI()
     const Matrix4 matrix = selectedShlf->getMatrix();
     drawOrientedBox(matrix, 0.1f);
 
-    const float radius = (selectedShlf->scale.array() / selectedShlf->resolution.cast<float>()).minCoeff() / 20.0f;
+    const float radius = (selectedShlf->scale.array() / selectedShlf->resolution.cast<float>()).minCoeff() / 40.0f;
 
     for (size_t z = 0; z < selectedShlf->resolution.z(); z++)
     {
