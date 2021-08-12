@@ -207,6 +207,9 @@
     <ClCompile Include="Math.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="SHLightField.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />

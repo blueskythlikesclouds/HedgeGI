@@ -56,6 +56,8 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const SHLight
     std::vector<SHLightFieldPoint> bakePoints;
     bakePoints.reserve(shlf.resolution.x() * shlf.resolution.y() * shlf.resolution.z());
 
+    const Matrix4 matrix = shlf.getMatrix();
+
     for (size_t z = 0; z < shlf.resolution.z(); z++)
     {
         const float zNormalized = (z + 0.5f) / shlf.resolution.z() - 0.5f;
@@ -69,7 +71,7 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const SHLight
                 const float xNormalized = (x + 0.5f) / shlf.resolution.x() - 0.5f;
 
                 SHLightFieldPoint bakePoint {};
-                bakePoint.position = (shlf.matrix * Vector4(xNormalized, yNormalized, zNormalized, 1)).head<3>() / 10.0f;
+                bakePoint.position = (matrix * Vector4(xNormalized, yNormalized, zNormalized, 1)).head<3>() / 10.0f;
                 bakePoint.smoothPosition = bakePoint.position;
                 bakePoint.tangentToWorldMatrix.setIdentity();
                 bakePoint.x = (uint16_t)x;

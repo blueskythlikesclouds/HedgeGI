@@ -40,6 +40,8 @@ const ImGuiWindowFlags ImGuiWindowFlags_Static =
     ImGuiWindowFlags_NoSavedSettings |
     ImGuiWindowFlags_NoDocking;
 
+constexpr size_t IM3D_VERTEX_BUFFER_SIZE = 3 * 1024 * 1024;
+
 std::string Application::TEMP_FILE_PATH = []()
 {
     WCHAR path[MAX_PATH];
@@ -271,6 +273,12 @@ bool Application::property(const char* label, char* data, size_t dataSize, const
     return ImGui::InputText((std::string("##") + label).c_str(), data, dataSize);
 }
 
+bool Application::property(const char* label, Eigen::Array3i& data)
+{
+    beginProperty(label);
+    return ImGui::InputInt3(label, data.data());
+}
+
 template <typename T>
 bool Application::property(const char* label, const std::initializer_list<std::pair<const char*, T>>& values, T& data)
 {
@@ -377,8 +385,10 @@ void Application::im3dEndFrame() const
     glBlendEquation(GL_FUNC_ADD);
     glDisable(GL_CULL_FACE);
 
+    const Matrix4 view = camera.getView();
+
     im3dShader.use();
-    im3dShader.set("uView", camera.getView());
+    im3dShader.set("uView", view);
     im3dShader.set("uProjection", camera.getProjection());
 
     im3dVertexArray.buffer.bind();
@@ -387,9 +397,10 @@ void Application::im3dEndFrame() const
     for (Im3d::U32 i = 0; i < Im3d::GetDrawListCount(); i++)
     {
         const auto& drawList = Im3d::GetDrawLists()[i];
-        for (Im3d::U32 j = 0; j < drawList.m_vertexCount; j += 3072)
+
+        for (Im3d::U32 j = 0; j < drawList.m_vertexCount; j += IM3D_VERTEX_BUFFER_SIZE)
         {
-            const GLsizei vertexCount = std::min<GLsizei>(drawList.m_vertexCount - j, 3072);
+            const GLsizei vertexCount = std::min<GLsizei>(drawList.m_vertexCount - j, IM3D_VERTEX_BUFFER_SIZE);
 
             glBufferSubData(im3dVertexArray.buffer.target, 0,
                 vertexCount * sizeof(Im3d::VertexData), &drawList.m_vertexData[j]);
@@ -553,7 +564,8 @@ void Application::drawSceneUI()
 
     drawInstancesUI();
     drawLightsUI();
-
+    drawSHLightFieldUI();
+    
     ImGui::End();
 }
 
@@ -756,6 +768,88 @@ void Application::drawLightsUI()
     }
 
     dirty |= dirtyBVH;
+}
+
+void Application::drawSHLightFieldUI()
+{
+    if (bakeParams.targetEngine != TargetEngine::HE2 || !ImGui::CollapsingHeader("Light Fields"))
+        return;
+
+    char search[1024] {};
+
+    ImGui::SetNextItemWidth(-1);
+    const bool doSearch = ImGui::InputText("##SearchSHLFs", search, sizeof(search));
+
+    ImGui::SetNextItemWidth(-1);
+    if (ImGui::BeginListBox("##SHLFs"))
+    {
+        for (auto& shlf : scene->shLightFields)
+        {
+            if (doSearch && shlf->name.find(search) == std::string::npos)
+                continue;
+
+            if (ImGui::Selectable(shlf->name.c_str(), selectedShlf == shlf.get()))
+                selectedShlf = shlf.get();
+        }
+
+        ImGui::EndListBox();
+    }
+
+    if (selectedShlf == nullptr)
+        return;
+
+    ImGui::Separator();
+
+    if (!beginProperties("##SHLF Properties"))
+        return;
+
+    const Matrix4 matrix = selectedShlf->getMatrix();
+    drawOrientedBox(matrix, 0.1f);
+
+    const float radius = (selectedShlf->scale.array() / selectedShlf->resolution.cast<float>()).minCoeff() / 20.0f;
+
+    for (size_t z = 0; z < selectedShlf->resolution.z(); z++)
+    {
+        const float zNormalized = (z + 0.5f) / selectedShlf->resolution.z() - 0.5f;
+
+        for (size_t y = 0; y < selectedShlf->resolution.y(); y++)
+        {
+            const float yNormalized = (y + 0.5f) / selectedShlf->resolution.y() - 0.5f;
+
+            for (size_t x = 0; x < selectedShlf->resolution.x(); x++)
+            {
+                const float xNormalized = (x + 0.5f) / selectedShlf->resolution.x() - 0.5f;
+                const Vector3 position = (matrix * Vector4(xNormalized, yNormalized, zNormalized, 1)).head<3>() / 10.0f;
+                Im3d::DrawSphere({ position.x(), position.y(), position.z() }, radius);
+            }
+        }
+    }
+
+    Vector3 position = selectedShlf->position / 10.0f;
+    Matrix3 rotation = selectedShlf->getRotationMatrix();
+    Vector3 scale = selectedShlf->scale / 10.0f;
+
+    if (Im3d::Gizmo(selectedShlf->name.c_str(), position.data(), rotation.data(), scale.data()))
+    {
+        selectedShlf->position = position * 10.0f;
+        selectedShlf->setFromRotationMatrix(rotation);
+        selectedShlf->scale = scale * 10.0f;
+    }
+
+    if (dragProperty("Position", position))
+        selectedShlf->position = position * 10.0f;
+
+    Vector3 rotAngles = selectedShlf->rotation / PI * 180.0f;
+
+    if (dragProperty("Rotation", rotAngles))
+        selectedShlf->rotation = rotAngles / 180.0f * PI;
+
+    if (dragProperty("Scale", scale))
+        selectedShlf->scale = scale * 10.0f;
+
+    property("Resolution", selectedShlf->resolution);
+
+    endProperties();
 }
 
 void Application::drawSettingsUI()
@@ -1121,6 +1215,7 @@ void Application::destroyScene()
     scene = nullptr;
     selectedInstance = nullptr;
     selectedLight = nullptr;
+    selectedShlf = nullptr;
 
     if (!stageDirectoryPath.empty() && !stageName.empty())
     {
@@ -1751,7 +1846,8 @@ void Application::processStage(ModelProcessor::ProcModelFunc function)
 }
 
 Application::Application()
-    : window(createGLFWwindow()), input(window), bakeParams(TargetEngine::HE1), im3dShader(ShaderProgram::get("Im3d")), im3dVertexArray(3072 * sizeof(Im3d::VertexData), nullptr, 
+    : window(createGLFWwindow()), input(window), bakeParams(TargetEngine::HE1), im3dShader(ShaderProgram::get("Im3d")),
+        im3dVertexArray(IM3D_VERTEX_BUFFER_SIZE * sizeof(Im3d::VertexData), nullptr,
         {
                 { 0, 4, GL_FLOAT, false, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_positionSize) },
                 { 1, 4, GL_UNSIGNED_BYTE, true, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_color) },

@@ -429,17 +429,12 @@ std::unique_ptr<Light> SceneFactory::createLight(hl::hh::mirage::raw_light* ligh
 
 std::unique_ptr<SHLightField> SceneFactory::createSHLightField(hl::hh::needle::raw_sh_light_field_node* shlf)
 {
-    Affine3 affine =
-        Eigen::Translation3f(shlf->position.x, shlf->position.y, shlf->position.z) *
-        Eigen::AngleAxisf(shlf->rotation.x, Vector3::UnitX()) *
-        Eigen::AngleAxisf(shlf->rotation.y, Vector3::UnitY()) *
-        Eigen::AngleAxisf(shlf->rotation.z, Vector3::UnitZ()) *
-        Eigen::Scaling(shlf->scale.x, shlf->scale.y, shlf->scale.z);
-
     std::unique_ptr<SHLightField> newSHLightField = std::make_unique<SHLightField>();
     newSHLightField->name = shlf->name.get();
     newSHLightField->resolution = Eigen::Array3i(shlf->probeCounts[0], shlf->probeCounts[1], shlf->probeCounts[2]);
-    newSHLightField->matrix = affine.matrix();
+    newSHLightField->position = { shlf->position.x, shlf->position.y, shlf->position.z };
+    newSHLightField->rotation = { shlf->rotation.x, shlf->rotation.y, shlf->rotation.z };
+    newSHLightField->scale = { shlf->scale.x, shlf->scale.y, shlf->scale.z };
 
     return newSHLightField;
 }

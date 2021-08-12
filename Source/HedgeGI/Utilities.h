@@ -165,3 +165,36 @@ inline std::array<char, N> toUtf8(const hl::nchar* value)
     hl::text::native_to_utf8::conv(value, 0, array.data(), N);
     return array;
 }
+
+inline Im3d::Vec3 transformIm3d(const Vector3& value, const Matrix4& matrix, float scale)
+{
+    const Vector3 transformed = (matrix * Vector4(value.x(), value.y(), value.z(), 1.0f)).head<3>() * scale;
+    return { transformed.x(), transformed.y(), transformed.z() };
+}
+
+inline void drawOrientedBox(const Matrix4& matrix, float scale)
+{
+    Im3d::Context& ctx = Im3d::GetContext();
+    ctx.begin(Im3d::PrimitiveMode_LineLoop);
+    ctx.vertex(transformIm3d({-0.5f, -0.5f, -0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({0.5f, -0.5f, -0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({0.5f, -0.5f, 0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({-0.5f, -0.5f, 0.5f}, matrix, scale));
+    ctx.end();
+    ctx.begin(Im3d::PrimitiveMode_LineLoop);
+    ctx.vertex(transformIm3d({-0.5f, 0.5f, -0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({0.5f, 0.5f, -0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({0.5f, 0.5f, 0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({-0.5f, 0.5f, 0.5f}, matrix, scale));
+    ctx.end();
+    ctx.begin(Im3d::PrimitiveMode_Lines);
+    ctx.vertex(transformIm3d({-0.5f, -0.5f, -0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({-0.5f, 0.5f, -0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({0.5f, -0.5f, -0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({0.5f, 0.5f, -0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({-0.5f, -0.5f, 0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({-0.5f, 0.5f, 0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({0.5f, -0.5f, 0.5f}, matrix, scale));
+    ctx.vertex(transformIm3d({0.5f, 0.5f, 0.5f}, matrix, scale));
+    ctx.end();
+}

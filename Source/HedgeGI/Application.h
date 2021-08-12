@@ -81,6 +81,7 @@ class Application
 
     const Instance* selectedInstance {};
     Light* selectedLight {};
+    SHLightField* selectedShlf {};
 
     float viewportResolutionInvRatio {};
     bool gammaCorrectionFlag {};
@@ -115,6 +116,7 @@ class Application
     static bool property(const char* label, bool& data);
     static bool property(const char* label, Color3& data);
     static bool property(const char* label, char* data, size_t dataSize, float width = -1);
+    static bool property(const char* label, Eigen::Array3i& data);
     template<typename T> static bool property(const char* label, const std::initializer_list<std::pair<const char*, T>>& values, T& data);
 
     static bool dragProperty(const char* label, float& data, float speed = 0.1f, float min = 0, float max = 0);
@@ -131,6 +133,7 @@ class Application
     void drawSceneUI();
     void drawInstancesUI();
     void drawLightsUI();
+    void drawSHLightFieldUI();
     void drawSettingsUI();
     void drawBakingFactoryUI();
     void drawViewportUI();

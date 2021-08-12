@@ -356,6 +356,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClCompile Include="PropertyBag.cpp" />
     <ClCompile Include="Quad.cpp" />
     <ClCompile Include="RaytracingDevice.cpp" />
+    <ClCompile Include="SHLightField.cpp" />
     <ClCompile Include="VertexColorRemover.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneEffect.cpp" />
