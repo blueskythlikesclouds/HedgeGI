@@ -13,7 +13,8 @@ namespace hl::hh::needle
 
     struct raw_sh_light_field
     {
-        u8 unknown[0x94];
+        u32 version;
+        u8 unknown[0x90];
         u32 count;
         off64<raw_sh_light_field_node> entries;
     };

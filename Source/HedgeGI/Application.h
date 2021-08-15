@@ -133,7 +133,7 @@ class Application
     void drawSceneUI();
     void drawInstancesUI();
     void drawLightsUI();
-    void drawSHLightFieldUI();
+    void drawSHLightFieldsUI();
     void drawSettingsUI();
     void drawBakingFactoryUI();
     void drawViewportUI();

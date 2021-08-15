@@ -104,8 +104,10 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 }
 
 template <TargetEngine targetEngine, bool tracingFromEye>
-Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const BakeParams& bakeParams)
+BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const BakeParams& bakeParams)
 {
+    TraceResult result {};
+
     RTCIntersectContext context{};
     rtcInitIntersectContext(&context);
 
@@ -124,9 +126,10 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
     Color3 throughput(1, 1, 1);
     Color3 radiance(0, 0, 0);
-    float faceFactor = 1.0f;
 
-    for (int32_t i = 0, j = 0; i < (int32_t)bakeParams.lightBounceCount && j < 8; i++)
+    int i, j;
+
+    for (i = 0, j = 0; i < (int32_t)bakeParams.lightBounceCount && j < 8; i++)
     {
         const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
 
@@ -159,7 +162,9 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
         if (mesh.type == MeshType::Opaque && !doubleSided && triNormal.dot(rayNormal) >= 0.0f)
         {
-            faceFactor = (float)(i != 0);
+            if (!tracingFromEye)
+                result.backFacing = i == 0;
+
             break;
         }
 
@@ -178,6 +183,10 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
             hitNormal *= -1;
 
         Vector3 hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
+
+        if (i == 0 && tracingFromEye)
+            result.position = hitPosition;
+
         hitPosition += hitPosition.cwiseAbs().cwiseProduct(hitNormal.cwiseSign()) * 0.0000002f;
 
         Color4 diffuse = Color4::Ones();
@@ -560,10 +569,15 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
         rtcInitIntersectContext(&context);
     }
 
-    return Color4(radiance[0], radiance[1], radiance[2], faceFactor).cwiseMax(0);
+    
+
+    result.color = radiance.cwiseMax(0);
+    result.any = i > 0;
+
+    return result;
 }
 
-Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position,
+BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position,
                                 const Vector3& direction, const BakeParams& bakeParams, bool tracingFromEye)
 {
     if (bakeParams.targetEngine == TargetEngine::HE2)
@@ -580,6 +594,9 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
 
 void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress, bool antiAliasing)
 {
+    const Matrix4 view = camera.getView();
+    const Matrix4 proj = camera.getProjection();
+
     const float tanFovy = tanf(camera.fieldOfView / 2);
 
     std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[width * height], [&](Color4& outputColor)
@@ -609,10 +626,19 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio,
             yNormalized * tanFovy, -1)).normalized();
 
-        const Color3 result = pathTrace(raytracingContext, camera.position, rayDirection, bakeParams, true).head<3>();
+        const auto result = pathTrace(raytracingContext, camera.position, rayDirection, bakeParams, true);
 
         Color4& output = bitmap.data[y * width + x];
-        output.head<3>() = (output.head<3>() * progress + result) / (progress + 1);
-        output.w() = 1.0f;
+        output.head<3>() = (output.head<3>() * progress + result.color) / (progress + 1);
+
+        if (result.any)
+        {
+            const Vector4 projectedPos = proj * (view * Vector4(result.position.x(), result.position.y(), result.position.z(), 1));
+            output.w() = projectedPos.z() / projectedPos.w();
+        }
+        else
+        {
+            output.w() = 1.0f;
+        }
     });
 }

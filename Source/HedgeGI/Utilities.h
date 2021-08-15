@@ -198,3 +198,52 @@ inline void drawOrientedBox(const Matrix4& matrix, float scale)
     ctx.vertex(transformIm3d({0.5f, 0.5f, 0.5f}, matrix, scale));
     ctx.end();
 }
+
+inline void drawOrientedBoxFilled(const Matrix4& matrix, float scale)
+{
+    Im3d::Context& ctx = Im3d::GetContext();
+    ctx.pushEnableSorting(true);
+    // x+
+    Im3d::DrawQuadFilled(
+        transformIm3d({0.5f, 0.5f, -0.5f}, matrix, scale),
+        transformIm3d({0.5f, 0.5f, 0.5f}, matrix, scale),
+        transformIm3d({0.5f, -0.5f, 0.5f}, matrix, scale),
+        transformIm3d({0.5f, -0.5f, -0.5f}, matrix, scale)
+    );
+    // x-
+    Im3d::DrawQuadFilled(
+        transformIm3d({-0.5f, -0.5f, -0.5f}, matrix, scale),
+        transformIm3d({-0.5f, -0.5f, 0.5f}, matrix, scale),
+        transformIm3d({-0.5f, 0.5f, 0.5f}, matrix, scale),
+        transformIm3d({-0.5f, 0.5f, -0.5f}, matrix, scale)
+    );
+    // y+
+    Im3d::DrawQuadFilled(
+        transformIm3d({-0.5f, 0.5f, -0.5f}, matrix, scale),
+        transformIm3d({-0.5f, 0.5f, 0.5f}, matrix, scale),
+        transformIm3d({0.5f, 0.5f, 0.5f}, matrix, scale),
+        transformIm3d({0.5f, 0.5f, -0.5f}, matrix, scale)
+    );
+    // y-
+    Im3d::DrawQuadFilled(
+        transformIm3d({0.5f, -0.5f, -0.5f}, matrix, scale),
+        transformIm3d({0.5f, -0.5f, 0.5f}, matrix, scale),
+        transformIm3d({-0.5f, -0.5f, 0.5f}, matrix, scale),
+        transformIm3d({-0.5f, -0.5f, -0.5f}, matrix, scale)
+    );
+    // z+
+    Im3d::DrawQuadFilled(
+        transformIm3d({0.5f, -0.5f, 0.5f}, matrix, scale),
+        transformIm3d({0.5f, 0.5f, 0.5f}, matrix, scale),
+        transformIm3d({-0.5f, 0.5f, 0.5f}, matrix, scale),
+        transformIm3d({-0.5f, -0.5f, 0.5f}, matrix, scale)
+    );
+    // z-
+    Im3d::DrawQuadFilled(
+        transformIm3d({-0.5f, -0.5f, -0.5f}, matrix, scale),
+        transformIm3d({-0.5f, 0.5f, -0.5f}, matrix, scale),
+        transformIm3d({0.5f, 0.5f, -0.5f}, matrix, scale),
+        transformIm3d({0.5f, -0.5f, -0.5f}, matrix, scale)
+    );
+    ctx.popEnableSorting();
+}

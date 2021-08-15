@@ -54,7 +54,8 @@ public:
 
     void update(const Application& application);
 
-    const Texture* getTexture() const;
+    const Texture* getInitialTexture() const;
+    const Texture* getFinalTexture() const;
 
     float getNormalizedWidth() const;
     float getNormalizedHeight() const;

@@ -15,14 +15,24 @@ class BakingFactory
     static std::mutex mutex;
 
 public:
+    struct TraceResult
+    {
+        Color3 color{};
+        bool backFacing{};
+
+        // tracingFromEye only
+        Vector3 position {};
+        bool any {};
+    };
+
     template<TargetEngine targetEngine, bool tracingFromEye>
     static Color3 sampleSky(const RaytracingContext& raytracingContext, const Vector3& direction, const BakeParams& bakeParams);
 
     template <TargetEngine targetEngine, bool tracingFromEye>
-    static Color4 pathTrace(const RaytracingContext& raytracingContext, 
+    static TraceResult pathTrace(const RaytracingContext& raytracingContext, 
         const Vector3& position, const Vector3& direction, const BakeParams& bakeParams);
 
-    static Color4 pathTrace(const RaytracingContext& raytracingContext,
+    static TraceResult pathTrace(const RaytracingContext& raytracingContext,
         const Vector3& position, const Vector3& direction, const BakeParams& bakeParams, bool tracingFromEye = false);
 
     template <typename TBakePoint>
@@ -61,23 +71,23 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
         bakePoint.begin();
 
-        float faceFactor = 1.0f;
+        size_t frontFacing = 0;
 
         for (uint32_t i = 0; i < bakeParams.lightSampleCount; i++)
         {
             const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.lightSampleCount, Random::next(), Random::next()).normalized();
             const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
-            const Color4 radiance = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams);
+            const TraceResult result = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams);
 
-            faceFactor += radiance[3];
-            bakePoint.addSample(radiance.head<3>(), tangentSpaceDirection, worldSpaceDirection);
+            frontFacing += !result.backFacing;
+            bakePoint.addSample(result.color, tangentSpaceDirection, worldSpaceDirection);
         }
 
         // If most rays point to backfaces, discard the pixel.
         // This will fix the shadow leaks when dilated.
         if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_DISCARD_BACKFACE) != 0)
         {
-            if (faceFactor / (float)bakeParams.lightSampleCount < 0.5f)
+            if ((float)frontFacing / (float)bakeParams.lightSampleCount < 0.5f)
             {
                 bakePoint.discard();
                 return;

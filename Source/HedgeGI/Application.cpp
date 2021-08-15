@@ -385,18 +385,30 @@ void Application::im3dEndFrame() const
     glBlendEquation(GL_FUNC_ADD);
     glDisable(GL_CULL_FACE);
 
+    im3dVertexArray.buffer.bind();
+    im3dVertexArray.bind();
+
     const Matrix4 view = camera.getView();
 
     im3dShader.use();
     im3dShader.set("uView", view);
     im3dShader.set("uProjection", camera.getProjection());
+    im3dShader.set("uCamPosition", camera.position);
 
-    im3dVertexArray.buffer.bind();
-    im3dVertexArray.bind();
+    if (const Texture *texture = viewport.getInitialTexture(); texture)
+    {
+        im3dShader.set("uTexture", 0);
+        im3dShader.set("uRect", Vector4(0, 1 - viewport.getNormalizedHeight(),
+            viewport.getNormalizedWidth(), viewport.getNormalizedHeight()));
+
+        texture->bind(0);
+    }
 
     for (Im3d::U32 i = 0; i < Im3d::GetDrawListCount(); i++)
     {
         const auto& drawList = Im3d::GetDrawLists()[i];
+
+        im3dShader.set("uApplyPattern", drawList.m_primType == Im3d::DrawPrimitive_Triangles);
 
         for (Im3d::U32 j = 0; j < drawList.m_vertexCount; j += IM3D_VERTEX_BUFFER_SIZE)
         {
@@ -564,7 +576,7 @@ void Application::drawSceneUI()
 
     drawInstancesUI();
     drawLightsUI();
-    drawSHLightFieldUI();
+    drawSHLightFieldsUI();
     
     ImGui::End();
 }
@@ -701,6 +713,12 @@ void Application::drawLightsUI()
 
         if (beginProperties("##Light Settings"))
         {
+            char name[0x400];
+            strcpy(name, selectedLight->name.c_str());
+
+            if (property("Name", name, sizeof(name)))
+                selectedLight->name = name;
+
             if (selectedLight->type == LightType::Point)
                 dirtyBVH |= dragProperty("Position", selectedLight->position);
 
@@ -770,7 +788,7 @@ void Application::drawLightsUI()
     dirty |= dirtyBVH;
 }
 
-void Application::drawSHLightFieldUI()
+void Application::drawSHLightFieldsUI()
 {
     if (bakeParams.targetEngine != TargetEngine::HE2 || !ImGui::CollapsingHeader("Light Fields"))
         return;
@@ -795,6 +813,58 @@ void Application::drawSHLightFieldUI()
         ImGui::EndListBox();
     }
 
+    if (ImGui::Button("Add"))
+    {
+        std::unique_ptr<SHLightField> shlf = std::make_unique<SHLightField>();
+        shlf->position = camera.getNewObjectPosition() * 10;
+        shlf->rotation = Vector3::Zero();
+        shlf->scale = { 80, 120, 750 };
+        shlf->resolution = { 2, 2, 10 };
+
+        char name[0x100];
+        sprintf(name, "%s_shLF_%03d", stageName.c_str(), (int)scene->shLightFields.size());
+        shlf->name = name;
+
+        selectedShlf = shlf.get();
+        scene->shLightFields.push_back(std::move(shlf));
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Clone"))
+    {
+        if (selectedShlf != nullptr)
+        {
+            std::unique_ptr<SHLightField> shlf = std::make_unique<SHLightField>(*selectedShlf);
+
+            char name[0x100];
+            sprintf(name, "%s_shLF_%03d", stageName.c_str(), (int)scene->shLightFields.size());
+            shlf->name = name;
+
+            selectedShlf = shlf.get();
+            scene->shLightFields.push_back(std::move(shlf));
+        }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Remove"))
+    {
+        if (selectedShlf != nullptr)
+        {
+            for (auto it = scene->shLightFields.begin(); it != scene->shLightFields.end(); ++it)
+            {
+                if ((*it).get() != selectedShlf)
+                    continue;
+
+                scene->shLightFields.erase(it);
+                break;
+            }
+
+            selectedShlf = nullptr;
+        }
+    }
+
     if (selectedShlf == nullptr)
         return;
 
@@ -804,9 +874,21 @@ void Application::drawSHLightFieldUI()
         return;
 
     const Matrix4 matrix = selectedShlf->getMatrix();
+
+    Im3d::PushColor(Im3d::Color(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f));
+    drawOrientedBoxFilled(matrix, 0.1f);
+    Im3d::PopColor();
+
     drawOrientedBox(matrix, 0.1f);
 
     const float radius = (selectedShlf->scale.array() / selectedShlf->resolution.cast<float>()).minCoeff() / 40.0f;
+
+    const Vector3 lineOffsets[] =
+    {
+        matrix.col(0).head<3>().normalized() * radius,
+        matrix.col(1).head<3>().normalized() * radius,
+        matrix.col(2).head<3>().normalized() * radius
+    };
 
     for (size_t z = 0; z < selectedShlf->resolution.z(); z++)
     {
@@ -820,10 +902,23 @@ void Application::drawSHLightFieldUI()
             {
                 const float xNormalized = (x + 0.5f) / selectedShlf->resolution.x() - 0.5f;
                 const Vector3 position = (matrix * Vector4(xNormalized, yNormalized, zNormalized, 1)).head<3>() / 10.0f;
-                Im3d::DrawSphere({ position.x(), position.y(), position.z() }, radius);
+
+                for (size_t i = 0; i < 3; i++)
+                {
+                    const Vector3 a = position + lineOffsets[i];
+                    const Vector3 b = position - lineOffsets[i];
+
+                    Im3d::DrawLine({ a.x(), a.y(), a.z() }, { b.x(), b.y(), b.z() }, 1.0f, Im3d::Color_White);
+                }
             }
         }
     }
+
+    char name[0x400];
+    strcpy(name, selectedShlf->name.c_str());
+
+    if (property("Name", name, sizeof(name)))
+        selectedShlf->name = name;
 
     Vector3 position = selectedShlf->position / 10.0f;
     Matrix3 rotation = selectedShlf->getRotationMatrix();
@@ -1092,7 +1187,7 @@ void Application::drawViewportUI()
 
     updateViewport();
 
-    if (const Texture* texture = viewport.getTexture(); texture != nullptr)
+    if (const Texture* texture = viewport.getFinalTexture(); texture != nullptr)
     {
         ImGui::GetWindowDrawList()->AddImage((ImTextureID)(size_t)texture->id, min, max,
             { 0, 1 }, { viewport.getNormalizedWidth(), 1.0f - viewport.getNormalizedHeight() });
@@ -1567,7 +1662,7 @@ void Application::clean()
             std::string extension = file.path().extension().string();
             std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
 
-            if (extension != ".png" && extension != ".dds" && extension != ".lft")
+            if (extension != ".png" && extension != ".dds" && extension != ".lft" && extension != ".shlf")
                 continue;
 
             std::filesystem::remove(file);
@@ -1636,6 +1731,15 @@ void Application::packLightField()
 
     else if (bakeParams.targetEngine == TargetEngine::HE2)
     {
+        // Save and pack SHLF
+        const std::string shlfFileName = stageName + ".shlf";
+        Logger::logFormatted(LogType::Normal, "Packing %s", shlfFileName.c_str());
+
+        const std::string shlfFilePath = outputDirectoryPath + "/" + shlfFileName;
+        SHLightField::save(shlfFilePath, scene->shLightFields);
+        addOrReplace(archive, toNchar(shlfFileName.c_str()).data(), hl::blob(toNchar(shlfFilePath.c_str()).data()));
+
+        // Pack light field textures
         bool any = false;
 
         for (auto& shLightField : scene->shLightFields)
@@ -1651,11 +1755,8 @@ void Application::packLightField()
             any = true;
         }
 
-        if (!any) 
-        {
-            Logger::log(LogType::Error, "Failed to find light field textures");
-            return;
-        }
+        if (!any)
+            Logger::log(LogType::Warning, "Failed to find light field textures");
     }
 
     else return;

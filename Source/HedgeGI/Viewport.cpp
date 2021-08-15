@@ -139,7 +139,12 @@ void Viewport::update(const Application& application)
     notifyBakeThread(application);
 }
 
-const Texture* Viewport::getTexture() const
+const Texture* Viewport::getInitialTexture() const
+{
+    return hdrFramebufferTex ? &hdrFramebufferTex->texture : nullptr;
+}
+
+const Texture* Viewport::getFinalTexture() const
 {
     return ldrFramebufferTex ? &ldrFramebufferTex->texture : nullptr;
 }
