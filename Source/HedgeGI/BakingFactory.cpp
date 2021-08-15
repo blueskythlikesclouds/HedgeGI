@@ -126,7 +126,7 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
     Color3 radiance(0, 0, 0);
     float faceFactor = 1.0f;
 
-    for (int32_t i = 0; i < (int32_t)bakeParams.lightBounceCount; i++)
+    for (int32_t i = 0, j = 0; i < (int32_t)bakeParams.lightBounceCount && j < 8; i++)
     {
         const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
 
@@ -249,6 +249,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     rtcInitIntersectContext(&context);
 
                     i--;
+                    j++; // Fail-safe for infinite looping
+
                     continue;
                 }
 
@@ -329,6 +331,8 @@ Color4 BakingFactory::pathTrace(const RaytracingContext& raytracingContext, cons
                     rtcInitIntersectContext(&context);
 
                     i--;
+                    j++; // Fail-safe for infinite looping
+
                     continue;
                 }
 
