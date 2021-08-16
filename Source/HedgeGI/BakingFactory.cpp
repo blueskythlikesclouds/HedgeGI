@@ -127,9 +127,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
     Color3 throughput(1, 1, 1);
     Color3 radiance(0, 0, 0);
 
-    int i, j;
+    int i;
 
-    for (i = 0, j = 0; i < (int32_t)bakeParams.lightBounceCount && j < 8; i++)
+    for (i = 0; i < (int32_t)bakeParams.lightBounceCount; i++)
     {
         const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
 
@@ -186,8 +186,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         if (i == 0 && tracingFromEye)
             result.position = hitPosition;
-
-        hitPosition += hitPosition.cwiseAbs().cwiseProduct(hitNormal.cwiseSign()) * 0.0000002f;
 
         Color4 diffuse = Color4::Ones();
         Color4 specular = Color4::Zero();
@@ -258,8 +256,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     rtcInitIntersectContext(&context);
 
                     i--;
-                    j++; // Fail-safe for infinite looping
-
                     continue;
                 }
 
@@ -340,8 +336,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     rtcInitIntersectContext(&context);
 
                     i--;
-                    j++; // Fail-safe for infinite looping
-
                     continue;
                 }
 
@@ -361,6 +355,8 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         if (shouldApplyBakeParam)
             emission.head<3>() *= bakeParams.emissionStrength;
+
+        hitPosition += hitPosition.cwiseAbs().cwiseProduct(hitNormal.cwiseSign()) * 0.0000002f;
 
         const Vector3 viewDirection = (rayPosition - hitPosition).normalized();
 
