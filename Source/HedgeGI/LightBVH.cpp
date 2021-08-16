@@ -2,15 +2,6 @@
 #include "Light.h"
 #include "Scene.h"
 
-class LightBVH::Node
-{
-public:
-    AABB aabb;
-    const Light* light {};
-    std::unique_ptr<Node> left;
-    std::unique_ptr<Node> right;
-};
-
 std::unique_ptr<LightBVH::Node> LightBVH::build(const std::vector<const Light*>& lights)
 {
     if (lights.empty())
@@ -79,15 +70,6 @@ std::unique_ptr<LightBVH::Node> LightBVH::build(const std::vector<const Light*>&
     return node;
 }
 
-void LightBVH::traverse(const Vector3& position, std::function<void(const Light*)>& callback, const Node& node) const
-{
-    if (!node.aabb.contains(position)) return;
-
-    if (node.light) callback(node.light);
-    if (node.left) traverse(position, callback, *node.left);
-    if (node.right) traverse(position, callback, *node.right);
-}
-
 LightBVH::LightBVH() = default;
 LightBVH::~LightBVH() = default;
 
@@ -118,10 +100,4 @@ void LightBVH::build(const Scene& scene)
     }
 
     node = build(lights);
-}
-
-void LightBVH::traverse(const Vector3& position, std::function<void(const Light*)> callback) const
-{
-    if (node) traverse(position, callback, *node);
-    if (sunLight) callback(sunLight);
 }
