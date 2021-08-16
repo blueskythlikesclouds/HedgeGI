@@ -58,6 +58,7 @@ RTCScene Scene::createRTCScene()
         rtcReleaseGeometry(rtcGeometry);
     }
 
+    rtcSetSceneBuildQuality(rtcScene, RTC_BUILD_QUALITY_HIGH);
     rtcCommitScene(rtcScene);
     return rtcScene;
 }
@@ -97,6 +98,7 @@ RTCScene Scene::createSkyRTCScene()
         rtcReleaseGeometry(rtcGeometry);
     }
 
+    rtcSetSceneBuildQuality(skyRtcScene, RTC_BUILD_QUALITY_HIGH);
     rtcCommitScene(skyRtcScene);
     return skyRtcScene;
 }
