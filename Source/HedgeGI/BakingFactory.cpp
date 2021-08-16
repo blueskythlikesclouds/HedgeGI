@@ -528,17 +528,20 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         // HE1: Completely diffuse
         // HE2: Completely specular when metallic, half chance of being diffuse/specular when dielectric
-        const float pdf = targetEngine != TargetEngine::HE2 || metalness == 1.0f ? 1.0f : 0.5f;
+        float brdfProbability{};
 
-        if (targetEngine == TargetEngine::HE2 && (metalness == 1.0f || Random::next() > 0.5f))
+        if (targetEngine == TargetEngine::HE2 && (metalness == 1.0f || Random::next() > (brdfProbability = roughness * 0.5f + 0.5f)))
         {
+            // Specular PDF
+            brdfProbability = 1.0f - brdfProbability;
+
             // Specular reflection
             hitDirection = hitTangentToWorldMatrix * sampleGGXMicrofacet(roughness * roughness, Random::next(), Random::next());
             hitDirection = (2 * hitDirection.dot(viewDirection) * hitDirection - viewDirection).normalized();
 
             // TODO: This is likely completely wrong, do it correctly using GGX PDF
             const Vector2 specularBRDF = approxEnvBRDF(saturate(hitNormal.dot(viewDirection)), roughness);
-            throughput *= (F0 * specularBRDF.x() + specularBRDF.y()) * specular.z();
+            throughput *= (F0 * specularBRDF.x() + specularBRDF.y());
         }
         else
         {
@@ -547,12 +550,16 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 sampleCosineWeightedHemisphere(Random::next(), Random::next())).normalized();
 
             if (targetEngine == TargetEngine::HE2)
-                throughput *= lerp<Color3>(1 - F0, Color3(0), metalness) * specular.z();
+                throughput *= lerp<Color3>(1 - F0, Color3(0), metalness);
 
             throughput *= diffuse.head<3>();
         }
 
-        throughput /= pdf;
+        if (targetEngine == TargetEngine::HE2)
+        {
+            throughput *= specular.z(); // Ambient occlusion
+            if (metalness != 1.0f) throughput /= brdfProbability; // Diffuse/specular PDF
+        }
 
         query.ray.dir_x = hitDirection[0];
         query.ray.dir_y = hitDirection[1];
@@ -569,10 +576,10 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         rtcInitIntersectContext(&context);
     }
 
-    
-
     result.color = radiance.cwiseMax(0);
-    result.any = i > 0;
+
+    if (tracingFromEye)
+        result.any = i > 0;
 
     return result;
 }
