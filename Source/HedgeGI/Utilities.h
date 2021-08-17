@@ -247,3 +247,13 @@ inline void drawOrientedBoxFilled(const Matrix4& matrix, float scale)
     );
     ctx.popEnableSorting();
 }
+
+inline void setRayOrigin(const RTCRay& ray, const Vector3& origin, const float tNear)
+{
+    DirectX::XMStoreFloat4A((DirectX::XMFLOAT4A*)&ray.org_x, DirectX::XMVectorSetW(DirectX::XMLoadFloat4A((const DirectX::XMFLOAT4A*)origin.data()), tNear));
+}
+
+inline void setRayDirection(const RTCRay& ray, const Vector3& direction)
+{
+    DirectX::XMStoreFloat4A((DirectX::XMFLOAT4A*)&ray.dir_x, DirectX::XMLoadFloat4A((const DirectX::XMFLOAT4A*)direction.data()));
+}

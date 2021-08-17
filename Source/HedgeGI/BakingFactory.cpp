@@ -5,6 +5,7 @@
 #include "Light.h"
 #include "Material.h"
 #include "Random.h"
+#include "Utilities.h"
 
 std::mutex BakingFactory::mutex;
 
@@ -33,13 +34,9 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
         rtcInitIntersectContext(&context);
 
         RTCRayHit query {};
-        query.ray.dir_x = direction[0];
-        query.ray.dir_y = direction[1];
-        query.ray.dir_z = direction[2];
-        query.ray.org_x = position[0];
-        query.ray.org_y = position[1];
-        query.ray.org_z = position[2];
-        query.ray.tnear = 0.001f;
+        setRayOrigin(query.ray, position, 0.001f);
+        setRayDirection(query.ray, direction);
+
         query.ray.tfar = INFINITY;
         query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
@@ -114,13 +111,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
     // Setup the Embree ray
     RTCRayHit query{};
-    query.ray.dir_x = direction[0];
-    query.ray.dir_y = direction[1];
-    query.ray.dir_z = direction[2];
-    query.ray.org_x = position[0];
-    query.ray.org_y = position[1];
-    query.ray.org_z = position[2];
-    query.ray.tnear = 0.001f;
+    setRayOrigin(query.ray, position, 0.001f);
+    setRayDirection(query.ray, direction);
+
     query.ray.tfar = INFINITY;
     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
@@ -245,10 +238,8 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.
                 if (mesh.type == MeshType::Punch && diffuse.w() < 0.5f)
                 {
-                    query.ray.org_x = hitPosition[0];
-                    query.ray.org_y = hitPosition[1];
-                    query.ray.org_z = hitPosition[2];
-                    query.ray.tnear = 0.001f;
+                    setRayOrigin(query.ray, hitPosition, 0.001f);
+
                     query.ray.tfar = INFINITY;
                     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
                     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
@@ -325,10 +316,8 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                 if (mesh.type == MeshType::Punch && diffuse.w() < 0.5f)
                 {
-                    query.ray.org_x = hitPosition[0];
-                    query.ray.org_y = hitPosition[1];
-                    query.ray.org_z = hitPosition[2];
-                    query.ray.tnear = 0.001f;
+                    setRayOrigin(query.ray, hitPosition, 0.001f);
+
                     query.ray.tfar = INFINITY;
                     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
                     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
@@ -415,13 +404,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     rtcInitIntersectContext(&context);
 
                     RTCRayHit shadowQuery {};
-                    shadowQuery.ray.dir_x = -lightDirection[0];
-                    shadowQuery.ray.dir_y = -lightDirection[1];
-                    shadowQuery.ray.dir_z = -lightDirection[2];
-                    shadowQuery.ray.org_x = shadowPosition[0];
-                    shadowQuery.ray.org_y = shadowPosition[1];
-                    shadowQuery.ray.org_z = shadowPosition[2];
-                    shadowQuery.ray.tnear = bakeParams.shadowBias;
+                    setRayOrigin(shadowQuery.ray, shadowPosition, bakeParams.shadowBias);
+                    setRayDirection(shadowQuery.ray, -lightDirection);
+
                     shadowQuery.ray.tfar = light->type == LightType::Point ? (light->position - shadowPosition).norm() : INFINITY;
                     shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
                     shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
@@ -558,13 +543,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
             if (metalness != 1.0f) throughput /= brdfProbability; // Diffuse/specular PDF
         }
 
-        query.ray.dir_x = hitDirection[0];
-        query.ray.dir_y = hitDirection[1];
-        query.ray.dir_z = hitDirection[2];
-        query.ray.org_x = hitPosition[0];
-        query.ray.org_y = hitPosition[1];
-        query.ray.org_z = hitPosition[2];
-        query.ray.tnear = 0.001f;
+        setRayOrigin(query.ray, hitPosition, 0.001f);
+        setRayDirection(query.ray, hitDirection);
+
         query.ray.tfar = INFINITY;
         query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;

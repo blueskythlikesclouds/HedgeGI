@@ -7,6 +7,7 @@
 #include "Material.h"
 #include "Random.h"
 #include "Scene.h"
+#include "Utilities.h"
 
 class Camera;
 
@@ -114,13 +115,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     rtcInitIntersectContext(&context);
 
                     RTCRayHit query {};
-                    query.ray.dir_x = worldSpaceDirection[0];
-                    query.ray.dir_y = worldSpaceDirection[1];
-                    query.ray.dir_z = worldSpaceDirection[2];
-                    query.ray.org_x = bakePoint.position[0];
-                    query.ray.org_y = bakePoint.position[1];
-                    query.ray.org_z = bakePoint.position[2];
-                    query.ray.tnear = 0.001f;
+                    setRayOrigin(query.ray, bakePoint.position, 0.001f);
+                    setRayDirection(query.ray, worldSpaceDirection);
+
                     query.ray.tfar = INFINITY;
                     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
                     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
@@ -195,13 +192,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     rtcInitIntersectContext(&context);
 
                     RTCRayHit query {};
-                    query.ray.dir_x = -direction[0];
-                    query.ray.dir_y = -direction[1];
-                    query.ray.dir_z = -direction[2];
-                    query.ray.org_x = position[0];
-                    query.ray.org_y = position[1];
-                    query.ray.org_z = position[2];
-                    query.ray.tnear = bakeParams.shadowBias;
+                    setRayOrigin(query.ray, position, bakeParams.shadowBias);
+                    setRayDirection(query.ray, -direction);
+
                     query.ray.tfar = INFINITY;
                     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
                     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
