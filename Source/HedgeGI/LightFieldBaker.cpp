@@ -120,7 +120,6 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
             LightFieldPoint bakePoint = {};
             bakePoint.position = userData.cornersOptimized[i];
             bakePoint.smoothPosition = userData.cornersOptimized[i];
-            bakePoint.tangentToWorldMatrix.setIdentity();
             bakePoint.x = index & 0xFFFF;
             bakePoint.y = (index >> 16) & 0xFFFF;
 

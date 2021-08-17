@@ -580,3 +580,8 @@ inline Color3 srgbToLinear(const Color3& value)
         srgbToLinearLUT[static_cast<uint8_t>(value.z() * 255.0f)],
     };
 }
+
+inline Vector3 tangentToWorld(const Vector3& value, const Vector3& tangent, const Vector3& binormal, const Vector3& normal)
+{
+    return value.x() * tangent + value.y() * binormal + value.z() * normal;
+}

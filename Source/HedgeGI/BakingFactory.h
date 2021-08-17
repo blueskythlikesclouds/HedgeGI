@@ -79,7 +79,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         for (uint32_t i = 0; i < bakeParams.lightSampleCount; i++)
         {
             const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.lightSampleCount, random.next(), random.next()).normalized();
-            const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
+            const Vector3 worldSpaceDirection = tangentToWorld(tangentSpaceDirection, bakePoint.tangent, bakePoint.binormal, bakePoint.normal).normalized();
             const TraceResult result = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams, random);
 
             frontFacing += !result.backFacing;
@@ -109,7 +109,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 for (uint32_t i = 0; i < bakeParams.aoSampleCount; i++)
                 {
                     const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.aoSampleCount, random.next(), random.next()).normalized();
-                    const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
+                    const Vector3 worldSpaceDirection = tangentToWorld(tangentSpaceDirection, bakePoint.tangent, bakePoint.binormal, bakePoint.normal).normalized();
 
                     RTCIntersectContext context {};
                     rtcInitIntersectContext(&context);

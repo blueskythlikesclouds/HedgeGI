@@ -24,7 +24,9 @@ struct BakePoint
 
     Vector3 position;
     Vector3 smoothPosition;
-    Matrix3 tangentToWorldMatrix;
+    Vector3 tangent{1, 0, 0};
+    Vector3 binormal{0, 1, 0};
+    Vector3 normal{0, 0, 1};
 
     Color3 colors[BasisCount];
     float shadow{};
@@ -175,17 +177,11 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                         const Vector3 tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);
                         const Vector3 binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV);
 
-                        Matrix3 tangentToWorld;
-                        tangentToWorld <<
-                            tangent[0], binormal[0], normal[0],
-                            tangent[1], binormal[1], normal[1],
-                            tangent[2], binormal[2], normal[2];
-
                         bakePoints[y * size + x] = 
                         {
                             position + position.cwiseAbs().cwiseProduct(normal.cwiseSign()) * 0.0000002f,
                             smoothPosition + smoothPosition.cwiseAbs().cwiseProduct(normal.cwiseSign()) * 0.0000002f,
-                            tangentToWorld, {}, {}, x, y
+                            tangent, binormal, normal, {}, {}, x, y
                         };
                     }
                 }

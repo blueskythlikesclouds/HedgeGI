@@ -507,12 +507,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);
         const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV);
 
-        Matrix3 hitTangentToWorldMatrix;
-        hitTangentToWorldMatrix <<
-            hitTangent[0], hitBinormal[0], hitNormal[0],
-            hitTangent[1], hitBinormal[1], hitNormal[1],
-            hitTangent[2], hitBinormal[2], hitNormal[2];
-
         Vector3 hitDirection;
 
         // HE1: Completely diffuse
@@ -525,7 +519,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
             brdfProbability = 1.0f - brdfProbability;
 
             // Specular reflection
-            hitDirection = hitTangentToWorldMatrix * sampleGGXMicrofacet(roughness * roughness, random.next(), random.next());
+            hitDirection = tangentToWorld(sampleGGXMicrofacet(roughness * roughness, random.next(), random.next()), hitTangent, hitBinormal, hitNormal);
             hitDirection = (2 * hitDirection.dot(viewDirection) * hitDirection - viewDirection).normalized();
 
             // TODO: This is likely completely wrong, do it correctly using GGX PDF
@@ -535,8 +529,8 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         else
         {
             // Global illumination
-            hitDirection = (hitTangentToWorldMatrix *
-                sampleCosineWeightedHemisphere(random.next(), random.next())).normalized();
+            hitDirection = tangentToWorld(sampleCosineWeightedHemisphere(random.next(), random.next()),
+                hitTangent, hitBinormal, hitNormal).normalized();
 
             if (targetEngine == TargetEngine::HE2)
                 throughput *= lerp<Color3>(1 - F0, Color3(0), metalness);
