@@ -371,8 +371,15 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 diffuse.head<3>() = hsv2Rgb(hsv);
             }
 
-            raytracingContext.lightBVH->traverse(hitPosition, [&](const Light* light)
+            std::array<const Light*, 32> lights;
+            size_t lightCount = 0;
+
+            raytracingContext.lightBVH->traverse(hitPosition, lights, lightCount);
+
+            for (size_t j = 0; j < lightCount; j++)
             {
+                const Light* light = lights[j];
+
                 Vector3 lightDirection;
                 float attenuation;
 
@@ -385,7 +392,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                         computeDirectionAndAttenuationHE2(hitPosition, light->position, light->range, lightDirection, attenuation);
 
                     if (attenuation == 0.0f)
-                        return;
+                        continue;
                 }
                 else
                 {
@@ -442,7 +449,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 } while (receiveLight && ++shadowDepth < 8);
 
                 if (!receiveLight)
-                    return;
+                    continue;
 
                 const float cosLightDirection = saturate(hitNormal.dot(-lightDirection));
 
@@ -483,7 +490,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                     radiance += throughput * directLighting;
                 }
-            });
+            }
 
             radiance += throughput * emission.head<3>();
         }

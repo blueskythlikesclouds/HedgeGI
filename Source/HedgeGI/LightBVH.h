@@ -29,6 +29,16 @@ class LightBVH
         if (node.right) traverse(position, callback, *node.right);
     }
 
+    template<int N>
+    void traverse(const Vector3& position, std::array<const Light*, N>& lights, size_t& lightCount, const Node& node) const
+    {
+        if (lightCount == N || !node.aabb.contains(position)) return;
+
+        if (node.light) lights[lightCount++] = node.light;
+        if (node.left) traverse(position, lights, lightCount, *node.left);
+        if (node.right) traverse(position, lights, lightCount, *node.right);
+    }
+
 public:
     LightBVH();
     ~LightBVH();
@@ -43,5 +53,12 @@ public:
     {
         if (node) traverse(position, callback, *node);
         if (sunLight) callback(sunLight);
+    }
+
+    template<int N>
+    void traverse(const Vector3& position, std::array<const Light*, N>& lights, size_t& lightCount) const
+    {
+        if (sunLight) lights[lightCount++] = sunLight;
+        if (node) traverse(position, lights, lightCount, *node);
     }
 };
