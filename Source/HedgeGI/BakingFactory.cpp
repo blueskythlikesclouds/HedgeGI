@@ -104,7 +104,8 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 }
 
 template <TargetEngine targetEngine, bool tracingFromEye>
-BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, const BakeParams& bakeParams)
+BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& raytracingContext, 
+    const Vector3& position, const Vector3& direction, const BakeParams& bakeParams, Random& random)
 {
     TraceResult result {};
 
@@ -140,7 +141,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         const float probability = throughput.maxCoeff();
         if (i > (int32_t)bakeParams.russianRouletteMaxDepth)
         {
-            if (Random::next() > probability)
+            if (random.next() > probability)
                 break;
 
             throughput /= probability;
@@ -526,13 +527,13 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         // HE2: Completely specular when metallic, half chance of being diffuse/specular when dielectric
         float brdfProbability{};
 
-        if (targetEngine == TargetEngine::HE2 && (metalness == 1.0f || Random::next() > (brdfProbability = roughness * 0.5f + 0.5f)))
+        if (targetEngine == TargetEngine::HE2 && (metalness == 1.0f || random.next() > (brdfProbability = roughness * 0.5f + 0.5f)))
         {
             // Specular PDF
             brdfProbability = 1.0f - brdfProbability;
 
             // Specular reflection
-            hitDirection = hitTangentToWorldMatrix * sampleGGXMicrofacet(roughness * roughness, Random::next(), Random::next());
+            hitDirection = hitTangentToWorldMatrix * sampleGGXMicrofacet(roughness * roughness, random.next(), random.next());
             hitDirection = (2 * hitDirection.dot(viewDirection) * hitDirection - viewDirection).normalized();
 
             // TODO: This is likely completely wrong, do it correctly using GGX PDF
@@ -543,7 +544,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         {
             // Global illumination
             hitDirection = (hitTangentToWorldMatrix *
-                sampleCosineWeightedHemisphere(Random::next(), Random::next())).normalized();
+                sampleCosineWeightedHemisphere(random.next(), random.next())).normalized();
 
             if (targetEngine == TargetEngine::HE2)
                 throughput *= lerp<Color3>(1 - F0, Color3(0), metalness);
@@ -581,18 +582,18 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 }
 
 BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position,
-                                const Vector3& direction, const BakeParams& bakeParams, bool tracingFromEye)
+                                const Vector3& direction, const BakeParams& bakeParams, Random& random, bool tracingFromEye)
 {
     if (bakeParams.targetEngine == TargetEngine::HE2)
     {
         return tracingFromEye ?
-            pathTrace<TargetEngine::HE2, true>(raytracingContext, position, direction, bakeParams) :
-            pathTrace<TargetEngine::HE2, false>(raytracingContext, position, direction, bakeParams);
+            pathTrace<TargetEngine::HE2, true>(raytracingContext, position, direction, bakeParams, random) :
+            pathTrace<TargetEngine::HE2, false>(raytracingContext, position, direction, bakeParams, random);
     }
 
     return tracingFromEye ?
-        pathTrace<TargetEngine::HE1, true>(raytracingContext, position, direction, bakeParams) :
-        pathTrace<TargetEngine::HE1, false>(raytracingContext, position, direction, bakeParams);
+        pathTrace<TargetEngine::HE1, true>(raytracingContext, position, direction, bakeParams, random) :
+        pathTrace<TargetEngine::HE1, false>(raytracingContext, position, direction, bakeParams, random);
 }
 
 void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress, bool antiAliasing)
@@ -604,6 +605,8 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
 
     std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[width * height], [&](Color4& outputColor)
     {
+        Random& random = Random::get();
+
         const size_t i = std::distance(&bitmap.data[0], &outputColor);
         const size_t x = i % width;
         const size_t y = i / width;
@@ -612,8 +615,8 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
 
         if (antiAliasing)
         {
-            const float u1 = 2.0f * Random::next();
-            const float u2 = 2.0f * Random::next();
+            const float u1 = 2.0f * random.next();
+            const float u2 = 2.0f * random.next();
             dx = u1 < 1 ? sqrtf(u1) - 1.0f : 1.0f - sqrtf(2.0f - u1);
             dy = u2 < 1 ? sqrtf(u2) - 1.0f : 1.0f - sqrtf(2.0f - u2);
         }
@@ -629,7 +632,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio,
             yNormalized * tanFovy, -1)).normalized();
 
-        const auto result = pathTrace(raytracingContext, camera.position, rayDirection, bakeParams, true);
+        const auto result = pathTrace(raytracingContext, camera.position, rayDirection, bakeParams, random, true);
 
         Color4& output = bitmap.data[y * width + x];
         output.head<3>() = (output.head<3>() * progress + result.color) / (progress + 1);

@@ -30,10 +30,10 @@ public:
 
     template <TargetEngine targetEngine, bool tracingFromEye>
     static TraceResult pathTrace(const RaytracingContext& raytracingContext, 
-        const Vector3& position, const Vector3& direction, const BakeParams& bakeParams);
+        const Vector3& position, const Vector3& direction, const BakeParams& bakeParams, Random& random);
 
     static TraceResult pathTrace(const RaytracingContext& raytracingContext,
-        const Vector3& position, const Vector3& direction, const BakeParams& bakeParams, bool tracingFromEye = false);
+        const Vector3& position, const Vector3& direction, const BakeParams& bakeParams, Random& random, bool tracingFromEye = false);
 
     template <typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
@@ -69,15 +69,17 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         if (!bakePoint.valid())
             return;
 
+        Random& random = Random::get();
+
         bakePoint.begin();
 
         size_t frontFacing = 0;
 
         for (uint32_t i = 0; i < bakeParams.lightSampleCount; i++)
         {
-            const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.lightSampleCount, Random::next(), Random::next()).normalized();
+            const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.lightSampleCount, random.next(), random.next()).normalized();
             const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
-            const TraceResult result = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams);
+            const TraceResult result = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams, random);
 
             frontFacing += !result.backFacing;
             bakePoint.addSample(result.color, tangentSpaceDirection, worldSpaceDirection);
@@ -105,7 +107,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
                 for (uint32_t i = 0; i < bakeParams.aoSampleCount; i++)
                 {
-                    const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.aoSampleCount, Random::next(), Random::next()).normalized();
+                    const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.aoSampleCount, random.next(), random.next()).normalized();
                     const Vector3 worldSpaceDirection = (bakePoint.tangentToWorldMatrix * tangentSpaceDirection).normalized();
 
                     RTCIntersectContext context {};
@@ -163,7 +165,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
             // Shadows are more noisy when multi-threaded...?
             // Could it be related to the random number generator?
-            const float phi = 2 * PI * Random::next();
+            const float phi = 2 * PI * random.next();
 
             for (uint32_t i = 0; i < shadowSampleCount; i++)
             {

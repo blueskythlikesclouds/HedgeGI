@@ -8,9 +8,14 @@ class alignas(std::hardware_destructive_interference_size) Random
     Random() : engine(std::random_device {}()), distribution(0, 1) {}
 
 public:
-    static float next()
+    float next() 
+    {
+        return distribution(engine);
+    }
+
+    static Random& get()
     {
         thread_local Random random;
-        return random.distribution(random.engine);
+        return random;
     }
 };
