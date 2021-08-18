@@ -31,7 +31,7 @@ public:
     static std::vector<Atlas> createAtlases(std::list<Texture>& textures);
 
     static hl::archive createArchive(const std::string& inputDirectoryPath, TargetEngine targetEngine,
-        hl::hh::mirage::raw_gi_texture_group* group, hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo, const hl::nchar* tempName);
+        hl::hh::mirage::raw_gi_texture_group* group, hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo);
 
     static void process(const std::string& stageDirectoryPath, const std::string& inputDirectoryPath, TargetEngine targetEngine);
 };

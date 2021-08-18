@@ -21,10 +21,10 @@ bool ModelProcessor::processArchive(hl::archive& archive, ProcModelFunc function
 
         function(model);
 
-        model.save(HL_NTEXT("temp.bin"));
-        hl::blob blob(HL_NTEXT("temp.bin"));
+        hl::mem_stream stream;
+        model.save(stream);
 
-        entry = hl::archive_entry::make_regular_file(entry.name(), blob.size(), blob.data());
+        entry = hl::archive_entry::make_regular_file(entry.name(), stream.get_size(), stream.get_data_ptr());
         any = true;
     }
 
@@ -141,10 +141,10 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
             if (!hl::text::equal(entry.name(), HL_NTEXT("Stage.pfi")))
                 continue;
 
-            hl::hh::pfi::save(pfi, 0, HL_NTEXT("temp.bin"));
+            hl::mem_stream stream;
+            savePfi(pfi, stream);
 
-            hl::blob blob(HL_NTEXT("temp.bin"));
-            entry = hl::archive_entry::make_regular_file(entry.name(), blob.size(), blob.data());
+            entry = hl::archive_entry::make_regular_file(entry.name(), stream.get_size(), stream.get_data_ptr());
             break;
         }
 

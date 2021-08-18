@@ -13,6 +13,7 @@
 #include <hedgelib/io/hl_file.h>
 #include <hedgelib/io/hl_path.h>
 #include <hedgelib/io/hl_stream.h>
+#include <hedgelib/io/hl_mem_stream.h>
 #include <hedgelib/archives/hl_archive.h>
 #include <hedgelib/archives/hl_hh_archive.h>
 #include <hedgelib/archives/hl_pacx.h>

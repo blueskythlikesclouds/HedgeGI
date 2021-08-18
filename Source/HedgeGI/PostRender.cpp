@@ -199,7 +199,7 @@ void PostRender::createAtlasesRecursively(std::list<Texture>& textures, std::vec
 }
 
 hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, TargetEngine targetEngine,
-    hl::hh::mirage::raw_gi_texture_group* group, hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo, const hl::nchar* tempName)
+    hl::hh::mirage::raw_gi_texture_group* group, hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo)
 {
     const std::string levelSuffix = "-level" + std::to_string(group->level);
 
@@ -581,13 +581,10 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
     for (auto& atlas : bc3Atlases) addAtlas(atlas);
     for (auto& atlas : bc4Atlases) addAtlas(atlas);
 
-    {
-        hl::file_stream stream(tempName, hl::file::mode::write);
-        atlasInfo.write(stream);
-    }
+    hl::mem_stream stream;
+    atlasInfo.write(stream);
 
-    hl::blob blob(tempName);
-    archive.push_back(std::move(hl::archive_entry::make_regular_file(HL_NTEXT("atlasinfo"), blob.size(), blob.data())));
+    archive.push_back(std::move(hl::archive_entry::make_regular_file(HL_NTEXT("atlasinfo"), stream.get_size(), stream.get_data_ptr())));
 
     return archive;
 }
@@ -688,7 +685,7 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
 
         hl::u32 memorySize = 0;
         {
-            const hl::archive archive = createArchive(inputDirectoryPath, targetEngine, group.get(), groupInfo, nTempName.data());
+            const hl::archive archive = createArchive(inputDirectoryPath, targetEngine, group.get(), groupInfo);
 
             for (auto& entry : archive)
                 memorySize += (hl::u32)entry.size();
@@ -731,8 +728,10 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
         hl::packed_file_info stagePfi;
         hl::hh::pfd::save(stageArchive, nStagePfdFilePath.data(), hl::hh::pfd::default_alignment, &stagePfi);
 
-        hl::hh::pfi::save(stagePfi, 0, HL_NTEXT("temp.bin"));
-        addOrReplace(resourcesArchive, HL_NTEXT("Stage.pfi"), hl::blob(HL_NTEXT("temp.bin")));
+        hl::mem_stream stream;
+        savePfi(stagePfi, stream);
+
+        addOrReplace(resourcesArchive, HL_NTEXT("Stage.pfi"), stream.get_data());
 
         Logger::log(LogType::Normal, "Saved Stage.pfd");
     }
@@ -741,8 +740,10 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
         hl::packed_file_info stageAddPfi;
         hl::hh::pfd::save(stageAddArchive, nStageAddPfdFilePath.data(), hl::hh::pfd::default_alignment, &stageAddPfi);
 
-        hl::hh::pfi::save(stageAddPfi, 0, HL_NTEXT("temp.bin"));
-        addOrReplace(resourcesArchive, HL_NTEXT("Stage-Add.pfi"), hl::blob(HL_NTEXT("temp.bin")));
+        hl::mem_stream stream;
+        savePfi(stageAddPfi, stream);
+
+        addOrReplace(resourcesArchive, HL_NTEXT("Stage-Add.pfi"), stream.get_data());
 
         Logger::log(LogType::Normal, "Saved Stage-Add.pfd");
     }

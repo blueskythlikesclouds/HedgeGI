@@ -257,3 +257,11 @@ inline void setRayDirection(const RTCRay& ray, const Vector3& direction)
 {
     DirectX::XMStoreFloat4A((DirectX::XMFLOAT4A*)&ray.dir_x, DirectX::XMLoadFloat4A((const DirectX::XMFLOAT4A*)direction.data()));
 }
+
+inline void savePfi(const hl::packed_file_info& pfi, hl::stream& stream)
+{
+    hl::off_table offTable;
+    hl::hh::mirage::raw_header::start_write(0, stream);
+    hl::hh::pfi::v0::write(pfi, sizeof(hl::hh::mirage::raw_header), offTable, stream);
+    hl::hh::mirage::raw_header::finish_write(0, offTable, stream, "");
+}
