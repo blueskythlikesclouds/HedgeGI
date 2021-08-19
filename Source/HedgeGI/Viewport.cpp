@@ -149,6 +149,11 @@ const Texture* Viewport::getFinalTexture() const
     return ldrFramebufferTex ? &ldrFramebufferTex->texture : nullptr;
 }
 
+const Camera& Viewport::getCamera() const
+{
+    return bakeArgs.camera;
+}
+
 float Viewport::getNormalizedWidth() const
 {
     return normalizedWidth;

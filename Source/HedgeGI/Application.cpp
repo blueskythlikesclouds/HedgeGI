@@ -352,14 +352,16 @@ void Application::updateViewport()
     }
 }
 
-void Application::im3dNewFrame() const
+void Application::im3dNewFrame()
 {
-    const Vector3 viewDirection = camera.getDirection();
+    im3dCamera = viewport.getCamera();
+
+    const Vector3 viewDirection = im3dCamera.getDirection();
 
     const float xNormalized = viewportMouseX * 2 - 1;
     const float yNormalized = viewportMouseY * -2 + 1;
-    const float tanFovy = tanf(camera.fieldOfView / 2.0f);
-    const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio, yNormalized * tanFovy, -1)).normalized();
+    const float tanFovy = tanf(im3dCamera.fieldOfView / 2.0f);
+    const Vector3 rayDirection = (im3dCamera.rotation * Vector3(xNormalized * tanFovy * im3dCamera.aspectRatio, yNormalized * tanFovy, -1)).normalized();
 
     Im3d::AppData& appData = Im3d::GetAppData();
     appData.m_keyDown[Im3d::Mouse_Left] = input.heldMouseButtons[GLFW_MOUSE_BUTTON_LEFT];
@@ -367,9 +369,9 @@ void Application::im3dNewFrame() const
     appData.m_keyDown[Im3d::Key_R] = input.tappedKeys['R'];
     appData.m_keyDown[Im3d::Key_S] = input.tappedKeys['S'];
     appData.m_keyDown[Im3d::Key_T] = input.tappedKeys['T'];
-    appData.m_cursorRayOrigin = { camera.position.x(), camera.position.y(), camera.position.z() };
+    appData.m_cursorRayOrigin = { im3dCamera.position.x(), im3dCamera.position.y(), im3dCamera.position.z() };
     appData.m_cursorRayDirection = { rayDirection.x(), rayDirection.y(), rayDirection.z() };
-    appData.m_viewOrigin = { camera.position.x(), camera.position.y(), camera.position.z() };
+    appData.m_viewOrigin = { im3dCamera.position.x(), im3dCamera.position.y(), im3dCamera.position.z() };
     appData.m_viewDirection = { viewDirection.x(), viewDirection.y(), viewDirection.z() };
     appData.m_viewportSize = { (float)viewportWidth, (float)viewportHeight };
     appData.m_projScaleY = tanFovy * 2.0f;
@@ -392,12 +394,12 @@ void Application::im3dEndFrame() const
     im3dVertexArray.buffer.bind();
     im3dVertexArray.bind();
 
-    const Matrix4 view = camera.getView();
+    const Matrix4 view = im3dCamera.getView();
 
     im3dShader.use();
     im3dShader.set("uView", view);
-    im3dShader.set("uProjection", camera.getProjection());
-    im3dShader.set("uCamPosition", camera.position);
+    im3dShader.set("uProjection", im3dCamera.getProjection());
+    im3dShader.set("uCamPosition", im3dCamera.position);
 
     if (const Texture *texture = viewport.getInitialTexture(); texture)
     {

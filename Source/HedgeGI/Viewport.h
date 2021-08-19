@@ -57,6 +57,8 @@ public:
     const Texture* getInitialTexture() const;
     const Texture* getFinalTexture() const;
 
+    const Camera& getCamera() const;
+
     float getNormalizedWidth() const;
     float getNormalizedHeight() const;
     bool isBaking() const;

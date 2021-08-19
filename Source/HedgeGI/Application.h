@@ -31,6 +31,7 @@ class Application
     const Quad quad;
     const ShaderProgram im3dShader;
     const VertexArray im3dVertexArray;
+    Camera im3dCamera;
 
     std::list<std::pair<LogType, std::string>> logs;
     size_t previousLogSize;
@@ -125,7 +126,7 @@ class Application
     static void endProperties();
 
     void updateViewport();
-    void im3dNewFrame() const;
+    void im3dNewFrame();
     void im3dEndFrame() const;
 
     void draw();
