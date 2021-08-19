@@ -148,6 +148,13 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
             else
                 newMaterial->textures.gloss = bitmap;
         }
+        else if (strcmp(texture->type.get(), "normal") == 0)
+        {
+            if (newMaterial->textures.normal != nullptr)
+                newMaterial->textures.normalBlend = bitmap;
+            else
+                newMaterial->textures.normal = bitmap;
+        }
         else if (strcmp(texture->type.get(), "opacity") == 0 ||
             strcmp(texture->type.get(), "transparency") == 0)
         {

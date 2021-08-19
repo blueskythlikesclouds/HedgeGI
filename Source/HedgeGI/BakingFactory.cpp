@@ -172,9 +172,13 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
         const Color4 hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
 
-        Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
+        Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
+
         if ((mesh.type != MeshType::Opaque || doubleSided) && triNormal.dot(hitNormal) < 0)
             hitNormal *= -1;
+
+        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);
+        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV);
 
         Vector3 hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
 
@@ -300,6 +304,17 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     }
                 }
 
+                if (tracingFromEye && material->textures.normal != nullptr)
+                {
+                    Vector2 normalMap = material->textures.normal->pickColor<tracingFromEye>(hitUV).head<2>();
+
+                    if (material->type == MaterialType::Blend && material->textures.normalBlend != nullptr)
+                        normalMap = lerp<Vector2>(normalMap, material->textures.normalBlend->pickColor<tracingFromEye>(hitUV).head<2>(), blend);
+
+                    normalMap = normalMap * 2 - Vector2::Ones();
+                    hitNormal = hitTangent * normalMap.x() + hitBinormal * normalMap.y() + hitNormal * sqrt(1 - saturate(normalMap.dot(normalMap)));
+                }
+
                 if (material->textures.emission != nullptr)
                     emission = material->textures.emission->pickColor<tracingFromEye>(hitUV) * material->parameters.ambient * material->parameters.luminance.x();
             }
@@ -342,6 +357,8 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 }
             }
         }
+
+        hitNormal.normalize();
 
         if (shouldApplyBakeParam)
             emission.head<3>() *= bakeParams.emissionStrength;
@@ -504,9 +521,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         }
 
         // Setup next ray
-        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);
-        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV);
-
         Vector3 hitDirection;
 
         // HE1: Completely diffuse
@@ -641,6 +655,6 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
             output.w() = 1.0f;
         }
 
-        output.head<3>() = (output.head<3>() * progress + result.color) / (progress + 1);
+        output.head<3>() = progress == 0 ? result.color : (output.head<3>() * progress + result.color) / (progress + 1);
     });
 }

@@ -129,10 +129,12 @@ void Scene::removeUnusedBitmaps()
         bitmapSet.insert(material->textures.diffuse);
         bitmapSet.insert(material->textures.specular);
         bitmapSet.insert(material->textures.gloss);
+        bitmapSet.insert(material->textures.normal);
         bitmapSet.insert(material->textures.alpha);
         bitmapSet.insert(material->textures.diffuseBlend);
         bitmapSet.insert(material->textures.specularBlend);
         bitmapSet.insert(material->textures.glossBlend);
+        bitmapSet.insert(material->textures.normalBlend);
         bitmapSet.insert(material->textures.emission);
         bitmapSet.insert(material->textures.environment);
     }

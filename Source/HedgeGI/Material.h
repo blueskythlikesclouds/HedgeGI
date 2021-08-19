@@ -41,10 +41,12 @@ public:
         const Bitmap* diffuse {};
         const Bitmap* specular {};
         const Bitmap* gloss {};
+        const Bitmap* normal {};
         const Bitmap* alpha {};
         const Bitmap* diffuseBlend {};
         const Bitmap* specularBlend {};
         const Bitmap* glossBlend {};
+        const Bitmap* normalBlend {};
         const Bitmap* emission {};
         const Bitmap* environment {};
     } textures{};
