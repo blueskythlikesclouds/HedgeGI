@@ -53,6 +53,14 @@ void Viewport::validate(const Application& application)
         application.getScene().createLightBVH(true);
 
     bakeArgs.antiAliasing = !application.isDirty(); // Random jitter is very eye-killing when moving/modifying values
+
+    const auto& sceneRgbTable = application.getScene().rgbTable;
+
+    if (rgbTable != sceneRgbTable.get())
+    {
+        rgbTable = sceneRgbTable.get();
+        rgbTableTex = rgbTable ? std::make_unique<Texture>(GL_TEXTURE_2D, GL_RGBA32F, rgbTable->width, rgbTable->height, GL_RGBA, GL_FLOAT, rgbTable->data.get()) : nullptr;
+    }
 }
 
 void Viewport::copy(const Application& application) const
@@ -88,6 +96,16 @@ void Viewport::toneMap(const Application& application) const
         application.getBakeParams().targetEngine == TargetEngine::HE2 ? 1.0f / 2.2f :
         application.getGame() == Game::Generations && application.getGammaCorrectionFlag() ? 1.5f :
         1.0f);
+
+    const bool enableRgbTable = application.getBakeParams().targetEngine == TargetEngine::HE2 && rgbTable != nullptr;
+
+    toneMapShader.set("uEnableRgbTable", enableRgbTable);
+
+    if (enableRgbTable)
+    {
+        toneMapShader.set("uRgbTableTex", 2);
+        rgbTableTex->bind(2);
+    }
 
     ldrFramebufferTex->bind();
     hdrFramebufferTex->texture.bind(0);

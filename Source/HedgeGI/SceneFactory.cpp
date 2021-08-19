@@ -460,8 +460,10 @@ void SceneFactory::loadLights(const hl::archive& archive, Scene& scene)
     }
 }
 
-void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
+void SceneFactory::loadResources(const hl::archive& archive, Scene& scene, const std::string& stageName)
 {
+    const auto rgbTableName = toNchar((stageName + "_rgb_table0.dds").c_str());
+
     for (auto& entry : archive)
     {
         if (!hl::text::strstr(entry.name(), HL_NTEXT(".dds")) && !hl::text::strstr(entry.name(), HL_NTEXT(".DDS")))
@@ -476,7 +478,11 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene)
 
         bitmap->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
-        scene.bitmaps.push_back(std::move(bitmap));
+        if (hl::text::equal(entry.name(), rgbTableName.data()))
+            scene.rgbTable = std::move(bitmap);
+
+        else
+            scene.bitmaps.push_back(std::move(bitmap));
     }
 
     for (auto& entry : archive)
@@ -657,7 +663,7 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
     auto filePath = toNchar((directoryPath + "/" + stageName + ".ar.00").c_str());
 
     const auto resArchive = hl::hh::ar::load(filePath.data());
-    loadResources(resArchive, *scene);
+    loadResources(resArchive, *scene, stageName);
     loadLights(resArchive, *scene);
 
     hl::hh::pfi::v0::header* pfi = nullptr;
@@ -733,7 +739,7 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
 
         const auto archive = hl::pacx::load(filePath.data());
 
-        loadResources(archive, *scene);
+        loadResources(archive, *scene, stageName);
         archives.push_back(std::move(archive));
     }
 
@@ -761,7 +767,7 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
     auto skyFilePath = toNchar((directoryPath + "/" + stageName + "_sky.pac").c_str());
 
     if (hl::path::exists(skyFilePath.data()))
-        loadResources(hl::pacx::load(skyFilePath.data()), *scene);
+        loadResources(hl::pacx::load(skyFilePath.data()), *scene, stageName);
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();

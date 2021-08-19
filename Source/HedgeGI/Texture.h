@@ -15,7 +15,7 @@ public:
     const GLsizei width;
     const GLsizei height;
 
-    Texture(GLenum target, GLint internalformat, GLsizei width, GLsizei height, GLenum format, GLenum type);
+    Texture(GLenum target, GLint internalformat, GLsizei width, GLsizei height, GLenum format, GLenum type, void* pixels = nullptr);
     ~Texture();
 
     void bind() const;

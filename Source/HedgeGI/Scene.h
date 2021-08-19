@@ -37,6 +37,8 @@ public:
     std::vector<std::unique_ptr<Light>> lights;
     std::vector<std::unique_ptr<SHLightField>> shLightFields;
 
+    std::unique_ptr<const Bitmap> rgbTable;
+
     AABB aabb;
 
     SceneEffect effect {};

@@ -23,6 +23,9 @@ class Viewport
 
     std::unique_ptr<FramebufferTexture> avgLuminanceFramebufferTex;
 
+    const Bitmap* rgbTable{};
+    std::unique_ptr<Texture> rgbTableTex;
+
     struct BakeArgs
     {
         std::atomic<bool> baking;
