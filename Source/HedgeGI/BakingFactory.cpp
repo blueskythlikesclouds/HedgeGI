@@ -172,13 +172,13 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
         const Color4 hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
 
-        Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
+        Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
 
         if ((mesh.type != MeshType::Opaque || doubleSided) && triNormal.dot(hitNormal) < 0)
             hitNormal *= -1;
 
-        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);
-        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV);
+        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
+        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
 
         Vector3 hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
 
@@ -312,7 +312,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                         normalMap = lerp<Vector2>(normalMap, material->textures.normalBlend->pickColor<tracingFromEye>(hitUV).head<2>(), blend);
 
                     normalMap = normalMap * 2 - Vector2::Ones();
-                    hitNormal = hitTangent * normalMap.x() + hitBinormal * normalMap.y() + hitNormal * sqrt(1 - saturate(normalMap.dot(normalMap)));
+                    hitNormal = (hitTangent * normalMap.x() + hitBinormal * normalMap.y() + hitNormal * sqrt(1 - saturate(normalMap.dot(normalMap)))).normalized();
                 }
 
                 if (material->textures.emission != nullptr)
@@ -357,8 +357,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 }
             }
         }
-
-        hitNormal.normalize();
 
         if (shouldApplyBakeParam)
             emission.head<3>() *= bakeParams.emissionStrength;

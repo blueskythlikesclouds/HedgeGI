@@ -173,9 +173,9 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
 
                         const Vector3 position = barycentricLerp(a.position, b.position, c.position, baryUV);
                         const Vector3 smoothPosition = getSmoothPosition(a, b, c, baryUV);
-                        const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
-                        const Vector3 tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV);
-                        const Vector3 binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV);
+                        const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
+                        const Vector3 tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
+                        const Vector3 binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
 
                         bakePoints[y * size + x] = 
                         {
