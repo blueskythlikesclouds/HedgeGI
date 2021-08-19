@@ -885,7 +885,7 @@ void Application::drawSHLightFieldsUI()
 
     const Matrix4 matrix = selectedShlf->getMatrix();
 
-    Im3d::PushColor(Im3d::Color(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f));
+    Im3d::PushColor(Im3d::Color(153.0f / 255.0f, 217.0f / 255.0f, 234.0f / 255.0f, 0.5f));
     drawOrientedBoxFilled(matrix, 0.1f);
     Im3d::PopColor();
 
@@ -934,12 +934,16 @@ void Application::drawSHLightFieldsUI()
     Matrix3 rotation = selectedShlf->getRotationMatrix();
     Vector3 scale = selectedShlf->scale / 10.0f;
 
+    Im3d::PushLayerId(IM3D_TRANSPARENT_DISCARD_ID);
+
     if (Im3d::Gizmo(selectedShlf->name.c_str(), position.data(), rotation.data(), scale.data()))
     {
         selectedShlf->position = position * 10.0f;
         selectedShlf->setFromRotationMatrix(rotation);
         selectedShlf->scale = scale * 10.0f;
     }
+
+    Im3d::PopLayerId();
 
     if (dragProperty("Position", position))
         selectedShlf->position = position * 10.0f;
