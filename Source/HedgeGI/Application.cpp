@@ -42,6 +42,8 @@ const ImGuiWindowFlags ImGuiWindowFlags_Static =
 
 constexpr size_t IM3D_VERTEX_BUFFER_SIZE = 3 * 1024 * 1024;
 
+const Im3d::Id IM3D_TRANSPARENT_DISCARD_ID = Im3d::MakeId("TRANSPARENT_DISCARD");
+
 std::string Application::TEMP_FILE_PATH = []()
 {
     WCHAR path[MAX_PATH];
@@ -382,8 +384,10 @@ void Application::im3dEndFrame() const
 
     glViewport(viewportX, (int)(ImGui::GetIO().DisplaySize.y - (float)viewportY - (float)viewportHeight), viewportWidth, viewportHeight);
     glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
     glDisable(GL_CULL_FACE);
+    glEnable(GL_LINE_SMOOTH);
+    glLineWidth(2.0f);
+    glPointSize(2.0f);
 
     im3dVertexArray.buffer.bind();
     im3dVertexArray.bind();
@@ -408,7 +412,7 @@ void Application::im3dEndFrame() const
     {
         const auto& drawList = Im3d::GetDrawLists()[i];
 
-        im3dShader.set("uApplyPattern", drawList.m_primType == Im3d::DrawPrimitive_Triangles);
+        im3dShader.set("uDiscardFactor", drawList.m_layerId == IM3D_TRANSPARENT_DISCARD_ID ? 0.5f : 0.0f);
 
         for (Im3d::U32 j = 0; j < drawList.m_vertexCount; j += IM3D_VERTEX_BUFFER_SIZE)
         {
@@ -709,7 +713,13 @@ void Application::drawLightsUI()
     {
         ImGui::Separator();
 
-        dirtyBVH |= Im3d::GizmoTranslation(selectedLight->name.c_str(), selectedLight->position.data());
+        Im3d::DrawSphere(*(const Im3d::Vec3*)selectedLight->position.data(), selectedLight->range.w());
+
+        Im3d::PushLayerId(IM3D_TRANSPARENT_DISCARD_ID);
+        {
+            dirtyBVH |= Im3d::GizmoTranslation(selectedLight->name.c_str(), selectedLight->position.data());
+        }
+        Im3d::PopLayerId();
 
         if (beginProperties("##Light Settings"))
         {

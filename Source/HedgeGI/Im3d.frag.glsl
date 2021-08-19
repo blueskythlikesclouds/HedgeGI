@@ -8,7 +8,7 @@ out vec4 oResult;
 uniform vec4 uRect;
 uniform sampler2D uTexture;
 
-uniform bool uApplyPattern;
+uniform float uDiscardFactor;
 
 void main() 
 {
@@ -16,6 +16,5 @@ void main()
     texCoord.xy = texCoord.xy * 0.5 + 0.5;
 
     float cmpDepth = texture(uTexture, texCoord.xy * uRect.zw + uRect.xy).w;
-    ivec2 pattern = ivec2(gl_FragCoord.xy - 0.5) % 2;
-    oResult = fColor * (cmpDepth < texCoord.z || (uApplyPattern && pattern.x == 0 && pattern.y == 1) ? 0.0 : 1.0);
+    oResult = fColor * (cmpDepth < texCoord.z ? uDiscardFactor : 1.0);
 }
