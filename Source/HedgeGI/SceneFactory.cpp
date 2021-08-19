@@ -479,7 +479,7 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene, const
         std::unique_ptr<Bitmap> bitmap = createBitmap(entry.file_data<uint8_t>(), entry.size());
         if (!bitmap)
         {
-            Logger::logFormatted(LogType::Error, "Failed to load %s", toUtf8(entry.name()));
+            Logger::logFormatted(LogType::Error, "Failed to load %s", toUtf8(entry.name()).data());
             continue;
         }
 
@@ -507,7 +507,7 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene, const
         // Allow version 0 to account for HedgeLib C#'s faulty writing
         if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 0 && version != 3)
         {
-            Logger::logFormatted(LogType::Error, "Failed to load %s", toUtf8(entry.name()));
+            Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
             continue;
         }
 
@@ -528,7 +528,15 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene, const
 
         hl::hh::mirage::fix(data);
 
-        auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_skeletal_model_v5>(data);
+        hl::u32 version;
+        auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_skeletal_model_v5>(data, &version);
+
+        if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 5)
+        {
+            Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
+            continue;
+        }
+
         model->fix();
 
         std::unique_ptr<Model> newModel = createModel(model, scene);
@@ -568,7 +576,9 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
 
             hl::hh::mirage::fix(data);
 
-            if (hl::hh::mirage::has_sample_chunk_header_fixed(data))
+            const bool hasSampleChunkHeader = hl::hh::mirage::has_sample_chunk_header_fixed(data);
+
+            if (hasSampleChunkHeader)
             {
                 const auto header = (hl::hh::mirage::sample_chunk::raw_header*)data;
                 const auto node = header->get_node("DisableC");
@@ -577,7 +587,15 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
                     continue;
             }
 
-            auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_model_v5>(data);
+            hl::u32 version;
+            auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_model_v5>(data, &version);
+
+            if (!hasSampleChunkHeader && version != 5)
+            {
+                Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
+                continue;
+            }
+
             model->fix();
 
             model->flags = false;
