@@ -597,7 +597,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
 
         float dx, dy;
 
-        if (antiAliasing)
+        if (antiAliasing && progress > 0)
         {
             const float u1 = 2.0f * random.next();
             const float u2 = 2.0f * random.next();
@@ -630,10 +630,13 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
                 result.color = lightScattering.x() * result.color + lightScattering.y() * raytracingContext.scene->effect.lightScattering.color;
             }
 
-            const Vector4 projectedPos = proj * viewPos;
-            output.w() = projectedPos.z() / projectedPos.w();
+            if (progress == 0)
+            {
+                const Vector4 projectedPos = proj * viewPos;
+                output.w() = projectedPos.z() / projectedPos.w();
+            }
         }
-        else
+        else if (progress == 0)
         {
             output.w() = 1.0f;
         }
