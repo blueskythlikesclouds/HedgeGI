@@ -580,6 +580,8 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
 void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap, size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress, bool antiAliasing)
 {
+    const Light* sunLight = raytracingContext.lightBVH->getSunLight();
+
     const Matrix4 view = camera.getView();
     const Matrix4 proj = camera.getProjection();
 
@@ -614,19 +616,28 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio,
             yNormalized * tanFovy, -1)).normalized();
 
-        const auto result = pathTrace(raytracingContext, camera.position, rayDirection, bakeParams, random, true);
+        auto result = pathTrace(raytracingContext, camera.position, rayDirection, bakeParams, random, true);
 
         Color4& output = bitmap.data[y * width + x];
-        output.head<3>() = (output.head<3>() * progress + result.color) / (progress + 1);
 
         if (result.any)
         {
-            const Vector4 projectedPos = proj * (view * Vector4(result.position.x(), result.position.y(), result.position.z(), 1));
+            const Vector4 viewPos = view * Vector4(result.position.x(), result.position.y(), result.position.z(), 1);
+
+            if (sunLight && raytracingContext.scene->effect.lightScattering.enable)
+            {
+                const Vector2 lightScattering = raytracingContext.scene->effect.lightScattering.compute(result.position, viewPos.head<3>(), camera.position, *sunLight);
+                result.color = lightScattering.x() * result.color + lightScattering.y() * raytracingContext.scene->effect.lightScattering.color;
+            }
+
+            const Vector4 projectedPos = proj * viewPos;
             output.w() = projectedPos.z() / projectedPos.w();
         }
         else
         {
             output.w() = 1.0f;
         }
+
+        output.head<3>() = (output.head<3>() * progress + result.color) / (progress + 1);
     });
 }

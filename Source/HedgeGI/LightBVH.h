@@ -47,6 +47,7 @@ public:
     ~LightBVH();
 
     bool valid() const;
+    const Light* getSunLight() const;
 
     void reset();
     void build(const Scene& scene);

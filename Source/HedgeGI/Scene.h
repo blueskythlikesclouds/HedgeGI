@@ -41,6 +41,8 @@ public:
 
     SceneEffect effect {};
 
+    const LightBVH& getLightBVH() const;
+
     void buildAABB();
 
     RTCScene createRTCScene();

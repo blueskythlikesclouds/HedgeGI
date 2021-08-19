@@ -18,6 +18,11 @@ Scene::~Scene()
         rtcReleaseScene(skyRtcScene);
 }
 
+const LightBVH& Scene::getLightBVH() const
+{
+    return lightBVH;
+}
+
 void Scene::buildAABB()
 {
     aabb.setEmpty();

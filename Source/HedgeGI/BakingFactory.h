@@ -51,15 +51,7 @@ public:
 template <typename TBakePoint>
 void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams)
 {
-    const Light* sunLight = nullptr;
-    for (auto& light : raytracingContext.scene->lights)
-    {
-        if (light->type != LightType::Directional)
-            continue;
-
-        sunLight = light.get();
-        break;
-    }
+    const Light* sunLight = raytracingContext.scene->getLightBVH().getSunLight();
 
     Matrix3 lightTangentToWorldMatrix;
     if (sunLight != nullptr)

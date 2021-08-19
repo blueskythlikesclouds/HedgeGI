@@ -84,6 +84,11 @@ bool LightBVH::valid() const
     return sunLight || node;
 }
 
+const Light* LightBVH::getSunLight() const
+{
+    return sunLight;
+}
+
 void LightBVH::reset()
 {
     sunLight = nullptr;
