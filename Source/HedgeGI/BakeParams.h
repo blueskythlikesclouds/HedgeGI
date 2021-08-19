@@ -66,8 +66,6 @@ struct BakeParams
     BakeParams() : targetEngine(TargetEngine::HE1), skyIntensityScale(1) {}
     BakeParams(const TargetEngine targetEngine) : targetEngine(targetEngine), skyIntensityScale(1) {}
 
-    void load(const std::string& filePath);
-
     void load(const PropertyBag& propertyBag);
     void store(PropertyBag& propertyBag) const;
 };

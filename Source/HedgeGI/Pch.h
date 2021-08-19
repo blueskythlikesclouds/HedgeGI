@@ -58,9 +58,6 @@ using Quaternion = Eigen::Quaternionf;
 // parallel_hashmap
 #include <phmap.h>
 
-// Other
-#include <INIReader.h>
-
 // OpenGL
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>

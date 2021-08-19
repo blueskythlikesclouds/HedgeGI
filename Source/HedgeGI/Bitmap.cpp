@@ -108,27 +108,6 @@ void Bitmap::clear() const
     memset(data.get(), 0, sizeof(Color4) * width * height * arraySize);
 }
 
-void Bitmap::read(const FileStream& file)
-{
-    type = file.read<BitmapType>();
-    name = file.readString();
-    width = file.read<uint32_t>();
-    height = file.read<uint32_t>();
-    arraySize = file.read<uint32_t>();
-    data = std::make_unique<Color4[]>(width * height * arraySize);
-    file.read(data.get(), width * height * arraySize);
-}
-
-void Bitmap::write(const FileStream& file) const
-{
-    file.write(type);
-    file.write(name);
-    file.write(width);
-    file.write(height);
-    file.write(arraySize);
-    file.write(data.get(), width * height * arraySize);
-}
-
 void Bitmap::save(const std::string& filePath, Transformer* const transformer) const
 {
     DirectX::ScratchImage scratchImage;

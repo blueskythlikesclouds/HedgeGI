@@ -43,9 +43,6 @@ public:
 
     void clear() const;
 
-    void read(const FileStream& file);
-    void write(const FileStream& file) const;
-
     void save(const std::string& filePath, Transformer* transformer = nullptr) const;
     void save(const std::string& filePath, DXGI_FORMAT format, Transformer* transformer = nullptr) const;
 
