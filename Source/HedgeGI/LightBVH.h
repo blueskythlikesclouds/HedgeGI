@@ -10,8 +10,11 @@ class LightBVH
     public:
         AABB aabb;
         const Light* light {};
+        float squaredRange {};
         std::unique_ptr<Node> left;
         std::unique_ptr<Node> right;
+
+        bool contains(const Vector3& position) const;
     };
 
     std::unique_ptr<Node> node;
@@ -22,7 +25,7 @@ class LightBVH
     template<typename T>
     void traverse(const Vector3& position, const T& callback, const Node& node) const
     {
-        if (!node.aabb.contains(position)) return;
+        if (!node.contains(position)) return;
 
         if (node.light) callback(node.light);
         if (node.left) traverse(position, callback, *node.left);
@@ -32,7 +35,7 @@ class LightBVH
     template<int N>
     void traverse(const Vector3& position, std::array<const Light*, N>& lights, size_t& lightCount, const Node& node) const
     {
-        if (lightCount == N || !node.aabb.contains(position)) return;
+        if (lightCount == N || !node.contains(position)) return;
 
         if (node.light) lights[lightCount++] = node.light;
         if (node.left) traverse(position, lights, lightCount, *node.left);

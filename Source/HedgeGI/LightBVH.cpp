@@ -2,6 +2,11 @@
 #include "Light.h"
 #include "Scene.h"
 
+bool LightBVH::Node::contains(const Vector3& position) const
+{
+    return light ? (position - light->position).squaredNorm() < squaredRange : aabb.contains(position);
+}
+
 std::unique_ptr<LightBVH::Node> LightBVH::build(const std::vector<const Light*>& lights)
 {
     if (lights.empty())
@@ -26,6 +31,7 @@ std::unique_ptr<LightBVH::Node> LightBVH::build(const std::vector<const Light*>&
     if (lights.size() == 1)
     {
         node->light = lights[0];
+        node->squaredRange = lights[0]->range.w() * lights[0]->range.w();
         return node;
     }
 
