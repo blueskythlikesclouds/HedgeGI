@@ -86,6 +86,7 @@ class Application
 
     float viewportResolutionInvRatio {};
     bool gammaCorrectionFlag {};
+    bool colorCorrectionFlag {};
     BakeParams bakeParams;
 
     BakingFactoryMode mode {};
@@ -192,6 +193,7 @@ public:
     const RaytracingContext getRaytracingContext() const;
     const SceneEffect& getSceneEffect() const;
     bool getGammaCorrectionFlag() const;
+    bool getColorCorrectionFlag() const;
     const BakeParams getBakeParams() const;
 
     void drawQuad() const;
