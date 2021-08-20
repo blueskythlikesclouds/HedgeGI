@@ -3,6 +3,7 @@
 #include "Scene.h"
 
 #include "Bitmap.h"
+#include "CabinetCompression.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "Model.h"
@@ -725,20 +726,8 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
         pfdFile.seek(entry->dataPos, SEEK_SET);
         pfdFile.read(data.get(), entry->dataSize);
 
-        {
-            const FileStream tgFile("temp.cab", "wb");
-            tgFile.write(data.get(), entry->dataSize);
-        }
-
-        TCHAR args[] = TEXT("expand temp.cab temp.ar");
-        if (!executeCommand(args))
-            continue;
-
-        loadTerrain({ hl::hh::ar::load(HL_NTEXT("temp.ar")) }, *scene);
+        loadTerrain({ CabinetCompression::load(data.get(), entry->dataSize) }, *scene);
     }
-
-    std::filesystem::remove("temp.cab");
-    std::filesystem::remove("temp.ar");
 
     scene->removeUnusedBitmaps();
     scene->buildAABB();

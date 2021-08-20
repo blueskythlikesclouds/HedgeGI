@@ -210,6 +210,9 @@
     <ClCompile Include="SHLightField.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="CabinetCompression.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -377,6 +380,9 @@
     </ClInclude>
     <ClInclude Include="LightBVH.h">
       <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="CabinetCompression.h">
+      <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

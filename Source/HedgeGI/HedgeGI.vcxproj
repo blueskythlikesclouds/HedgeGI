@@ -68,7 +68,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib\$(Configuration);..\..\Dependencies\HedgeLib\lib\\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "..\..\Dependencies\Embree\bin\*.dll" "$(TargetDir)" &gt; nul
@@ -104,7 +104,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib\$(Configuration);..\..\Dependencies\HedgeLib\lib\\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "..\..\Dependencies\Embree\bin\*.dll" "$(TargetDir)" &gt; nul
@@ -325,6 +325,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClCompile Include="BakeParams.cpp" />
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="BitmapHelper.cpp" />
+    <ClCompile Include="CabinetCompression.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3D11Device.cpp" />
     <ClCompile Include="ElementArray.cpp" />
@@ -378,6 +379,7 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="BakePoint.h" />
     <ClInclude Include="BitmapHelper.h" />
+    <ClInclude Include="CabinetCompression.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="D3D11Device.h" />
     <ClInclude Include="ElementArray.h" />
