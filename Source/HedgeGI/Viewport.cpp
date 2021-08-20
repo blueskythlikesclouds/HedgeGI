@@ -97,7 +97,7 @@ void Viewport::toneMap(const Application& application) const
         application.getGame() == Game::Generations && application.getGammaCorrectionFlag() ? 1.5f :
         1.0f);
 
-    const bool enableRgbTable = application.getBakeParams().targetEngine == TargetEngine::HE2 && rgbTable != nullptr;
+    const bool enableRgbTable = application.getBakeParams().targetEngine == TargetEngine::HE2 && application.getColorCorrectionFlag() && rgbTable != nullptr;
 
     toneMapShader.set("uEnableRgbTable", enableRgbTable);
 
