@@ -549,11 +549,21 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
         DirectX::Blob blob;
         DirectX::SaveToDDSMemory(atlasImage->GetImages(), atlasImage->GetImageCount(), atlasImage->GetMetadata(), DirectX::DDS_FLAGS_NONE, blob);
 
-        char atlasName[8];
-        sprintf(atlasName, "a%04d", (int)(atlasIndex++));
-        atlas.name = atlasName;
+        std::string textureName;
 
-        archive.push_back(std::move(hl::archive_entry::make_regular_file(toNchar((atlas.name + ".dds").c_str()).data(), blob.GetBufferSize(), blob.GetBufferPointer())));
+        // Skip creating an atlas if it has only one texture
+        if (atlas.textures.size() == 1 && targetEngine == TargetEngine::HE1)
+            textureName = atlas.textures[0].name + ".dds";
+
+        else 
+        {
+            char atlasName[8];
+            sprintf(atlasName, "a%04d", (int)(atlasIndex++));
+            atlas.name = atlasName;
+            textureName = atlas.name + ".dds";
+        }
+
+        archive.push_back(std::move(hl::archive_entry::make_regular_file(toNchar(textureName.c_str()).data(), blob.GetBufferSize(), blob.GetBufferPointer())));
     };
 
     for (auto& atlas : bc3Atlases) processAtlas(atlas, false);
@@ -563,6 +573,10 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
 
     auto addAtlas = [&](const Atlas& atlas)
     {
+        // Skip this atlas if it has only one texture
+        if (atlas.textures.size() == 1 && targetEngine == TargetEngine::HE1) 
+            return;
+
         hl::hh::mirage::atlas hhAtlas;
         hhAtlas.name = atlas.name;
 
