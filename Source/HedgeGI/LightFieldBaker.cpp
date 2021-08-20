@@ -34,7 +34,7 @@ struct PointQueryFuncUserData
 {
     const Scene* scene{};
     const AABB aabb;
-    phmap::parallel_flat_hash_set<const Material*> materials;
+    phmap::parallel_flat_hash_set<const Mesh*> meshes;
     std::array<Vector3, 8> corners;
     std::array<Vector3, 8> cornersOptimized;
     std::array<float, 8> distances;
@@ -57,7 +57,7 @@ bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
 
     if (userData->aabb.intersects(aabb))
     {
-        userData->materials.insert(mesh.material);
+        userData->meshes.insert(&mesh);
 
         for (size_t i = 0; i < 8; i++)
         {
@@ -107,7 +107,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
     rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
 
-    if (radius < bakeParams.lightFieldMinCellRadius || userData.materials.size() <= 1)
+    if (radius < bakeParams.lightFieldMinCellRadius || userData.meshes.size() <= 1)
     {
         lightField.cells[cellIndex].type = LightFieldCellType::Probe;
         lightField.cells[cellIndex].index = (uint32_t)lightField.indices.size();
