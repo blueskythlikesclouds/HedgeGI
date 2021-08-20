@@ -138,7 +138,7 @@ void PostRender::createAtlasesRecursively(std::list<Texture>& textures, std::vec
     
     TextureNode atlasNode;
 
-    while (currentWidth <= maxAtlasSize || currentHeight <= maxAtlasSize)
+    while (true)
     {
         TextureNode newAtlasNode;
         newAtlasNode.width = currentWidth;
@@ -166,6 +166,9 @@ void PostRender::createAtlasesRecursively(std::list<Texture>& textures, std::vec
         }
 
         atlasNode = std::move(newAtlasNode);
+
+        if (currentWidth >= maxAtlasSize && currentHeight >= maxAtlasSize)
+            break;
 
         if (currentWidth < currentHeight)
             currentWidth *= 2;
