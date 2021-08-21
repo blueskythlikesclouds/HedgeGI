@@ -422,6 +422,24 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     bool receiveLight = true;
                     size_t shadowDepth = 0;
 
+                    Vector3 shadowDirection;
+
+                    if (tracingFromEye)
+                    {
+                        const float radius = light->type == LightType::Directional ? bakeParams.shadowSearchRadius : 1.0f / light->range.w();
+
+                        Vector3 shadowSample(
+                            (random.next() * 2 - 1) * radius,
+                            (random.next() * 2 - 1) * radius,
+                            1);
+
+                        shadowDirection = -(getTangentToWorldMatrix(lightDirection) * shadowSample).normalized();
+                    }
+                    else
+                    {
+                        shadowDirection = -lightDirection;
+                    }
+
                     do
                     {
                         context = {};
@@ -429,7 +447,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                         RTCRayHit shadowQuery {};
                         setRayOrigin(shadowQuery.ray, shadowPosition, bakeParams.shadowBias);
-                        setRayDirection(shadowQuery.ray, -lightDirection);
+                        setRayDirection(shadowQuery.ray, shadowDirection);
 
                         shadowQuery.ray.tfar = light->type == LightType::Point ? (light->position - shadowPosition).norm() : INFINITY;
                         shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
