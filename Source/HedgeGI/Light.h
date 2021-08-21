@@ -15,5 +15,7 @@ public:
     Color3 color;
     Vector4 range;
 
-    Matrix3 getTangentToWorldMatrix() const;
+    static void saveLightList(hl::stream& stream, const std::vector<std::unique_ptr<Light>>& lights);
+
+    void save(hl::stream& stream) const;
 };

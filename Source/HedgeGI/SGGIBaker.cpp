@@ -22,7 +22,7 @@ struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
         return sampleDirectionHemisphere(u1, u2);
     }
 
-    void addSample(const Color3& color, const Vector3& tangentSpaceDirection, const Vector3& worldSpaceDirection)
+    void addSample(const Color3& color, const Vector3& worldSpaceDirection)
     {
         const Vector3 direction(worldSpaceDirection.x(), worldSpaceDirection.y(), -worldSpaceDirection.z());
 

@@ -134,9 +134,9 @@ inline bool executeCommand(TCHAR args[])
     return true;
 }
 
-inline void addOrReplace(hl::archive& archive, const hl::nchar* fileName, const hl::blob& blob)
+inline void addOrReplace(hl::archive& archive, const hl::nchar* fileName, const size_t dataSize, const void* data)
 {
-    hl::archive_entry entry = hl::archive_entry::make_regular_file(fileName, blob.size(), blob.data());
+    hl::archive_entry entry = hl::archive_entry::make_regular_file(fileName, dataSize, data);
 
     for (size_t i = 0; i < archive.size(); i++)
     {
@@ -148,6 +148,11 @@ inline void addOrReplace(hl::archive& archive, const hl::nchar* fileName, const 
     }
 
     archive.push_back(std::move(entry));
+}
+
+inline void addOrReplace(hl::archive& archive, const hl::nchar* fileName, const hl::blob& blob)
+{
+    addOrReplace(archive, fileName, blob.size(), blob.data());
 }
 
 template<int N = 0x400>

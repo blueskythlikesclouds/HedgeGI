@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "Mesh.h"
-
 #define LOG2E 1.44269504088896340736f
 #define PI    3.14159265358979323846264338327950288f
 
@@ -208,21 +206,6 @@ inline Vector2 sampleVogelDisk(const size_t index, const size_t sampleCount, con
     const float theta = index * GOLDEN_ANGLE + phi;
 
     return { radius * std::cos(theta), radius * std::sin(theta) };
-}
-
-// https://gist.github.com/pixnblox/5e64b0724c186313bc7b6ce096b08820
-
-inline Vector3 getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex& c, const Vector2& baryUV)
-{
-    const Vector3 position = barycentricLerp(a.position, b.position, c.position, baryUV);
-    const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
-
-    const Vector3 vecProj0 = position - (position - a.position).dot(a.normal) * a.normal;
-    const Vector3 vecProj1 = position - (position - b.position).dot(b.normal) * b.normal;
-    const Vector3 vecProj2 = position - (position - c.position).dot(c.normal) * c.normal;
-
-    const Vector3 smoothPosition = barycentricLerp(vecProj0, vecProj1, vecProj2, baryUV);
-    return (smoothPosition - position).dot(normal) > 0.0f ? smoothPosition : position;
 }
 
 // https://github.com/DarioSamo/libgens-sonicglvl/blob/master/src/LibGens/MathGens.cpp
@@ -527,12 +510,13 @@ inline float computeAttenuationHE1(const float distance, const Vector4& range)
     return 1 - saturate((distance - range.z()) / (range.w() - range.z()));
 }
 
-inline void computeDirectionAndAttenuationHE1(const Vector3& position, const Vector3& lightPosition, const Vector4& range, Vector3& lightDirection, float& attenuation)
+inline void computeDirectionAndAttenuationHE1(const Vector3& position, const Vector3& lightPosition, const Vector4& range, Vector3& lightDirection, float& attenuation, float* distOpt = nullptr)
 {
     lightDirection = position - lightPosition;
     const float distance = lightDirection.norm();
     lightDirection /= distance;
     attenuation = computeAttenuationHE1(distance, range);
+    if (distOpt) *distOpt = distance;
 }
 
 inline float computeAttenuationHE2(const float distance, const Vector4& range)
@@ -584,4 +568,20 @@ inline Color3 srgbToLinear(const Color3& value)
 inline Vector3 tangentToWorld(const Vector3& value, const Vector3& tangent, const Vector3& binormal, const Vector3& normal)
 {
     return value.x() * tangent + value.y() * binormal + value.z() * normal;
+}
+
+inline Matrix3 getTangentToWorldMatrix(const Vector3& normal)
+{
+    const Vector3 t1 = normal.cross(Vector3(0, 0, 1));
+    const Vector3 t2 = normal.cross(Vector3(0, 1, 0));
+    const Vector3 tangent = (t1.norm() > t2.norm() ? t1 : t2).normalized();
+    const Vector3 binormal = tangent.cross(normal).normalized();
+
+    Matrix3 tangentToWorld;
+    tangentToWorld <<
+        tangent[0], binormal[0], normal[0],
+        tangent[1], binormal[1], normal[1],
+        tangent[2], binormal[2], normal[2];
+
+    return tangentToWorld;
 }

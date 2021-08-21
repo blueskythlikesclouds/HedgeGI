@@ -1,17 +1,56 @@
 ﻿#include "Light.h"
+#include "Math.h"
 
-Matrix3 Light::getTangentToWorldMatrix() const
+void Light::saveLightList(hl::stream& stream, const std::vector<std::unique_ptr<Light>>& lights)
 {
-    const Vector3 t1 = position.cross(Vector3(0, 0, 1));
-    const Vector3 t2 = position.cross(Vector3(0, 1, 0));
-    const Vector3 tangent = (t1.norm() > t2.norm() ? t1 : t2).normalized();
-    const Vector3 binormal = tangent.cross(position).normalized();
+    hl::off_table offTable;
+    hl::hh::mirage::raw_header::start_write(0, stream);
 
-    Matrix3 tangentToWorld;
-    tangentToWorld <<
-        tangent[0], binormal[0], position[0],
-        tangent[1], binormal[1], position[1],
-        tangent[2], binormal[2], position[2];
+    const size_t basePos = stream.tell();
 
-    return tangentToWorld;
+    stream.write_obj(HL_SWAP_U32(lights.size()));
+    stream.write_nulls(4);
+
+    const size_t offsetsPos = stream.tell();
+
+    stream.fix_off32(basePos, basePos + 4, hl::hh::mirage::needs_endian_swap, offTable);
+    stream.write_nulls(4 * lights.size());
+
+    for (size_t i = 0; i < lights.size(); i++)
+    {
+        stream.fix_off32(basePos, offsetsPos + 4 * i, hl::hh::mirage::needs_endian_swap, offTable);
+        stream.write_str(lights[i]->name);
+        stream.pad(4);
+    }
+
+    hl::hh::mirage::raw_header::finish_write(0, offTable, stream, "");
+}
+
+void Light::save(hl::stream& stream) const
+{
+    hl::off_table offTable;
+    hl::hh::mirage::raw_header::start_write(1, stream);
+
+    hl::hh::mirage::raw_light hhLight =
+    {
+        (hl::hh::mirage::light_type)type,
+        { position.x(), position.y(), position.z() },
+        { color.x(), color.y(), color.z() },
+        0,
+        { range.x(), range.y(), range.z(), range.w() }
+    };
+
+    hl::endian_swap(*(hl::u32*)&hhLight.type);
+    hl::endian_swap(hhLight.position);
+    hl::endian_swap(hhLight.color);
+    hl::endian_swap(hhLight.attribute);
+    hl::endian_swap(hhLight.range);
+
+    if (type == LightType::Point)
+        stream.write(sizeof(hl::hh::mirage::raw_light), &hhLight);
+
+    else
+        stream.write(offsetof(hl::hh::mirage::raw_light, attribute), &hhLight);
+
+    hl::hh::mirage::raw_header::finish_write(0, offTable, stream, "");
 }

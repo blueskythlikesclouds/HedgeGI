@@ -30,7 +30,7 @@ struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_NONE>
         return true;
     }
 
-    void addSample(const Color3& color, const Vector3& tangentSpaceDirection, const Vector3& worldSpaceDirection)
+    void addSample(const Color3& color, const Vector3& worldSpaceDirection)
     {
         const Vector3 direction(worldSpaceDirection.x(), worldSpaceDirection.y(), -worldSpaceDirection.z());
 

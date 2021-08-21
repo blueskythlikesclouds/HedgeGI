@@ -415,56 +415,59 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     attenuation = 1.0f;
                 }
 
-                // Check for shadow intersection
-                Vector3 shadowPosition = hitPosition;
-                bool receiveLight = true;
-                size_t shadowDepth = 0;
-
-                do
+                if (targetEngine == TargetEngine::HE1 || light->type == LightType::Directional)
                 {
-                    context = {};
-                    rtcInitIntersectContext(&context);
+                    // Check for shadow intersection
+                    Vector3 shadowPosition = hitPosition;
+                    bool receiveLight = true;
+                    size_t shadowDepth = 0;
 
-                    RTCRayHit shadowQuery {};
-                    setRayOrigin(shadowQuery.ray, shadowPosition, bakeParams.shadowBias);
-                    setRayDirection(shadowQuery.ray, -lightDirection);
-
-                    shadowQuery.ray.tfar = light->type == LightType::Point ? (light->position - shadowPosition).norm() : INFINITY;
-                    shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                    shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-                    rtcIntersect1(raytracingContext.rtcScene, &context, &shadowQuery);
-
-                    if (shadowQuery.hit.geomID == RTC_INVALID_GEOMETRY_ID)
-                        break;
-
-                    const Mesh& shadowMesh = *raytracingContext.scene->meshes[shadowQuery.hit.geomID];
-                    if (shadowMesh.type == MeshType::Opaque)
+                    do
                     {
-                        receiveLight = false;
-                        break;
-                    }
+                        context = {};
+                        rtcInitIntersectContext(&context);
 
-                    const Triangle& shadowTriangle = shadowMesh.triangles[shadowQuery.hit.primID];
-                    const Vertex& shadowA = shadowMesh.vertices[shadowTriangle.a];
-                    const Vertex& shadowB = shadowMesh.vertices[shadowTriangle.b];
-                    const Vertex& shadowC = shadowMesh.vertices[shadowTriangle.c];
-                    const Vector2 shadowHitUV = barycentricLerp(shadowA.uv, shadowB.uv, shadowC.uv, { shadowQuery.hit.v, shadowQuery.hit.u });
+                        RTCRayHit shadowQuery {};
+                        setRayOrigin(shadowQuery.ray, shadowPosition, bakeParams.shadowBias);
+                        setRayDirection(shadowQuery.ray, -lightDirection);
 
-                    const float alpha = shadowMesh.material && shadowMesh.material->textures.diffuse ?
-                        shadowMesh.material->textures.diffuse->pickColor<tracingFromEye>(shadowHitUV)[3] : 1;
+                        shadowQuery.ray.tfar = light->type == LightType::Point ? (light->position - shadowPosition).norm() : INFINITY;
+                        shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                        shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
-                    if (alpha > 0.5f)
-                    {
-                        receiveLight = false;
-                        break;
-                    }
+                        rtcIntersect1(raytracingContext.rtcScene, &context, &shadowQuery);
 
-                    shadowPosition = barycentricLerp(shadowA.position, shadowB.position, shadowC.position, { shadowQuery.hit.v, shadowQuery.hit.u });
-                } while (receiveLight && ++shadowDepth < 8);
+                        if (shadowQuery.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+                            break;
 
-                if (!receiveLight)
-                    continue;
+                        const Mesh& shadowMesh = *raytracingContext.scene->meshes[shadowQuery.hit.geomID];
+                        if (shadowMesh.type == MeshType::Opaque)
+                        {
+                            receiveLight = false;
+                            break;
+                        }
+
+                        const Triangle& shadowTriangle = shadowMesh.triangles[shadowQuery.hit.primID];
+                        const Vertex& shadowA = shadowMesh.vertices[shadowTriangle.a];
+                        const Vertex& shadowB = shadowMesh.vertices[shadowTriangle.b];
+                        const Vertex& shadowC = shadowMesh.vertices[shadowTriangle.c];
+                        const Vector2 shadowHitUV = barycentricLerp(shadowA.uv, shadowB.uv, shadowC.uv, { shadowQuery.hit.v, shadowQuery.hit.u });
+
+                        const float alpha = shadowMesh.material && shadowMesh.material->textures.diffuse ?
+                            shadowMesh.material->textures.diffuse->pickColor<tracingFromEye>(shadowHitUV)[3] : 1;
+
+                        if (alpha > 0.5f)
+                        {
+                            receiveLight = false;
+                            break;
+                        }
+
+                        shadowPosition = barycentricLerp(shadowA.position, shadowB.position, shadowC.position, { shadowQuery.hit.v, shadowQuery.hit.u });
+                    } while (receiveLight && ++shadowDepth < 8);
+
+                    if (!receiveLight)
+                        continue;
+                }
 
                 const float cosLightDirection = saturate(hitNormal.dot(-lightDirection));
 
@@ -576,7 +579,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 }
 
 BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& raytracingContext, const Vector3& position,
-                                const Vector3& direction, const BakeParams& bakeParams, Random& random, bool tracingFromEye)
+                                                    const Vector3& direction, const BakeParams& bakeParams, Random& random, bool tracingFromEye)
 {
     if (bakeParams.targetEngine == TargetEngine::HE2)
     {

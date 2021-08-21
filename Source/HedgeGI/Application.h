@@ -158,7 +158,7 @@ class Application
 
     void clean();
     void pack();
-    void packLightField();
+    void packResources(enum class PackResourceMode mode);
     void packGenerationsGI();
     void packLostWorldOrForcesGI();
 

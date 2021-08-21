@@ -15,6 +15,7 @@ struct Vertex
     Matrix3 getTangentToWorldMatrix() const;
 };
 
+
 struct Triangle
 {
     uint32_t a{};
@@ -45,3 +46,5 @@ public:
     RTCGeometry createRTCGeometry() const;
     void generateTangents() const;
 };
+
+extern Vector3 getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex& c, const Vector2& baryUV);

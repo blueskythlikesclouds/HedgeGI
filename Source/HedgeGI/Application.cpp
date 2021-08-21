@@ -30,6 +30,12 @@
 
 #define TRY_CANCEL() if (cancelBake) return;
 
+enum class PackResourceMode
+{
+    Light,
+    LightField
+};
+
 const ImGuiWindowFlags ImGuiWindowFlags_Static = 
     ImGuiWindowFlags_NoTitleBar |
     ImGuiWindowFlags_NoResize |
@@ -676,45 +682,8 @@ void Application::drawLightsUI()
         ImGui::EndListBox();
     }
 
-    if (ImGui::Button("Add"))
-    {
-        std::unique_ptr<Light> light = std::make_unique<Light>();
-        light->type = LightType::Point;
-        light->position = camera.getNewObjectPosition();
-        light->color = Color3::Ones();
-        light->range = Vector4(0, 0, 0, 25);
-        light->name = "NewPointLight";
-
-        selectedLight = light.get();
-        scene->lights.push_back(std::move(light));
-        dirtyBVH = true;
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Remove"))
-    {
-        if (selectedLight != nullptr)
-        {
-            for (auto it = scene->lights.begin(); it != scene->lights.end(); ++it)
-            {
-                if ((*it).get() != selectedLight)
-                    continue;
-
-                scene->lights.erase(it);
-                dirtyBVH = true;
-
-                break;
-            }
-
-            selectedLight = nullptr;
-        }
-    }
-
     if (selectedLight != nullptr)
     {
-        ImGui::Separator();
-
         Im3d::DrawSphere(*(const Im3d::Vec3*)selectedLight->position.data(), selectedLight->range.w());
 
         Im3d::PushLayerId(IM3D_TRANSPARENT_DISCARD_ID);
@@ -794,6 +763,51 @@ void Application::drawLightsUI()
             }
 
             endProperties();
+        }
+    }
+
+    const float buttonWidth = (ImGui::GetWindowSize().x - ImGui::GetStyle().ItemSpacing.x * 3) / 3;
+
+    if (ImGui::Button("Add", {buttonWidth / 2, 0}))
+    {
+        std::unique_ptr<Light> light = std::make_unique<Light>();
+        light->type = LightType::Point;
+        light->position = camera.getNewObjectPosition();
+        light->color = Color3::Ones();
+        light->range = Vector4(0, 0, 0, 3);
+
+        char name[16];
+        sprintf(name, "Omni%03d", (int)scene->lights.size());
+        light->name = name;
+
+        selectedLight = light.get();
+        scene->lights.push_back(std::move(light));
+        dirtyBVH = true;
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Save Changes", { buttonWidth * 2, 0 }))
+        process([this]() { packResources(PackResourceMode::Light); });
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Remove", { buttonWidth / 2, 0 }))
+    {
+        if (selectedLight != nullptr)
+        {
+            for (auto it = scene->lights.begin(); it != scene->lights.end(); ++it)
+            {
+                if ((*it).get() != selectedLight)
+                    continue;
+
+                scene->lights.erase(it);
+                dirtyBVH = true;
+
+                break;
+            }
+
+            selectedLight = nullptr;
         }
     }
 
@@ -1687,7 +1701,7 @@ void Application::pack()
     process([this]()
     {
         if (mode == BakingFactoryMode::LightField)
-            packLightField();
+            packResources(PackResourceMode::LightField);
 
         else if (mode == BakingFactoryMode::GI)
         {
@@ -1710,7 +1724,7 @@ void Application::pack()
     });
 }
 
-void Application::packLightField()
+void Application::packResources(PackResourceMode mode)
 {
     std::string archiveFileName;
 
@@ -1726,48 +1740,86 @@ void Application::packLightField()
 
     hl::archive archive = game == Game::Generations ? hl::hh::ar::load(nArchiveFilePath.data()) : hl::pacx::load(nArchiveFilePath.data());
 
-    if (bakeParams.targetEngine == TargetEngine::HE1)
+    if (mode == PackResourceMode::LightField)
     {
-        const std::string lightFieldFilePath = outputDirectoryPath + "/light-field.lft";
-        if (!std::filesystem::exists(lightFieldFilePath))
+        if (bakeParams.targetEngine == TargetEngine::HE1)
         {
-            Logger::log(LogType::Error, "Failed to find light-field.lft");
-            return;
+            const std::string lightFieldFilePath = outputDirectoryPath + "/light-field.lft";
+            if (!std::filesystem::exists(lightFieldFilePath))
+            {
+                Logger::log(LogType::Error, "Failed to find light-field.lft");
+                return;
+            }
+
+            Logger::log(LogType::Normal, "Packed light-field.lft");
+
+            addOrReplace(archive, HL_NTEXT("light-field.lft"), hl::blob(toNchar(lightFieldFilePath.c_str()).data()));
         }
 
-        Logger::log(LogType::Normal, "Packed light-field.lft");
+        else if (bakeParams.targetEngine == TargetEngine::HE2)
+        {
+            // Save and pack SHLF
+            const std::string shlfFileName = stageName + ".shlf";
+            Logger::logFormatted(LogType::Normal, "Packing %s", shlfFileName.c_str());
 
-        addOrReplace(archive, HL_NTEXT("light-field.lft"), hl::blob(toNchar(lightFieldFilePath.c_str()).data()));
+            const std::string shlfFilePath = outputDirectoryPath + "/" + shlfFileName;
+            SHLightField::save(shlfFilePath, scene->shLightFields);
+            addOrReplace(archive, toNchar(shlfFileName.c_str()).data(), hl::blob(toNchar(shlfFilePath.c_str()).data()));
+
+            // Pack light field textures
+            bool any = false;
+
+            for (auto& shLightField : scene->shLightFields)
+            {
+                const std::string textureFileName = shLightField->name + ".dds";
+                const std::string textureFilePath = outputDirectoryPath + "/" + textureFileName;
+                if (!std::filesystem::exists(textureFilePath))
+                    continue;
+
+                Logger::logFormatted(LogType::Normal, "Packing %s", textureFileName.c_str());
+
+                addOrReplace(archive, toNchar(textureFileName.c_str()).data(), hl::blob(toNchar(textureFilePath.c_str()).data()));
+                any = true;
+            }
+
+            if (!any)
+                Logger::log(LogType::Warning, "Failed to find light field textures");
+        }
+
+        else return;
     }
 
-    else if (bakeParams.targetEngine == TargetEngine::HE2)
+    else if (mode == PackResourceMode::Light)
     {
-        // Save and pack SHLF
-        const std::string shlfFileName = stageName + ".shlf";
-        Logger::logFormatted(LogType::Normal, "Packing %s", shlfFileName.c_str());
-
-        const std::string shlfFilePath = outputDirectoryPath + "/" + shlfFileName;
-        SHLightField::save(shlfFilePath, scene->shLightFields);
-        addOrReplace(archive, toNchar(shlfFileName.c_str()).data(), hl::blob(toNchar(shlfFilePath.c_str()).data()));
-
-        // Pack light field textures
-        bool any = false;
-
-        for (auto& shLightField : scene->shLightFields)
+        // Clean any lights from the archive
+        for (auto it = archive.begin(); it != archive.end();)
         {
-            const std::string textureFileName = shLightField->name + ".dds";
-            const std::string textureFilePath = outputDirectoryPath + "/" + textureFileName;
-            if (!std::filesystem::exists(textureFilePath))
-                continue;
+            if (hl::text::strstr((*it).name(), HL_NTEXT(".light")))
+                it = archive.erase(it);
 
-            Logger::logFormatted(LogType::Normal, "Packing %s", textureFileName.c_str());
-
-            addOrReplace(archive, toNchar(textureFileName.c_str()).data(), hl::blob(toNchar(textureFilePath.c_str()).data()));
-            any = true;
+            else
+                ++it;
         }
 
-        if (!any)
-            Logger::log(LogType::Warning, "Failed to find light field textures");
+        if (game == Game::Generations)
+        {
+            Logger::log(LogType::Normal, "Packing light-list.light-list");
+
+            hl::mem_stream stream;
+            Light::saveLightList(stream, scene->lights);
+
+            addOrReplace(archive, HL_NTEXT("light-list.light-list"), stream.get_size(), stream.get_data_ptr());
+        }
+
+        for (auto& light : scene->lights)
+        {
+            Logger::logFormatted(LogType::Normal, "Packing %s.light", light->name.c_str());
+
+            hl::mem_stream stream;
+            light->save(stream);
+
+            addOrReplace(archive, toNchar((light->name + ".light").c_str()).data(), stream.get_size(), stream.get_data_ptr());
+        }
     }
 
     else return;
@@ -1961,8 +2013,8 @@ Application::Application()
     : window(createGLFWwindow()), input(window), bakeParams(TargetEngine::HE1), im3dShader(ShaderProgram::get("Im3d")),
         im3dVertexArray(IM3D_VERTEX_BUFFER_SIZE * sizeof(Im3d::VertexData), nullptr,
         {
-                { 0, 4, GL_FLOAT, false, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_positionSize) },
-                { 1, 4, GL_UNSIGNED_BYTE, true, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_color) },
+            { 0, 4, GL_FLOAT, false, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_positionSize) },
+            { 1, 4, GL_UNSIGNED_BYTE, true, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_color) },
         })
 {
     Logger::addListener(this, logListener);

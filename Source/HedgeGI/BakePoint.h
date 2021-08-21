@@ -3,12 +3,13 @@
 #include "Instance.h"
 #include "Logger.h"
 #include "Math.h"
+#include "Mesh.h"
 #include "Scene.h"
 
 enum BakePointFlags : size_t
 {
     BAKE_POINT_FLAGS_DISCARD_BACKFACE = 1 << 0,
-    BAKE_POINT_FLAGS_AO = 1 << 1,
+    BAKE_POINT_FLAGS_LOCAL_LIGHT = 1 << 1,
     BAKE_POINT_FLAGS_SHADOW = 1 << 2,
     BAKE_POINT_FLAGS_SOFT_SHADOW = 1 << 3,
 
@@ -40,7 +41,7 @@ struct BakePoint
     void discard();
 
     void begin();
-    void addSample(const Color3& color, const Vector3& tangentSpaceDirection, const Vector3& worldSpaceDirection) = delete;
+    void addSample(const Color3& color, const Vector3& worldSpaceDirection) = delete;
     void end(uint32_t sampleCount);
 };
 

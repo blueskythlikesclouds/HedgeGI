@@ -18,7 +18,7 @@ struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
         return true;
     }
 
-    void addSample(const Color3& color, const Vector3& tangentSpaceDirection, const Vector3& worldSpaceDirection)
+    void addSample(const Color3& color, const Vector3& worldSpaceDirection)
     {
         colors[relativeCorner(Vector3::Zero(), worldSpaceDirection)] += color;
     }
