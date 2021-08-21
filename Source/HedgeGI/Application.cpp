@@ -1036,16 +1036,6 @@ void Application::drawSettingsUI()
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Ambient Occlusion") && beginProperties("##Ambient Occlusion"))
-    {
-        property("AO Sample Count", ImGuiDataType_U32, &bakeParams.aoSampleCount);
-        property("AO Fade Constant", ImGuiDataType_Float, &bakeParams.aoFadeConstant);
-        property("AO Fade Linear", ImGuiDataType_Float, &bakeParams.aoFadeLinear);
-        property("AO Fade Quadratic", ImGuiDataType_Float, &bakeParams.aoFadeQuadratic);
-        property("AO Fade Strength", ImGuiDataType_Float, &bakeParams.aoStrength);
-        endProperties();
-    }
-
     if (ImGui::CollapsingHeader("Strength Modifiers") && beginProperties("##Strength Modifiers"))
     {
         property("Diffuse Strength", ImGuiDataType_Float, &bakeParams.diffuseStrength);

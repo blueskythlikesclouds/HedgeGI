@@ -91,62 +91,6 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
         bakePoint.end(bakeParams.lightSampleCount);
 
-        if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_AO) != 0)
-        {
-            if (bakeParams.aoStrength > 0.0f)
-            {
-                // Ambient occlusion
-                float ambientOcclusion = 0.0f;
-
-                for (uint32_t i = 0; i < bakeParams.aoSampleCount; i++)
-                {
-                    const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.aoSampleCount, random.next(), random.next()).normalized();
-                    const Vector3 worldSpaceDirection = tangentToWorld(tangentSpaceDirection, bakePoint.tangent, bakePoint.binormal, bakePoint.normal).normalized();
-
-                    RTCIntersectContext context {};
-                    rtcInitIntersectContext(&context);
-
-                    RTCRayHit query {};
-                    setRayOrigin(query.ray, bakePoint.position, 0.001f);
-                    setRayDirection(query.ray, worldSpaceDirection);
-
-                    query.ray.tfar = INFINITY;
-                    query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                    query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-                    rtcIntersect1(raytracingContext.rtcScene, &context, &query);
-
-                    if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
-                        continue;
-
-                    const Vector2 baryUV { query.hit.v, query.hit.u };
-
-                    const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
-                    const Triangle& triangle = mesh.triangles[query.hit.primID];
-                    const Vertex& a = mesh.vertices[triangle.a];
-                    const Vertex& b = mesh.vertices[triangle.b];
-                    const Vertex& c = mesh.vertices[triangle.c];
-
-                    const Vector3 triNormal(query.hit.Ng_x, query.hit.Ng_y, query.hit.Ng_z);
-
-                    if (mesh.type == MeshType::Opaque && triNormal.dot(worldSpaceDirection) >= 0.0f)
-                        continue;
-
-                    float alpha = mesh.type != MeshType::Opaque && mesh.material && mesh.material->textures.diffuse ?
-                        mesh.material->textures.diffuse->pickColor(barycentricLerp(a.uv, b.uv, c.uv, baryUV)).w() : 1.0f;
-
-                    if (mesh.type == MeshType::Punch && alpha < 0.5f)
-                        continue;
-
-                    ambientOcclusion += 1.0f / (bakeParams.aoFadeConstant + bakeParams.aoFadeLinear * query.ray.tfar + bakeParams.aoFadeQuadratic * query.ray.tfar * query.ray.tfar) * alpha;
-                }
-
-                ambientOcclusion = saturate(1.0f - ambientOcclusion / bakeParams.aoSampleCount * bakeParams.aoStrength);
-
-                for (size_t i = 0; i < TBakePoint::BASIS_COUNT; i++)
-                    bakePoint.colors[i] *= ambientOcclusion;
-            }
-        }
 
         if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SHADOW) != 0 && sunLight != nullptr)
         {

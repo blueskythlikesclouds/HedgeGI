@@ -39,12 +39,6 @@ struct BakeParams
     float shadowSearchRadius {};
     float shadowBias {};
 
-    uint32_t aoSampleCount {};
-    float aoFadeConstant {};
-    float aoFadeLinear {};
-    float aoFadeQuadratic {};
-    float aoStrength {};
-
     float diffuseStrength {};
     float diffuseSaturation {};
     float lightStrength {};

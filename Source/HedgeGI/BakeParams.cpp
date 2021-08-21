@@ -20,12 +20,6 @@ void BakeParams::load(const PropertyBag& propertyBag)
     shadowSearchRadius = propertyBag.get(PROP("bakeParams.shadowSearchRadius"), 0.01f);
     shadowBias = propertyBag.get(PROP("bakeParams.shadowBias"), 0.001f);
 
-    aoSampleCount = propertyBag.get(PROP("bakeParams.aoSampleCount"), 64);
-    aoFadeConstant = propertyBag.get(PROP("bakeParams.aoFadeConstant"), 1.0f);
-    aoFadeLinear = propertyBag.get(PROP("bakeParams.aoFadeLinear"), 0.01f);
-    aoFadeQuadratic = propertyBag.get(PROP("bakeParams.aoFadeQuadratic"), 0.01f);
-    aoStrength = propertyBag.get(PROP("bakeParams.aoStrength"), 0.0f);
-
     diffuseStrength = propertyBag.get(PROP("bakeParams.diffuseStrength"), 1.0f);
     diffuseSaturation = propertyBag.get(PROP("bakeParams.diffuseSaturation"), 1.0f);
     lightStrength = propertyBag.get(PROP("bakeParams.lightStrength"), 1.0f);
@@ -63,12 +57,6 @@ void BakeParams::store(PropertyBag& propertyBag) const
     propertyBag.set(PROP("bakeParams.shadowSampleCount"), shadowSampleCount);
     propertyBag.set(PROP("bakeParams.shadowSearchRadius"), shadowSearchRadius);
     propertyBag.set(PROP("bakeParams.shadowBias"), shadowBias);
-
-    propertyBag.set(PROP("bakeParams.aoSampleCount"), aoSampleCount);
-    propertyBag.set(PROP("bakeParams.aoFadeConstant"), aoFadeConstant);
-    propertyBag.set(PROP("bakeParams.aoFadeLinear"), aoFadeLinear);
-    propertyBag.set(PROP("bakeParams.aoFadeQuadratic"), aoFadeQuadratic);
-    propertyBag.set(PROP("bakeParams.aoStrength"), aoStrength);
 
     propertyBag.set(PROP("bakeParams.diffuseStrength"), diffuseStrength);
     propertyBag.set(PROP("bakeParams.diffuseSaturation"), diffuseSaturation);
