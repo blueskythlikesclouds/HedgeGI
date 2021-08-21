@@ -1,6 +1,7 @@
 ﻿#include "PostRender.h"
 
 #include "BakeParams.h"
+#include "CabinetCompression.h"
 #include "Logger.h"
 #include "Utilities.h"
 
@@ -690,15 +691,10 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
     {
         const size_t index = std::distance(&groupInfo->groups[0], &group);
 
-        char tempName[16];
-        sprintf(tempName, "temp_%d.bin", (int)index);
-
-        auto nTempName = toNchar(tempName);
-
         char name[16];
         sprintf(name, "gia-%d.ar", (int)index);
 
-        Logger::logFormatted(LogType::Normal, "Processing %s", name);
+        hl::mem_stream stream;
 
         hl::u32 memorySize = 0;
         {
@@ -707,15 +703,10 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
             for (auto& entry : archive)
                 memorySize += (hl::u32)entry.size();
 
-            hl::hh::ar::save(archive, nTempName.data(), 0, 0x10, hl::compress_type::none, false);
+            CabinetCompression::save(archive, stream, name);
         }
 
-        auto args = multiByteToWideChar((std::string("makecab ") + tempName + " " + tempName).c_str());
-        if (!executeCommand(args.data()))
-        {
-            Logger::log(LogType::Error, "Failed to execute makecab");
-            return;
-        }
+        Logger::logFormatted(LogType::Normal, "Saved %s", name);
 
         // HACK: We update the memory size in the original file by getting the offset of the value from the fixed data.
         // The modifications are going to be reflected to the resaved resources archive.
@@ -723,9 +714,7 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
         const size_t memorySizeOffset = (size_t)((hl::u8*)&group->memorySize - groupInfoData.get());
         *(hl::u32*)(groupInfoOriginalData + memorySizeOffset) = memorySize;
 
-        hl::blob blob(nTempName.data());
-
-        hl::archive_entry entry = hl::archive_entry::make_regular_file(toNchar(name).data(), blob.size(), blob.data());
+        hl::archive_entry entry = hl::archive_entry::make_regular_file(toNchar(name).data(), stream.get_size(), stream.get_data_ptr());
 
         std::lock_guard lock(mutex);
         {
@@ -734,8 +723,6 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
             else
                 stageAddArchive.push_back(std::move(entry));
         }
-
-        std::filesystem::remove(tempName);
     });
 
     const std::string stageAddPfdFilePath = stageDirectoryPath + "/Stage-Add.pfd";

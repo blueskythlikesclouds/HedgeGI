@@ -1,5 +1,6 @@
 ﻿#include "ModelProcessor.h"
 
+#include "CabinetCompression.h"
 #include "FileStream.h"
 #include "Logger.h"
 #include "Utilities.h"
@@ -103,25 +104,19 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
             if (!hl::text::strstr(entry.name(), HL_NTEXT("tg-")))
                 continue;
 
-            {
-                const FileStream stream("temp.cab", "wb");
-                stream.write(entry.file_data<hl::u8>(), entry.size());
-            }
+            auto name = toUtf8(entry.name());
 
-            TCHAR args1[] = TEXT("expand temp.cab temp.ar");
-            if (!executeCommand(args1))
-                continue;
+            Logger::logFormatted(LogType::Normal, "Loading %s...", name.data());
+            
+            hl::archive archive = CabinetCompression::load(entry.file_data(), entry.size());
+            processArchive(archive, function);
 
-            const std::string displayName = hl::text::conv<hl::text::native_to_utf8>(entry.name());
-            processArchive("temp.ar", function, displayName);
+            Logger::logFormatted(LogType::Normal, "Compressing %s...", name.data());
 
-            Logger::logFormatted(LogType::Normal, "Compressing %s...", displayName.c_str());
+            hl::mem_stream stream;
+            CabinetCompression::save(archive, stream, name.data());
 
-            TCHAR args2[] = TEXT("makecab temp.ar temp.ar");
-            executeCommand(args2);
-
-            hl::blob blob(HL_NTEXT("temp.ar"));
-            entry = hl::archive_entry::make_regular_file(entry.name(), blob.size(), blob.data());
+            entry = hl::archive_entry::make_regular_file(entry.name(), stream.get_size(), stream.get_data_ptr());
         }
 
         hl::hh::pfd::save(pfd, nPfdFilePath.data(), hl::hh::pfd::default_alignment, &pfi);
