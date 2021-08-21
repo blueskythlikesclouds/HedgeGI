@@ -163,7 +163,7 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                 {
                     for (uint16_t y = yBegin; y <= yEnd; y++)
                     {
-                        const Vector3 vPos(x / (float)size, y / (float)size, 0);
+                        const Vector3 vPos(((float)x + 0.5f) / (float)size, ((float)y + 0.5f) / (float)size, 0);
                         const Vector2 baryUV = getBarycentricCoords(vPos, aVPos, bVPos, cVPos);
 
                         if (baryUV[0] < 0 || baryUV[0] > 1 ||
