@@ -629,7 +629,7 @@ void Application::drawInstancesUI()
         if (beginProperties("##Instance Settings"))
         {
             if (property("Selected Instance Resolution", ImGuiDataType_U16, &resolution))
-                propertyBag.set(selectedInstance->name + ".resolution", resolution);
+                propertyBag.set(selectedInstance->name + ".resolution", nextPowerOfTwo(resolution));
 
             endProperties();
             ImGui::Separator();
@@ -1152,7 +1152,8 @@ void Application::drawBakingFactoryUI()
                     },
                     bakeParams.denoiserType);
 
-                property("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride);
+                if (property("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride) && bakeParams.resolutionOverride >= 0)
+                    bakeParams.resolutionOverride = (int16_t)nextPowerOfTwo(bakeParams.resolutionOverride);
             }
 
             endProperties();
