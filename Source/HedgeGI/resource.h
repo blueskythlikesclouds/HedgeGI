@@ -6,3 +6,5 @@
 #define ResFragmentShader_ToneMap            104
 #define ResVertexShader_Im3d                 105
 #define ResFragmentShader_Im3d               106
+#define ResIcon_ExeIcon                      107
+#define ResRawData_WindowIcon                108

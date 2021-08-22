@@ -102,6 +102,7 @@ class Application
     std::future<void> futureProcess;
 
     static GLFWwindow* createGLFWwindow();
+    static void createIcons(GLFWwindow* window);
     static void logListener(void* owner, LogType logType, const char* text);
     static void im3dDrawCallback(const ImDrawList* list, const ImDrawCmd* cmd);
 

@@ -28,6 +28,8 @@
 #include "MeshOptimizer.h"
 #include "PostRender.h"
 
+#include "resource.h"
+
 #define TRY_CANCEL() if (cancelBake) return;
 
 enum class PackResourceMode
@@ -74,7 +76,48 @@ GLFWwindow* Application::createGLFWwindow()
 
     glfwSwapInterval(1);
 
+    createIcons(window);
     return window;
+}
+
+void Application::createIcons(GLFWwindow* window)
+{
+    const HRSRC hIconRes = FindResource(nullptr, MAKEINTRESOURCE(ResRawData_WindowIcon), TEXT("TEXT"));
+    const HGLOBAL hIconGlobal = LoadResource(nullptr, hIconRes);
+
+    DirectX::ScratchImage image;
+    DirectX::TexMetadata metadata;
+
+    DirectX::LoadFromWICMemory(LockResource(hIconGlobal), SizeofResource(nullptr, hIconRes), DirectX::WIC_FLAGS_NONE, &metadata, image);
+
+    if (metadata.format != DXGI_FORMAT_R8G8B8A8_UNORM)
+    {
+        DirectX::ScratchImage tmpImage;
+        DirectX::Convert(image.GetImages(), image.GetImageCount(), metadata,
+            DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, tmpImage);
+
+        std::swap(image, tmpImage);
+        metadata = image.GetMetadata();
+    }
+
+    const int resolutions[] = { 16, 24, 32, 40, 48, 64, 96, 128, 256 };
+
+    DirectX::ScratchImage scratchImages[_countof(resolutions)];
+    GLFWimage glfwImages[_countof(resolutions)];
+
+    for (size_t i = 0; i < _countof(resolutions); i++)
+    {
+        DirectX::Resize(image.GetImages(), image.GetImageCount(), metadata, 
+            resolutions[i], resolutions[i], DirectX::TEX_FILTER_BOX, scratchImages[i]);
+
+        glfwImages[i].width = resolutions[i];
+        glfwImages[i].height = resolutions[i];
+        glfwImages[i].pixels = scratchImages[i].GetPixels();
+    }
+
+    glfwSetWindowIcon(window, _countof(glfwImages), glfwImages);
+
+    FreeResource(hIconGlobal);
 }
 
 void Application::logListener(void* owner, const LogType logType, const char* text)
