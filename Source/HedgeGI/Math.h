@@ -69,7 +69,7 @@ inline T square(const T& value)
     return value * value;
 }
 
-// https://github.com/TheRealMJP/BakingLab/blob/master/SampleFramework11/v1.02/Shaders/Sampling.hlsl
+// https://github.com/TheRealMJP/BakingLab
 
 inline Vector2 squareToConcentricDiskMapping(const float x, const float y)
 {
@@ -168,29 +168,6 @@ inline Vector3 sampleDirectionSphere(const float u1, const float u2)
     return { x, y, z };
 }
 
-inline Vector3 sampleGGXMicrofacet(float roughness, float u1, float u2)
-{
-    const float theta = atan2(roughness * sqrt(u1), sqrt(1 - u1));
-    const float phi = 2 * PI * u2;
-
-    return
-    {
-        sin(theta) * cos(phi),
-        sin(theta) * sin(phi),
-        cos(theta)
-    };
-}
-
-inline float computeGGXPdf(const Vector3& n, const Vector3& h, const Vector3& v, float roughness)
-{
-    float nDotH = saturate(n.dot(h));
-    float hDotV = saturate(h.dot(v));
-    float m2 = roughness * roughness;
-    float d = m2 / (PI * square(nDotH * nDotH * (m2 - 1) + 1));
-    float pM = d * nDotH;
-    return pM / (4 * hDotV);
-}
-
 const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
 
 inline Vector3 sampleSphere(const size_t index, const size_t sampleCount)
@@ -212,6 +189,44 @@ inline Vector2 sampleVogelDisk(const size_t index, const size_t sampleCount, con
     const float theta = index * GOLDEN_ANGLE + phi;
 
     return { radius * std::cos(theta), radius * std::sin(theta) };
+}
+
+inline Color3 fresnelSchlick(Color3 F0, float cosTheta)
+{
+    float p = (-5.55473f * cosTheta - 6.98316f) * cosTheta;
+    return F0 + (Color3::Ones() - F0) * exp2(p);
+}
+
+inline float ndfGGX(float cosLh, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alphaSq = alpha * alpha;
+
+    float denom = (cosLh * alphaSq - cosLh) * cosLh + 1;
+    return alphaSq / std::max(1e-8f, PI * denom * denom);
+}
+
+inline float visSchlick(float roughness, float cosLo, float cosLi)
+{
+    float r = roughness + 1;
+    float k = (r * r) / 8;
+    float schlickV = cosLo * (1 - k) + k;
+    float schlickL = cosLi * (1 - k) + k;
+    return 0.25f / std::max(1e-8f, schlickV * schlickL);
+}
+
+// http://cwyman.org/code/dxrTutors/tutors/Tutor14/tutorial14.md.html
+
+inline Vector3 microfacetGGX(float roughness, float u1, float u2, 
+    const Vector3& tangent, const Vector3& binormal, const Vector3& normal)
+{
+    const float a = roughness * roughness;
+    const float a2 = a * a;
+    const float cosThetaH = sqrt(std::max(0.0f, (1.0f - u1) / ((a2 - 1.0f) * u1 + 1)));
+    const float sinThetaH = sqrt(std::max(0.0f, 1.0f - cosThetaH * cosThetaH));
+    const float phiH = u2 * PI * 2.0f;
+
+    return tangent * (sinThetaH * cos(phiH)) + binormal * (sinThetaH * sin(phiH)) + normal * cosThetaH;
 }
 
 // https://github.com/DarioSamo/libgens-sonicglvl/blob/master/src/LibGens/MathGens.cpp
@@ -346,30 +361,6 @@ inline Vector3 closestPointTriangle(const Vector3& p, const Vector3& a, const Ve
     return a + v * ab + w * ac;
 }
 
-inline Color3 fresnelSchlick(Color3 F0, float cosTheta)
-{
-    float p = (-5.55473f * cosTheta - 6.98316f) * cosTheta;
-    return F0 + (Color3::Ones() - F0) * exp2(p);
-}
-
-inline float ndfGGX(float cosLh, float roughness)
-{
-    float alpha = roughness * roughness;
-    float alphaSq = alpha * alpha;
-
-    float denom = (cosLh * alphaSq - cosLh) * cosLh + 1;
-    return alphaSq / (PI * denom * denom);
-}
-
-inline float visSchlick(float roughness, float cosLo, float cosLi)
-{
-    float r = roughness + 1;
-    float k = (r * r) / 8;
-    float schlickV = cosLo * (1 - k) + k;
-    float schlickL = cosLi * (1 - k) + k;
-    return 0.25f / (schlickV * schlickL);
-}
-
 // https://stackoverflow.com/a/60047308
 
 inline uint32_t as_uint(const float x)
@@ -477,15 +468,6 @@ inline Vector3 transform(const Vector3& v, const Matrix4& m)
 inline Vector3 transformNormal(const Vector3& v, const Matrix4& m)
 {
     return (m * Vector4(v.x(), v.y(), v.z(), 0.0f)).head<3>();
-}
-
-inline Vector2 approxEnvBRDF(float cosLo, float roughness)
-{
-    Vector4 c0 = Vector4(-1, -0.0275, -0.572, 0.022);
-    Vector4 c1 = Vector4(1, 0.0425, 1.04, -0.04);
-    Vector4 r = roughness * c0 + c1;
-    float a004 = std::min<float>(r.x() * r.x(), exp2(-9.28f * cosLo)) * r.x() + r.y();
-    return Vector2(-1.04, 1.04) * a004 + Vector2(r.z(), r.w());
 }
 
 inline int nextPowerOfTwo(int value)

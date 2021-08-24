@@ -129,7 +129,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         const Vector3 rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
-        const float probability = throughput.maxCoeff();
+        float probability = throughput.maxCoeff();
         if (i > (int32_t)bakeParams.russianRouletteMaxDepth)
         {
             if (random.next() > probability)
@@ -361,15 +361,17 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         const Vector3 viewDirection = (rayPosition - hitPosition).normalized();
 
-        float metalness = 0.0f;
-        float roughness = 0.5f;
-        Color3 F0(0.04f);
+        float metalness;
+        float roughness;
+        Color3 F0;
+        float nDotV;
 
         if (targetEngine == TargetEngine::HE2)
         {
             metalness = specular.w();
             roughness = std::max(0.01f, 1 - specular.y());
             F0 = lerp<Color3>(Color3(specular.x()), diffuse.head<3>(), metalness);
+            nDotV = saturate(hitNormal.dot(viewDirection));
         }
 
         if (material == nullptr || material->type == MaterialType::Common || material->type == MaterialType::Blend)
@@ -483,9 +485,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                         continue;
                 }
 
-                const float cosLightDirection = saturate(hitNormal.dot(-lightDirection));
+                const float nDotL = saturate(hitNormal.dot(-lightDirection));
 
-                if (cosLightDirection > 0)
+                if (nDotL > 0)
                 {
                     Color3 directLighting;
 
@@ -502,11 +504,11 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     else if (targetEngine == TargetEngine::HE2)
                     {
                         const Vector3 halfwayDirection = (viewDirection - lightDirection).normalized();
-                        const float cosHalfwayDirection = saturate(halfwayDirection.dot(hitNormal));
+                        const float nDotH = saturate(hitNormal.dot(halfwayDirection));
 
                         const Color3 F = fresnelSchlick(F0, saturate(halfwayDirection.dot(viewDirection)));
-                        const float D = ndfGGX(cosHalfwayDirection, roughness);
-                        const float Vis = visSchlick(roughness, saturate(viewDirection.dot(hitNormal)), cosLightDirection);
+                        const float D = ndfGGX(nDotH, roughness);
+                        const float Vis = visSchlick(roughness, nDotV, nDotL);
 
                         const Color3 kd = lerp<Color3>(Color3::Ones() - F, Color3::Zero(), metalness);
 
@@ -514,7 +516,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                         directLighting += (D * Vis) * F;
                     }
 
-                    directLighting *= cosLightDirection * light->color;
+                    directLighting *= nDotL * light->color;
                     if (shouldApplyBakeParam)
                         directLighting *= bakeParams.lightStrength;
 
@@ -538,39 +540,49 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         // Setup next ray
         Vector3 hitDirection;
 
-        // HE1: Completely diffuse
-        // HE2: Completely specular when metallic, half chance of being diffuse/specular when dielectric
-        float brdfProbability{};
-
-        if (targetEngine == TargetEngine::HE2 && (metalness == 1.0f || random.next() > (brdfProbability = roughness * 0.5f + 0.5f)))
+        if (targetEngine == TargetEngine::HE2)
         {
-            // Specular PDF
-            brdfProbability = 1.0f - brdfProbability;
+            const bool isMetallic = metalness == 1.0f;
+            probability = isMetallic ? 0.0f : roughness * 0.5f + 0.5f;
 
-            // Specular reflection
-            hitDirection = tangentToWorld(sampleGGXMicrofacet(roughness * roughness, random.next(), random.next()), hitTangent, hitBinormal, hitNormal);
-            hitDirection = (2 * hitDirection.dot(viewDirection) * hitDirection - viewDirection).normalized();
+            // Randomly select specular BRDF
+            if (isMetallic || random.next() > probability)
+            {
+                const Vector3 halfwayDirection = microfacetGGX(roughness, random.next(), random.next(), 
+                    hitTangent, hitBinormal, hitNormal).normalized();
 
-            // TODO: This is likely completely wrong, do it correctly using GGX PDF
-            const Vector2 specularBRDF = approxEnvBRDF(saturate(hitNormal.dot(viewDirection)), roughness);
-            throughput *= (F0 * specularBRDF.x() + specularBRDF.y());
+                hitDirection = (2 * halfwayDirection.dot(viewDirection) * halfwayDirection - viewDirection).normalized();
+
+                const float nDotL = saturate(hitNormal.dot(hitDirection));
+                const float nDotH = saturate(hitNormal.dot(halfwayDirection));
+                const float hDotL = saturate(halfwayDirection.dot(hitDirection));
+
+                const Color3 F = fresnelSchlick(F0, hDotL);
+                const float Vis = visSchlick(roughness, nDotV, nDotL);
+                const float PDF = nDotH / (4 * hDotL);
+
+                throughput *= nDotL * (Vis * F) / (PDF * (1 - probability));
+            }
+
+            // Diffuse BRDF
+            else
+            {
+                hitDirection = tangentToWorld(sampleCosineWeightedHemisphere(random.next(), random.next()),
+                    hitTangent, hitBinormal, hitNormal).normalized();
+
+                const Color3 kd = lerp<Color3>(1 - F0, Color3::Zero(), metalness);
+                throughput *= kd * diffuse.head<3>() / probability;
+            }
+
+            throughput *= specular.z(); // Ambient occlusion
         }
+
         else
         {
-            // Global illumination
             hitDirection = tangentToWorld(sampleCosineWeightedHemisphere(random.next(), random.next()),
                 hitTangent, hitBinormal, hitNormal).normalized();
 
-            if (targetEngine == TargetEngine::HE2)
-                throughput *= lerp<Color3>(1 - F0, Color3(0), metalness);
-
             throughput *= diffuse.head<3>();
-        }
-
-        if (targetEngine == TargetEngine::HE2)
-        {
-            throughput *= specular.z(); // Ambient occlusion
-            if (metalness != 1.0f) throughput /= brdfProbability; // Diffuse/specular PDF
         }
 
         setRayOrigin(query.ray, hitPosition, 0.001f);
