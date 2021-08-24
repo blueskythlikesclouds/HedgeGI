@@ -112,14 +112,14 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
             const Vertex& a = mesh.vertices[triangle.a];
             const Vertex& b = mesh.vertices[triangle.b];
             const Vertex& c = mesh.vertices[triangle.c];
-            const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, { query.hit.v, query.hit.u });
+            const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, query.hit.u, query.hit.v);
 
             const float alpha = mesh.type != MeshType::Opaque && mesh.material && mesh.material->textures.diffuse ? 
                 mesh.material->textures.diffuse->pickColor(hitUV)[3] : 1;
 
             shadow += (1 - shadow) * (mesh.type == MeshType::Punch ? alpha > 0.5f : alpha);
 
-            rayPosition = barycentricLerp(a.position, b.position, c.position, { query.hit.v, query.hit.u });
+            rayPosition = barycentricLerp(a.position, b.position, c.position, query.hit.u, query.hit.v);
         } while (shadow < 1.0f && ++depth < 8); // TODO: Some meshes get stuck in an infinite loop, intersecting each other infinitely. Figure out the solution instead of doing this.
 
         shadowSum += shadow;

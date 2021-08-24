@@ -31,13 +31,19 @@ inline Vector2 getBarycentricCoords(const Vector3& point, const Vector3& a, cons
 
     const float invDenom = 1.f / (dot00 * dot11 - dot01 * dot01);
 
-    return { (dot11 * dot02 - dot01 * dot12) * invDenom, (dot00 * dot12 - dot01 * dot02) * invDenom };
+    return { (dot00 * dot12 - dot01 * dot02) * invDenom, (dot11 * dot02 - dot01 * dot12) * invDenom };
 }
 
 template <typename T>
-inline T barycentricLerp(const T& a, const T& b, const T& c, const Vector2& uv)
+inline T barycentricLerp(const T& a, const T& b, const T& c, const float u, const float v)
 {
-    return a + (c - a) * uv[0] + (b - a) * uv[1];
+    return a + (b - a) * u + (c - a) * v;
+}
+
+template<typename T>
+inline T barycentricLerp(const T& a, const T& b, const T& c, const Vector2& baryUV)
+{
+    return barycentricLerp(a, b, c, baryUV.x(), baryUV.y());
 }
 
 template <typename T>

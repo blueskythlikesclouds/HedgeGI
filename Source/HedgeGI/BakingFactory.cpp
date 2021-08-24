@@ -45,23 +45,21 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
             break;
 
-        const Vector2 baryUV { query.hit.v, query.hit.u };
-
         const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
         const Triangle& triangle = mesh.triangles[query.hit.primID];
         const Vertex& a = mesh.vertices[triangle.a];
         const Vertex& b = mesh.vertices[triangle.b];
         const Vertex& c = mesh.vertices[triangle.c];
 
-        position = barycentricLerp(a.position, b.position, c.position, baryUV);
+        position = barycentricLerp(a.position, b.position, c.position, query.hit.u, query.hit.v);
 
-        const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
+        const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, query.hit.u, query.hit.v);
 
         Color4 diffuse = mesh.material->textures.diffuse->pickColor<tracingFromEye>(hitUV);
 
         if (mesh.material->skyType == 3) // Sky3
         {
-            diffuse *= barycentricLerp(a.color, b.color, c.color, baryUV);
+            diffuse *= barycentricLerp(a.color, b.color, c.color, query.hit.u, query.hit.v);
             diffuse.head<3>() *= mesh.material->parameters.diffuse.head<3>();
             diffuse.w() *= mesh.material->parameters.opacityReflectionRefractionSpecType.x();
             diffuse.head<3>() = srgbToLinear(diffuse.head<3>());
@@ -75,7 +73,7 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 
         else if (targetEngine == TargetEngine::HE1)
         {
-            diffuse *= barycentricLerp(a.color, b.color, c.color, baryUV);
+            diffuse *= barycentricLerp(a.color, b.color, c.color, query.hit.u, query.hit.v);
         }
 
         if (mesh.material->textures.alpha != nullptr)
@@ -162,25 +160,23 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
             break;
         }
 
-        const Vector2 baryUV { query.hit.v, query.hit.u };
-
         const Triangle& triangle = mesh.triangles[query.hit.primID];
         const Vertex& a = mesh.vertices[triangle.a];
         const Vertex& b = mesh.vertices[triangle.b];
         const Vertex& c = mesh.vertices[triangle.c];
 
-        const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, baryUV);
-        const Color4 hitColor = barycentricLerp(a.color, b.color, c.color, baryUV);
+        const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, query.hit.u, query.hit.v);
+        const Color4 hitColor = barycentricLerp(a.color, b.color, c.color, query.hit.u, query.hit.v);
 
-        Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
+        Vector3 hitNormal = barycentricLerp(a.normal, b.normal, c.normal, query.hit.u, query.hit.v).normalized();
 
         if ((mesh.type != MeshType::Opaque || doubleSided) && triNormal.dot(hitNormal) < 0)
             hitNormal *= -1;
 
-        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
-        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
+        const Vector3 hitTangent = barycentricLerp(a.tangent, b.tangent, c.tangent, query.hit.u, query.hit.v).normalized();
+        const Vector3 hitBinormal = barycentricLerp(a.binormal, b.binormal, c.binormal, query.hit.u, query.hit.v).normalized();
 
-        Vector3 hitPosition = barycentricLerp(a.position, b.position, c.position, baryUV);
+        Vector3 hitPosition = barycentricLerp(a.position, b.position, c.position, query.hit.u, query.hit.v);
 
         if (i == 0 && tracingFromEye)
             result.position = hitPosition;
@@ -469,7 +465,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                         const Vertex& shadowA = shadowMesh.vertices[shadowTriangle.a];
                         const Vertex& shadowB = shadowMesh.vertices[shadowTriangle.b];
                         const Vertex& shadowC = shadowMesh.vertices[shadowTriangle.c];
-                        const Vector2 shadowHitUV = barycentricLerp(shadowA.uv, shadowB.uv, shadowC.uv, { shadowQuery.hit.v, shadowQuery.hit.u });
+                        const Vector2 shadowHitUV = barycentricLerp(shadowA.uv, shadowB.uv, shadowC.uv, shadowQuery.hit.u, shadowQuery.hit.v);
 
                         const float alpha = shadowMesh.material && shadowMesh.material->textures.diffuse ?
                             shadowMesh.material->textures.diffuse->pickColor<tracingFromEye>(shadowHitUV)[3] : 1;
@@ -480,7 +476,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                             break;
                         }
 
-                        shadowPosition = barycentricLerp(shadowA.position, shadowB.position, shadowC.position, { shadowQuery.hit.v, shadowQuery.hit.u });
+                        shadowPosition = barycentricLerp(shadowA.position, shadowB.position, shadowC.position, shadowQuery.hit.u, shadowQuery.hit.v);
                     } while (receiveLight && ++shadowDepth < 8);
 
                     if (!receiveLight)
