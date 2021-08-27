@@ -509,8 +509,12 @@ inline void computeDirectionAndAttenuationHE1(const Vector3& position, const Vec
 
 inline float computeAttenuationHE2(const float distance, const Vector4& range)
 {
-    // TODO: This is not correct. At all. I do the same in PBR shaders mod, but it's not what HE2 actually does.
-    return 1.0f / (range.y() + range.z() * distance + range.w() * distance * distance);
+    float lightMask = (distance * distance) / (range.w() * range.w());
+    lightMask = saturate(1 - lightMask * lightMask);
+    lightMask *= lightMask;
+
+    const float attenuation = 1.0f / std::max(1.0f, distance * distance);
+    return attenuation * lightMask / (4 * PI);
 }
 
 inline void computeDirectionAndAttenuationHE2(const Vector3& position, const Vector3& lightPosition, const Vector4& range, Vector3& lightDirection, float& attenuation)

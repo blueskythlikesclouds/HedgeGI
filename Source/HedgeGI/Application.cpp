@@ -793,15 +793,18 @@ void Application::drawLightsUI()
             {
                 if (bakeParams.targetEngine == TargetEngine::HE1)
                 {
-                    dirtyBVH |= dragProperty("Inner Range", selectedLight->range.z(), 0.1f, 0.0f, selectedLight->range.w());
-                    dirtyBVH |= dragProperty("Outer Range", selectedLight->range.w(), 0.1f, selectedLight->range.z(), INFINITY);
+                    dirtyBVH |= dragProperty("Inner Radius", selectedLight->range.z(), 0.1f, 0.0f, selectedLight->range.w());
+                    dirtyBVH |= dragProperty("Outer Radius", selectedLight->range.w(), 0.1f, selectedLight->range.z(), INFINITY);
                 }
                 else if (bakeParams.targetEngine == TargetEngine::HE2)
                 {
-                    // TODO: THIS IS WRONG!!!
-                    dirtyBVH |= dragProperty("Range Constant", selectedLight->range.y());
-                    dirtyBVH |= dragProperty("Range Linear", selectedLight->range.z());
-                    dirtyBVH |= dragProperty("Range Quadratic", selectedLight->range.w());
+                    if (dragProperty("Radius", selectedLight->range.w()))
+                    {
+                        selectedLight->range.z() = selectedLight->range.w();
+                        selectedLight->range.y() = selectedLight->range.w() / 2.0f;
+
+                        dirtyBVH |= true;
+                    }
                 }
             }
 
