@@ -14,46 +14,56 @@ std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap, const Denois
 std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 {
     std::unique_ptr<Bitmap> dilated = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
+    memcpy(dilated->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Color4));
 
-    const size_t bitmapSize = bitmap.width * bitmap.height;
-
-    std::for_each(std::execution::par_unseq, &dilated->data[0], &dilated->data[bitmapSize * bitmap.arraySize], [&](Color4& outputColor)
+    if (bitmap.width == bitmap.height)
     {
-        const size_t i = std::distance(&dilated->data[0], &outputColor);
-
-        const size_t currentBitmap = i % bitmapSize;
-
-        const uint32_t arrayIndex = (uint32_t)(i / bitmapSize);
-        const uint32_t x = (uint32_t)(currentBitmap % bitmap.width);
-        const uint32_t y = (uint32_t)(currentBitmap / bitmap.width);
-
-        Color4 resultColor = bitmap.pickColor(x, y, arrayIndex);
-        if (resultColor.maxCoeff() > 0.0f)
+        for (uint32_t arrayIndex = 0; arrayIndex < bitmap.arraySize; arrayIndex++)
         {
-            outputColor = resultColor;
-            return;
-        }
+            uint32_t blockSize = 2;
 
-        const std::array<int32_t, 4> indices = { 1, 2, -1, -2 };
-
-        size_t count = 0;
-
-        for (auto& dx : indices)
-        {
-            for (auto& dy : indices)
+            while (blockSize <= bitmap.width)
             {
-                const Color4 color = bitmap.pickColor(x + dx, y + dy, arrayIndex);
-                if (color.maxCoeff() <= 0.0f)
-                    continue;
+                for (uint32_t x = 0; x < bitmap.width / blockSize; x++)
+                {
+                    for (uint32_t y = 0; y < bitmap.height / blockSize; y++)
+                    {
+                        size_t count = 0;
+                        Color4 resultColor(0);
 
-                resultColor += color;
-                count++;
+                        for (uint32_t i = 0; i < blockSize; i++)
+                        {
+                            for (uint32_t j = 0; j < blockSize; j++)
+                            {
+                                const Color4& color = dilated->pickColor(x * blockSize + i, y * blockSize + j, arrayIndex);
+                                if (color.maxCoeff() <= 0.0f)
+                                    continue;
+
+                                resultColor += color;
+                                ++count;
+                            }
+                        }
+
+                        if (count == 0 || count == blockSize * blockSize)
+                            continue;
+
+                        resultColor /= (float)count;
+
+                        for (uint32_t i = 0; i < blockSize; i++)
+                        {
+                            for (uint32_t j = 0; j < blockSize; j++)
+                            {
+                                const Color4& color = dilated->pickColor(x * blockSize + i, y * blockSize + j, arrayIndex);
+                                dilated->putColor(color.maxCoeff() > 0.0f ? color : resultColor, x * blockSize + i, y * blockSize + j, arrayIndex);
+                            }
+                        }
+                    }
+                }
+
+                blockSize *= 2;
             }
         }
-
-        if (count > 0)
-            outputColor = resultColor / count;
-    });
+    }
 
     return dilated;
 }
