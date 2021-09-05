@@ -20,6 +20,15 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 
         return color;
     }
+
+    if (bakeParams.environmentColorMode == EnvironmentColorMode::TwoColor)
+    {
+        Color3 color = lerp(bakeParams.secondaryEnvironmentColor, bakeParams.environmentColor, direction.y() * 0.5 + 0.5);
+        if (targetEngine == TargetEngine::HE2)
+            color *= bakeParams.environmentColorIntensity;
+
+        return color;
+    }
     
     RTCIntersectContext context {};
 

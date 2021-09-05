@@ -1051,16 +1051,15 @@ void Application::drawSettingsUI()
         property("Mode",
             {
                 { "Color", EnvironmentColorMode::Color },
-                { "Sky", EnvironmentColorMode::Sky }
+                { "Top/Bottom Color", EnvironmentColorMode::TwoColor },
+                { "Sky", EnvironmentColorMode::Sky },
             }, bakeParams.environmentColorMode);
 
         if (bakeParams.environmentColorMode == EnvironmentColorMode::Color)
         {
             if (bakeParams.targetEngine == TargetEngine::HE2)
             {
-                Color3 environmentColor = bakeParams.environmentColor.pow(1.0f / 2.2f);
-
-                if (property("Color", environmentColor))
+                if (Color3 environmentColor = bakeParams.environmentColor.pow(1.0f / 2.2f); property("Color", environmentColor))
                     bakeParams.environmentColor = environmentColor.pow(2.2f);
 
                 property("Color Intensity", ImGuiDataType_Float, &bakeParams.environmentColorIntensity);
@@ -1075,6 +1074,26 @@ void Application::drawSettingsUI()
         else if (bakeParams.environmentColorMode == EnvironmentColorMode::Sky)
         {
             property("Sky Intensity", ImGuiDataType_Float, &bakeParams.skyIntensity);
+        }
+
+        else if (bakeParams.environmentColorMode == EnvironmentColorMode::TwoColor)
+        {
+            if (bakeParams.targetEngine == TargetEngine::HE2)
+            {
+                if (Color3 environmentColor = bakeParams.environmentColor.pow(1.0f / 2.2f); property("Top Color", environmentColor))
+                    bakeParams.environmentColor = environmentColor.pow(2.2f);
+
+                if (Color3 secondaryEnvironmentColor = bakeParams.secondaryEnvironmentColor.pow(1.0f / 2.2f); property("Bottom Color", secondaryEnvironmentColor))
+                    bakeParams.secondaryEnvironmentColor = secondaryEnvironmentColor.pow(2.2f);
+
+                property("Color Intensity", ImGuiDataType_Float, &bakeParams.environmentColorIntensity);
+            }
+
+            else
+            {
+                property("Top Color", bakeParams.environmentColor);
+                property("Bottom Color", bakeParams.secondaryEnvironmentColor);
+            }
         }
 
         endProperties();

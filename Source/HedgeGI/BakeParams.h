@@ -18,7 +18,8 @@ enum class DenoiserType
 enum class EnvironmentColorMode
 {
     Color,
-    Sky
+    Sky,
+    TwoColor
 };
 
 struct BakeParams
@@ -30,6 +31,7 @@ struct BakeParams
     float environmentColorIntensity;
     float skyIntensity;
     float skyIntensityScale;
+    Color3 secondaryEnvironmentColor;
 
     uint32_t lightBounceCount {};
     uint32_t lightSampleCount {};
