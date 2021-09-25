@@ -1,6 +1,7 @@
 ﻿#include "BitmapHelper.h"
 
 #include "BakeParams.h"
+#include "Math.h"
 #include "OidnDenoiserDevice.h"
 #include "OptixDenoiserDevice.h"
 #include "SeamOptimizer.h"
@@ -87,6 +88,7 @@ std::unique_ptr<Bitmap> BitmapHelper::makeEncodeReady(const Bitmap& bitmap, cons
                 const size_t index = bitmap.getColorIndex(x, y, i);
 
                 Color4 color = bitmap.data[index];
+                color.head<3>() = ldrReady(color.head<3>());
 
                 if (encodeReadyFlags & ENCODE_READY_FLAGS_SRGB) color.head<3>() = color.head<3>().pow(1.0f / 2.2f);
                 if (encodeReadyFlags & ENCODE_READY_FLAGS_SQRT) color.head<3>() = color.head<3>().sqrt();

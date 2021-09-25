@@ -577,3 +577,10 @@ inline Matrix3 getTangentToWorldMatrix(const Vector3& normal)
 
     return tangentToWorld;
 }
+
+inline Color3 ldrReady(const Color3& color)
+{
+    Color3 hsv = rgb2Hsv(color);
+    hsv.z() = saturate(hsv.z());
+    return hsv2Rgb(hsv);
+}

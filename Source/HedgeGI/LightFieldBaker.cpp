@@ -186,7 +186,7 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
         }
 
         for (size_t i = 0; i < 8; i++)
-            firstBakePoint.colors[i] /= (float)cornerPair.second.size();
+            firstBakePoint.colors[i] = ldrReady(firstBakePoint.colors[i] / (float)cornerPair.second.size());
 
         firstBakePoint.shadow /= cornerPair.second.size();
 
