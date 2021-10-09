@@ -61,7 +61,7 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
     if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SHADOW) == 0)
         return 1.0f;
 
-    float shadowSum = 0.0f;
+    size_t shadowSum = 0;
 
     const size_t shadowSampleCount = (TBakePoint::FLAGS & BAKE_POINT_FLAGS_SOFT_SHADOW) != 0 ? bakeParams.shadowSampleCount : 1;
 
@@ -86,7 +86,7 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
 
         Vector3 rayPosition = position;
 
-        float shadow = 0;
+        bool receiveLight = true;
         size_t depth = 0;
 
         do
@@ -108,24 +108,36 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
                 break;
 
             const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
+            if (mesh.type == MeshType::Opaque)
+            {
+                receiveLight = false;
+                break;
+            }
+
             const Triangle& triangle = mesh.triangles[query.hit.primID];
             const Vertex& a = mesh.vertices[triangle.a];
             const Vertex& b = mesh.vertices[triangle.b];
             const Vertex& c = mesh.vertices[triangle.c];
             const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, query.hit.u, query.hit.v);
 
-            const float alpha = mesh.type != MeshType::Opaque && mesh.material && mesh.material->textures.diffuse ? 
-                mesh.material->textures.diffuse->pickColor(hitUV)[3] : 1;
+            const float alpha = mesh.material && mesh.material->textures.diffuse ?
+                mesh.material->textures.diffuse->pickColor<true>(hitUV)[3] : 1;
 
-            shadow += (1 - shadow) * (mesh.type == MeshType::Punch ? alpha > 0.5f : alpha);
+            if (alpha > 0.5f)
+            {
+                receiveLight = false;
+                break;
+            }
 
             rayPosition = barycentricLerp(a.position, b.position, c.position, query.hit.u, query.hit.v);
-        } while (shadow < 1.0f && ++depth < 8); // TODO: Some meshes get stuck in an infinite loop, intersecting each other infinitely. Figure out the solution instead of doing this.
 
-        shadowSum += shadow;
+        } while (receiveLight && ++depth < 8); // TODO: Some meshes get stuck in an infinite loop, intersecting each other infinitely. Figure out the solution instead of doing this.
+
+        if (!receiveLight)
+            ++shadowSum;
     }
 
-    return 1 - shadowSum / shadowSampleCount;
+    return 1.0f - (float)shadowSum / shadowSampleCount;
 }
 
 template <typename TBakePoint>
