@@ -23,7 +23,7 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 
     if (bakeParams.environmentColorMode == EnvironmentColorMode::TwoColor)
     {
-        Color3 color = lerp(bakeParams.secondaryEnvironmentColor, bakeParams.environmentColor, direction.y() * 0.5 + 0.5);
+        Color3 color = lerp(bakeParams.secondaryEnvironmentColor, bakeParams.environmentColor, direction.y() * 0.5f + 0.5f);
         if (targetEngine == TargetEngine::HE2)
             color *= bakeParams.environmentColorIntensity;
 
