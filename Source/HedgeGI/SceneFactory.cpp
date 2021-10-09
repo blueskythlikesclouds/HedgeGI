@@ -25,16 +25,19 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     if (!scratchImage->GetImages())
         return nullptr;
 
+    // Try getting the second mip (we don't need much quality from textures)
+    const size_t mipLevel = scratchImage->IsAlphaAllOpaque() ? std::min<size_t>(2, metadata.mipLevels - 1) : 0;
+
     if (DirectX::IsCompressed(metadata.format))
     {
         std::unique_ptr<DirectX::ScratchImage> newScratchImage = std::make_unique<DirectX::ScratchImage>();
-        Decompress(*scratchImage->GetImage(std::min<size_t>(2, metadata.mipLevels - 1), 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, *newScratchImage); // Try getting the second mip (we don't need much quality from textures)
+        Decompress(*scratchImage->GetImage(mipLevel, 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, *newScratchImage);
         scratchImage.swap(newScratchImage);
     }
     else if (metadata.format != DXGI_FORMAT_R32G32B32A32_FLOAT)
     {
         std::unique_ptr<DirectX::ScratchImage> newScratchImage = std::make_unique<DirectX::ScratchImage>();
-        Convert(*scratchImage->GetImage(std::min<size_t>(2, metadata.mipLevels - 1), 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, *newScratchImage);
+        Convert(*scratchImage->GetImage(mipLevel, 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, *newScratchImage);
         scratchImage.swap(newScratchImage);
     }
 
