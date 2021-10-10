@@ -214,7 +214,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         if (sunLight)
         {
             bakePoint.shadow = sampleShadow<TBakePoint>(raytracingContext, 
-                bakePoint.smoothPosition, sunLight->position, lightTangentToWorldMatrix, INFINITY, bakeParams.shadowSearchRadius, bakeParams, random);
+                bakePoint.position, sunLight->position, lightTangentToWorldMatrix, INFINITY, bakeParams.shadowSearchRadius, bakeParams, random);
         }
     });
 }

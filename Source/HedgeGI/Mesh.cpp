@@ -53,10 +53,9 @@ Vector3 getSmoothPosition(const Vertex& a, const Vertex& b, const Vertex& c, con
     const Vector3 position = barycentricLerp(a.position, b.position, c.position, baryUV);
     const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
 
-    const Vector3 vecProj0 = position - (position - a.position).dot(a.normal) * a.normal;
-    const Vector3 vecProj1 = position - (position - b.position).dot(b.normal) * b.normal;
-    const Vector3 vecProj2 = position - (position - c.position).dot(c.normal) * c.normal;
+    const Vector3 vecProj0 = position - std::min(0.0f, (position - a.position).dot(a.normal)) * a.normal;
+    const Vector3 vecProj1 = position - std::min(0.0f, (position - b.position).dot(b.normal)) * b.normal;
+    const Vector3 vecProj2 = position - std::min(0.0f, (position - c.position).dot(c.normal)) * c.normal;
 
-    const Vector3 smoothPosition = barycentricLerp(vecProj0, vecProj1, vecProj2, baryUV);
-    return (smoothPosition - position).dot(normal) > 0.0f ? smoothPosition : position;
-}
+    return barycentricLerp(vecProj0, vecProj1, vecProj2, baryUV);
+}   

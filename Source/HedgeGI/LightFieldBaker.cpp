@@ -119,7 +119,6 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
             LightFieldPoint bakePoint = {};
             bakePoint.position = userData.cornersOptimized[i];
-            bakePoint.smoothPosition = userData.cornersOptimized[i];
             bakePoint.x = index & 0xFFFF;
             bakePoint.y = (index >> 16) & 0xFFFF;
 

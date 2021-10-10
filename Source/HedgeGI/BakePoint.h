@@ -24,7 +24,6 @@ struct BakePoint
     static constexpr size_t FLAGS = Flags;
 
     Vector3 position;
-    Vector3 smoothPosition;
     Vector3 tangent{1, 0, 0};
     Vector3 binormal{0, 1, 0};
     Vector3 normal{0, 0, 1};
@@ -173,7 +172,6 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                             continue;
 
                         const Vector3 position = barycentricLerp(a.position, b.position, c.position, baryUV);
-                        const Vector3 smoothPosition = getSmoothPosition(a, b, c, baryUV);
                         const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
                         const Vector3 tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
                         const Vector3 binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
@@ -181,7 +179,6 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                         bakePoints[y * size + x] = 
                         {
                             position + position.cwiseAbs().cwiseProduct(normal.cwiseSign()) * 0.0000002f,
-                            smoothPosition + smoothPosition.cwiseAbs().cwiseProduct(normal.cwiseSign()) * 0.0000002f,
                             tangent, binormal, normal, {}, {}, x, y
                         };
                     }

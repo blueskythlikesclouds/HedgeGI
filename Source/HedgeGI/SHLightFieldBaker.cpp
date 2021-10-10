@@ -72,7 +72,6 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const SHLight
 
                 SHLightFieldPoint bakePoint {};
                 bakePoint.position = (matrix * Vector4(xNormalized, yNormalized, zNormalized, 1)).head<3>() / 10.0f;
-                bakePoint.smoothPosition = bakePoint.position;
                 bakePoint.x = (uint16_t)x;
                 bakePoint.y = (uint16_t)y;
                 bakePoint.z = (uint16_t)z;
