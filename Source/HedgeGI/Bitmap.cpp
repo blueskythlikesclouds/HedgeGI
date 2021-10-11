@@ -85,9 +85,53 @@ Color4 Bitmap::pickColor(const Vector2& uv, const uint32_t arrayIndex) const
 template Color4 Bitmap::pickColor<false>(const Vector2& uv, uint32_t arrayIndex) const;
 template Color4 Bitmap::pickColor<true>(const Vector2& uv, uint32_t arrayIndex) const;
 
+template<bool useLinearFiltering>
+float Bitmap::pickAlpha(const Vector2& uv, const uint32_t arrayIndex) const
+{
+    if (!useLinearFiltering)
+    {
+        uint32_t x, y;
+        getPixelCoords(uv, x, y);
+        
+        return data[width * height * arrayIndex + y * width + x].w();
+    }
+
+    const float x = width * uv.x();
+    const float y = height * uv.y();
+
+    const int32_t cX = (int32_t)x;
+    const int32_t cY = (int32_t)y;
+
+    const int32_t x0 = cX % width;
+    const int32_t x1 = (cX + 1) % width;
+    const int32_t y0 = cY % height;
+    const int32_t y1 = (cY + 1) % height;
+
+    const float x0y0 = data[y0 * width + x0].w();
+    const float x1y0 = data[y0 * width + x1].w();
+    const float x0y1 = data[y1 * width + x0].w();
+    const float x1y1 = data[y1 * width + x1].w();
+
+    float factorX = x - (float)cX;
+    if (factorX < 0) factorX += 1;
+
+    float factorY = y - (float)cY;
+    if (factorY < 0) factorY += 1;
+
+    return lerp(lerp(x0y0, x1y0, factorX), lerp(x0y1, x1y1, factorX), factorY);
+}
+
+template float Bitmap::pickAlpha<false>(const Vector2& uv, uint32_t arrayIndex) const;
+template float Bitmap::pickAlpha<true>(const Vector2& uv, uint32_t arrayIndex) const;
+
 Color4 Bitmap::pickColor(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
 {
     return data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))];
+}
+
+float Bitmap::pickAlpha(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
+{
+    return data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))].w();
 }
 
 void Bitmap::putColor(const Color4& color, const Vector2& uv, const uint32_t arrayIndex) const

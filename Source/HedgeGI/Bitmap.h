@@ -36,7 +36,11 @@ public:
     template<bool useLinearFiltering = false>
     Color4 pickColor(const Vector2& uv, uint32_t arrayIndex = 0) const;
 
+    template<bool useLinearFiltering = false>
+    float pickAlpha(const Vector2& uv, uint32_t arrayIndex = 0) const;
+
     Color4 pickColor(uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
+    float pickAlpha(uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
 
     void putColor(const Color4& color, const Vector2& uv, uint32_t arrayIndex = 0) const;
     void putColor(const Color4& color, uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;

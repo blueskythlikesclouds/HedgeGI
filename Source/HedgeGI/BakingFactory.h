@@ -54,12 +54,95 @@ public:
     }
 };
 
+struct IntersectContext : RTCIntersectContext
+{
+    const RaytracingContext& raytracingContext;
+    Random& random;
+
+    void init()
+    {
+        rtcInitIntersectContext(this);
+    }
+
+    IntersectContext(const RaytracingContext& raytracingContext, Random& random)
+        : RTCIntersectContext(), raytracingContext(raytracingContext), random(random)
+    {
+    }
+};
+
+template<TargetEngine targetEngine, bool useLinearFiltering>
+void intersectContextFilter(const RTCFilterFunctionNArguments* args)
+{
+    RTCHit* hit = (RTCHit*)args->hit;
+    IntersectContext* context = (IntersectContext*)args->context;
+
+    const Mesh& mesh = *context->raytracingContext.scene->meshes[hit->geomID];
+    if (!mesh.material || mesh.type == MeshType::Opaque)
+        return;
+
+    const Triangle& triangle = mesh.triangles[hit->primID];
+    const Vertex& a = mesh.vertices[triangle.a];
+    const Vertex& b = mesh.vertices[triangle.b];
+    const Vertex& c = mesh.vertices[triangle.c];
+    const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, hit->u, hit->v);
+    const float hitAlpha = barycentricLerp(a.color.w(), b.color.w(), c.color.w(), hit->u, hit->v);
+
+    float alpha = 1.0f;
+
+    const Material* material = mesh.material;
+
+    if (material->type == MaterialType::Common || material->type == MaterialType::Blend)
+    {
+        float blend;
+
+        if (targetEngine == TargetEngine::HE2)
+        {
+            blend = hitAlpha;
+        }
+        else
+        {
+            alpha *= material->parameters.opacityReflectionRefractionSpecType.x() * hitAlpha;
+            blend = barycentricLerp(a.color.x(), b.color.x(), c.color.x(), hit->u, hit->v);
+        }
+
+        if (material->textures.diffuse != nullptr)
+        {
+            float diffuseAlpha = material->textures.diffuse->pickAlpha<useLinearFiltering>(hitUV);
+
+            if (material->type == MaterialType::Blend && material->textures.diffuseBlend != nullptr)
+            {
+                const float diffuseBlendAlpha = material->textures.diffuseBlend->pickAlpha<useLinearFiltering>(hitUV);
+                diffuseAlpha = lerp(diffuseAlpha, diffuseBlendAlpha, blend);
+            }
+
+            alpha *= diffuseAlpha;
+        }
+    }
+
+    else if (material->type == MaterialType::IgnoreLight)
+    {
+        alpha *= hitAlpha * material->parameters.diffuse.w();
+
+        if (material->textures.diffuse != nullptr)
+            alpha *= material->textures.diffuse->pickAlpha<useLinearFiltering>(hitUV);
+
+        if (material->textures.alpha != nullptr)
+            alpha *= material->textures.alpha->pickAlpha<useLinearFiltering>(hitUV);
+    }
+
+    if ((mesh.type == MeshType::Punch && alpha < 0.5f) ||
+        (mesh.type == MeshType::Transparent && alpha < context->random.next()))
+        args->valid[0] = false;
+}
+
 template <typename TBakePoint>
 float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
     const Vector3& position, const Vector3& direction, const Matrix3& tangentToWorldMatrix, const float distance, const float radius, const BakeParams& bakeParams, Random& random)
 {
     if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SHADOW) == 0)
         return 1.0f;
+
+    IntersectContext context(raytracingContext, random);
 
     size_t shadowSum = 0;
 
@@ -84,56 +167,20 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
             rayDirection = direction;
         }
 
-        Vector3 rayPosition = position;
+        context.init();
+        context.filter = bakeParams.targetEngine == TargetEngine::HE2 ?
+            intersectContextFilter<TargetEngine::HE2, true> :
+            intersectContextFilter<TargetEngine::HE1, true>;
 
-        bool receiveLight = true;
-        size_t depth = 0;
+        RTCRay ray {};
+        setRayOrigin(ray, position, bakeParams.shadowBias);
+        setRayDirection(ray, -rayDirection);
 
-        do
-        {
-            RTCIntersectContext context {};
-            rtcInitIntersectContext(&context);
+        ray.tfar = distance;
 
-            RTCRayHit query {};
-            setRayOrigin(query.ray, rayPosition, bakeParams.shadowBias);
-            setRayDirection(query.ray, -rayDirection);
+        rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
 
-            query.ray.tfar = distance;
-            query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-            query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-            rtcIntersect1(raytracingContext.rtcScene, &context, &query);
-
-            if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
-                break;
-
-            const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
-            if (mesh.type == MeshType::Opaque)
-            {
-                receiveLight = false;
-                break;
-            }
-
-            const Triangle& triangle = mesh.triangles[query.hit.primID];
-            const Vertex& a = mesh.vertices[triangle.a];
-            const Vertex& b = mesh.vertices[triangle.b];
-            const Vertex& c = mesh.vertices[triangle.c];
-            const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, query.hit.u, query.hit.v);
-
-            const float alpha = mesh.material && mesh.material->textures.diffuse ?
-                mesh.material->textures.diffuse->pickColor<true>(hitUV)[3] : 1;
-
-            if (alpha > 0.5f)
-            {
-                receiveLight = false;
-                break;
-            }
-
-            rayPosition = barycentricLerp(a.position, b.position, c.position, query.hit.u, query.hit.v);
-
-        } while (receiveLight && ++depth < 8); // TODO: Some meshes get stuck in an infinite loop, intersecting each other infinitely. Figure out the solution instead of doing this.
-
-        if (!receiveLight)
+        if (ray.tfar < 0)
             ++shadowSum;
     }
 

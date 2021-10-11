@@ -113,8 +113,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 {
     TraceResult result {};
 
-    RTCIntersectContext context{};
-    rtcInitIntersectContext(&context);
+    IntersectContext context(raytracingContext, random);
 
     // Setup the Embree ray
     RTCRayHit query{};
@@ -146,6 +145,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
             throughput /= probability;
         }
+
+        context.init();
+        context.filter = intersectContextFilter<targetEngine, tracingFromEye>;
 
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
@@ -190,9 +192,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         if (i == 0 && tracingFromEye)
             result.position = hitPosition;
 
-        Color4 diffuse = Color4::Ones();
+        Color3 diffuse = Color3::Ones();
         Color4 specular = Color4::Zero();
-        Color4 emission = Color4::Zero();
+        Color3 emission = Color3::Zero();
 
         float glossPower = 1.0f;
         float glossLevel = 0.0f;
@@ -211,24 +213,23 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 }
                 else
                 {
-                    diffuse.head<3>() *= material->parameters.diffuse.head<3>();
-                    diffuse.w() *= material->parameters.opacityReflectionRefractionSpecType.x();
+                    diffuse *= material->parameters.diffuse.head<3>();
                     blend = hitColor.x();
                 }
 
                 if (material->textures.diffuse != nullptr)
                 {
-                    Color4 diffuseTex = material->textures.diffuse->pickColor<tracingFromEye>(hitUV);
+                    Color3 diffuseTex = material->textures.diffuse->pickColor<tracingFromEye>(hitUV).head<3>();
 
                     if (targetEngine == TargetEngine::HE2)
-                        diffuseTex.head<3>() = srgbToLinear(diffuseTex.head<3>());
+                        diffuseTex = srgbToLinear(diffuseTex);
 
                     if (material->type == MaterialType::Blend && material->textures.diffuseBlend != nullptr)
                     {
-                        Color4 diffuseBlendTex = material->textures.diffuseBlend->pickColor<tracingFromEye>(hitUV);
+                        Color3 diffuseBlendTex = material->textures.diffuseBlend->pickColor<tracingFromEye>(hitUV).head<3>();
 
                         if (targetEngine == TargetEngine::HE2)
-                            diffuseBlendTex.head<3>() = srgbToLinear(diffuseBlendTex.head<3>());
+                            diffuseBlendTex = srgbToLinear(diffuseBlendTex);
 
                         diffuseTex = lerp(diffuseTex, diffuseBlendTex, blend);
                     }
@@ -236,29 +237,8 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     diffuse *= diffuseTex;
                 }
 
-                if (material->ignoreVertexColor && targetEngine != TargetEngine::HE2)
-                    diffuse.w() *= hitColor.w();
-                else
-                    diffuse *= hitColor;
-
-                if (targetEngine == TargetEngine::HE2 && material->textures.alpha != nullptr)
-                    diffuse.w() *= material->textures.alpha->pickColor<tracingFromEye>(hitUV).x();
-
-                // If we hit the discarded pixel of a punch-through mesh, continue the ray tracing onwards that point.
-                if (mesh.type == MeshType::Punch && diffuse.w() < 0.5f)
-                {
-                    setRayOrigin(query.ray, hitPosition, 0.001f);
-
-                    query.ray.tfar = INFINITY;
-                    query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                    query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-                    context = {};
-                    rtcInitIntersectContext(&context);
-
-                    i--;
-                    continue;
-                }
+                if (!material->ignoreVertexColor || targetEngine == TargetEngine::HE2)
+                    diffuse *= hitColor.head<3>();
 
                 if (targetEngine == TargetEngine::HE1 && material->textures.gloss != nullptr)
                 {
@@ -321,50 +301,32 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 }
 
                 if (material->textures.emission != nullptr)
-                    emission = material->textures.emission->pickColor<tracingFromEye>(hitUV) * material->parameters.ambient * material->parameters.luminance.x();
+                    emission = material->textures.emission->pickColor<tracingFromEye>(hitUV).head<3>() * material->parameters.ambient.head<3>() * material->parameters.luminance.x();
             }
 
             else if (material->type == MaterialType::IgnoreLight)
             {
-                diffuse *= hitColor * material->parameters.diffuse;
+                diffuse *= hitColor.head<3>() * material->parameters.diffuse.head<3>();
 
                 if (material->textures.diffuse != nullptr)
-                    diffuse *= material->textures.diffuse->pickColor<tracingFromEye>(hitUV);
-
-                if (material->textures.alpha != nullptr)
-                    diffuse.w() *= material->textures.alpha->pickColor<tracingFromEye>(hitUV).w();
-
-                if (mesh.type == MeshType::Punch && diffuse.w() < 0.5f)
-                {
-                    setRayOrigin(query.ray, hitPosition, 0.001f);
-
-                    query.ray.tfar = INFINITY;
-                    query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                    query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-                    context = {};
-                    rtcInitIntersectContext(&context);
-
-                    i--;
-                    continue;
-                }
+                    diffuse *= material->textures.diffuse->pickColor<tracingFromEye>(hitUV).head<3>();
 
                 if (targetEngine == TargetEngine::HE2)
                 {
-                    emission = material->textures.emission != nullptr ? material->textures.emission->pickColor<tracingFromEye>(hitUV) : material->parameters.emissive;
-                    emission *= material->parameters.ambient * material->parameters.luminance.x();
+                    emission = (material->textures.emission != nullptr ? material->textures.emission->pickColor<tracingFromEye>(hitUV) : material->parameters.emissive).head<3>();
+                    emission *= material->parameters.ambient.head<3>() * material->parameters.luminance.x();
                 }
                 else if (material->textures.emission != nullptr)
                 {
-                    emission = material->textures.emission->pickColor<tracingFromEye>(hitUV);
-                    emission.head<3>() += material->parameters.emissionParam.head<3>();
-                    emission *= material->parameters.ambient * material->parameters.emissionParam.w();
+                    emission = material->textures.emission->pickColor<tracingFromEye>(hitUV).head<3>();
+                    emission += material->parameters.emissionParam.head<3>();
+                    emission *= material->parameters.ambient.head<3>() * material->parameters.emissionParam.w();
                 }
             }
         }
 
         if (shouldApplyBakeParam)
-            emission.head<3>() *= bakeParams.emissionStrength;
+            emission *= bakeParams.emissionStrength;
 
         hitPosition += hitPosition.cwiseAbs().cwiseProduct(hitNormal.cwiseSign()) * 0.0000002f;
 
@@ -379,7 +341,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         {
             metalness = specular.w();
             roughness = std::max(0.01f, 1 - specular.y());
-            F0 = lerp<Color3>(Color3(specular.x()), diffuse.head<3>(), metalness);
+            F0 = lerp<Color3>(Color3(specular.x()), diffuse, metalness);
             nDotV = saturate(hitNormal.dot(viewDirection));
         }
 
@@ -390,7 +352,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 Color3 hsv = rgb2Hsv(diffuse.head<3>());
                 hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
                 hsv.z() = saturate(hsv.z() * bakeParams.diffuseStrength);
-                diffuse.head<3>() = hsv2Rgb(hsv);
+                diffuse = hsv2Rgb(hsv);
             }
 
             std::array<const Light*, 32> lights;
@@ -425,10 +387,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 if (targetEngine == TargetEngine::HE1 || light->type == LightType::Directional)
                 {
                     // Check for shadow intersection
-                    Vector3 shadowPosition = hitPosition;
-                    bool receiveLight = true;
-                    size_t shadowDepth = 0;
-
                     Vector3 shadowDirection;
 
                     if (tracingFromEye)
@@ -447,50 +405,18 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                         shadowDirection = -lightDirection;
                     }
 
-                    do
-                    {
-                        context = {};
-                        rtcInitIntersectContext(&context);
+                    context.init();
+                    context.filter = intersectContextFilter<targetEngine, tracingFromEye>;
 
-                        RTCRayHit shadowQuery {};
-                        setRayOrigin(shadowQuery.ray, shadowPosition, bakeParams.shadowBias);
-                        setRayDirection(shadowQuery.ray, shadowDirection);
+                    RTCRay ray {};
+                    setRayOrigin(ray, hitPosition, bakeParams.shadowBias);
+                    setRayDirection(ray, shadowDirection);
 
-                        shadowQuery.ray.tfar = light->type == LightType::Point ? (light->position - shadowPosition).norm() : INFINITY;
-                        shadowQuery.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                        shadowQuery.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+                    ray.tfar = light->type == LightType::Point ? (light->position - hitPosition).norm() : INFINITY;
 
-                        rtcIntersect1(raytracingContext.rtcScene, &context, &shadowQuery);
+                    rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
 
-                        if (shadowQuery.hit.geomID == RTC_INVALID_GEOMETRY_ID)
-                            break;
-
-                        const Mesh& shadowMesh = *raytracingContext.scene->meshes[shadowQuery.hit.geomID];
-                        if (shadowMesh.type == MeshType::Opaque)
-                        {
-                            receiveLight = false;
-                            break;
-                        }
-
-                        const Triangle& shadowTriangle = shadowMesh.triangles[shadowQuery.hit.primID];
-                        const Vertex& shadowA = shadowMesh.vertices[shadowTriangle.a];
-                        const Vertex& shadowB = shadowMesh.vertices[shadowTriangle.b];
-                        const Vertex& shadowC = shadowMesh.vertices[shadowTriangle.c];
-                        const Vector2 shadowHitUV = barycentricLerp(shadowA.uv, shadowB.uv, shadowC.uv, shadowQuery.hit.u, shadowQuery.hit.v);
-
-                        const float alpha = shadowMesh.material && shadowMesh.material->textures.diffuse ?
-                            shadowMesh.material->textures.diffuse->pickColor<tracingFromEye>(shadowHitUV)[3] : 1;
-
-                        if (alpha > 0.5f)
-                        {
-                            receiveLight = false;
-                            break;
-                        }
-
-                        shadowPosition = barycentricLerp(shadowA.position, shadowB.position, shadowC.position, shadowQuery.hit.u, shadowQuery.hit.v);
-                    } while (receiveLight && ++shadowDepth < 8);
-
-                    if (!receiveLight)
+                    if (ray.tfar < 0)
                         continue;
                 }
 
@@ -502,7 +428,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                     if (targetEngine == TargetEngine::HE1)
                     {
-                        directLighting = diffuse.head<3>();
+                        directLighting = diffuse;
 
                         if (glossLevel > 0.0f)
                         {
@@ -521,7 +447,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                         const Color3 kd = lerp<Color3>(Color3::Ones() - F, Color3::Zero(), metalness);
 
-                        directLighting = kd * (diffuse.head<3>() / PI);
+                        directLighting = kd * (diffuse / PI);
                         directLighting += (D * Vis) * F;
                     }
 
@@ -535,14 +461,14 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 }
             }
 
-            radiance += throughput * emission.head<3>();
+            radiance += throughput * emission;
         }
         else if (material->type == MaterialType::IgnoreLight)
         {
             if (shouldApplyBakeParam)
-                diffuse.head<3>() *= bakeParams.emissionStrength;
+                diffuse *= bakeParams.emissionStrength;
 
-            radiance += throughput * (diffuse.head<3>() + emission.head<3>());
+            radiance += throughput * (diffuse + emission);
             break;
         }
 
@@ -580,7 +506,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     hitTangent, hitBinormal, hitNormal).normalized();
 
                 const Color3 kd = lerp<Color3>(1 - F0, Color3::Zero(), metalness);
-                throughput *= kd * diffuse.head<3>() / probability;
+                throughput *= kd * diffuse / probability;
             }
 
             throughput *= specular.z(); // Ambient occlusion
@@ -591,7 +517,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
             hitDirection = tangentToWorld(sampleCosineWeightedHemisphere(random.next(), random.next()),
                 hitTangent, hitBinormal, hitNormal).normalized();
 
-            throughput *= diffuse.head<3>();
+            throughput *= diffuse;
         }
 
         setRayOrigin(query.ray, hitPosition, 0.001f);
@@ -600,9 +526,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         query.ray.tfar = INFINITY;
         query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
-
-        context = {};
-        rtcInitIntersectContext(&context);
     }
 
     result.color = radiance.cwiseMax(0);
