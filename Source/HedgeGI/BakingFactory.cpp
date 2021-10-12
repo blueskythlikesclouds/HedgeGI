@@ -330,7 +330,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         hitPosition += hitPosition.cwiseAbs().cwiseProduct(hitNormal.cwiseSign()) * 0.0000002f;
 
-        const Vector3 viewDirection = (rayPosition - hitPosition).normalized();
+        const Vector3 viewDirection = -rayNormal;
 
         float metalness;
         float roughness;
