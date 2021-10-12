@@ -55,7 +55,7 @@ RTCScene Scene::createRTCScene()
             if (found) break;
         }
 
-        if (!found || meshes[i]->type == MeshType::Transparent || meshes[i]->type == MeshType::Special)
+        if (!found || (meshes[i]->material && meshes[i]->material->parameters.additive) || meshes[i]->type == MeshType::Special)
             continue;
 
         const RTCGeometry rtcGeometry = meshes[i]->createRTCGeometry();
