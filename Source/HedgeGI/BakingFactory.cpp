@@ -285,7 +285,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                             specular.head<2>() = lerp<Eigen::Array2f>(specular.head<2>(), material->parameters.pbrFactor2.head<2>(), blend);
 
                         specular.z() = 1.0f;
-                        specular.w() = 0.0f;
+
+                        if (!material->hasMetalness)
+                            specular.w() = specular.x() > 0.9f ? 1.0f : 0.0f;
                     }
                 }
 
