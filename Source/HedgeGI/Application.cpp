@@ -1543,7 +1543,7 @@ void Application::bakeGI()
 
         bool skip = instance->name.find("_NoGI") != std::string::npos || instance->name.find("_noGI") != std::string::npos;
     
-        const bool isSg = !skip && bakeParams.targetEngine == TargetEngine::HE2 && propertyBag.get(instance->name + ".isSg", false);
+        const bool isSg = !skip && bakeParams.targetEngine == TargetEngine::HE2 && propertyBag.get(instance->name + ".isSg", true);
     
         std::string lightMapFileName;
         std::string shadowMapFileName;
