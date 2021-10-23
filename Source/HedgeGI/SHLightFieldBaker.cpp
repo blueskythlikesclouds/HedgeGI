@@ -16,6 +16,9 @@ const Vector3 SHLF_DIRECTIONS[6] =
     Vector3(0, 0, -1)
 };
 
+// TODO: This value has been approximated. What's the formula for calculating this?
+const float SHLF_FACTOR = 5.8369751043319704f;
+
 struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_NONE>
 {
     uint16_t z { (uint16_t)-1 };
@@ -47,7 +50,7 @@ struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_NONE>
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 6; i++)
-            colors[i] *= (2.0f * PI) / sampleCount; // TODO: Is 2 * PI correct? Has correct brightnesss in-game but I'm not sampling a hemisphere.
+            colors[i] *= SHLF_FACTOR / sampleCount;
     }
 };
 

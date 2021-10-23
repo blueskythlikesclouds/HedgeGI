@@ -13,7 +13,8 @@ const std::array<Vector3, 4> SG_DIRECTIONS =
     Vector3(-1.0f, 0.57735002f, 0.0f)
 };
 
-const float SG_INTEGRAL = 0.64f;
+// TODO: This value has been approximated. What's the formula for calculating this?
+const float SG_FACTOR = 4.4774197027285894f;
 
 struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
 {
@@ -41,7 +42,7 @@ struct SGGIPoint : BakePoint<4, BAKE_POINT_FLAGS_ALL>
     void end(const uint32_t sampleCount)
     {
         for (size_t i = 0; i < 4; i++)
-            colors[i] *= (2.0f * PI) / sampleCount;
+            colors[i] *= SG_FACTOR / sampleCount;
     }
 };
 
