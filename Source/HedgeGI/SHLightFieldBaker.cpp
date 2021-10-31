@@ -19,7 +19,7 @@ const Vector3 SHLF_DIRECTIONS[6] =
 // TODO: This value has been approximated. What's the formula for calculating this?
 const float SHLF_FACTOR = 5.8369751043319704f;
 
-struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_NONE>
+struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_SHADOW | BAKE_POINT_FLAGS_SOFT_SHADOW>
 {
     uint16_t z { (uint16_t)-1 };
 
@@ -97,7 +97,7 @@ std::unique_ptr<Bitmap> SHLightFieldBaker::paint(const std::vector<SHLightFieldP
         {
             Color4 color;
             color.head<3>() = bakePoint.colors[i];
-            color.w() = 1.0f;
+            color.w() = i == 0 ? bakePoint.shadow : 1.0f;
 
             bitmap->putColor(color, i * shlf.resolution.x() + bakePoint.x, bakePoint.y, bakePoint.z);
         }
