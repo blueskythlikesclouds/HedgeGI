@@ -80,6 +80,8 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
             strstr(material->shaderName.get(), "Sky3") != nullptr ? 3 :
             strstr(material->shaderName.get(), "Sky2") != nullptr ? 2
             : 0;
+
+        newMaterial->skySqrt = strstr(material->shaderName.get(), "Sqrt") != nullptr;
     }
 
     newMaterial->ignoreVertexColor = newMaterial->type == MaterialType::Blend || strstr(material->shaderName.get(), "FadeOutNormal");

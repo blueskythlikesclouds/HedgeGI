@@ -15,7 +15,8 @@ class Material
 public:
     std::string name;
     MaterialType type {};
-    size_t skyType {};
+    size_t skyType {}; // PBR shaders only
+    bool skySqrt {}; // PBR shaders only
     bool ignoreVertexColor {}; // HE1 only
     bool hasMetalness {}; // HE2 only
 

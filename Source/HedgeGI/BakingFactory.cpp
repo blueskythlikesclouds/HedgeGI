@@ -76,6 +76,9 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 
         else if (mesh.material->skyType == 2) // Sky2
         {
+            if (mesh.material->skySqrt)
+                diffuse.head<3>() *= diffuse.head<3>();
+
             diffuse.head<3>() *= expf(diffuse.w() * 16 - 4);
             diffuse.w() = 1.0f;
         }
