@@ -136,7 +136,6 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
     {
         const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
 
-        const Vector3 rayPosition(query.ray.org_x, query.ray.org_y, query.ray.org_z);
         const Vector3 rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
@@ -151,6 +150,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         context.init();
         context.filter = intersectContextFilter<targetEngine, tracingFromEye>;
+
+        if (tracingFromEye && i == 0)
+            context.flags = RTC_INTERSECT_CONTEXT_FLAG_COHERENT;
 
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
