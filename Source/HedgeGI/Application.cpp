@@ -30,6 +30,8 @@
 
 #include "resource.h"
 
+#include <shlobj_core.h>
+
 #define TRY_CANCEL() if (cancelBake) return;
 
 enum class PackResourceMode
@@ -52,12 +54,22 @@ constexpr size_t IM3D_VERTEX_BUFFER_SIZE = 3 * 1024 * 1024;
 
 const Im3d::Id IM3D_TRANSPARENT_DISCARD_ID = Im3d::MakeId("TRANSPARENT_DISCARD");
 
-std::string Application::TEMP_FILE_PATH = []()
+std::string Application::APP_DATA_PATH = []()
 {
-    WCHAR path[MAX_PATH];
-    GetTempPathW(MAX_PATH, path);
+    PWSTR path = nullptr;
 
-    return wideCharToMultiByte(path) + "/HedgeGI.txt";
+    if (SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE, nullptr, &path) != S_OK)
+        return getExecutableDirectoryPath();
+
+    WCHAR subPath[0x400];
+    wcscpy(subPath, path);
+    wcscat(subPath, L"/HedgeGI/");
+
+    CoTaskMemFree(path);
+
+    CreateDirectoryW(subPath, NULL);
+
+    return wideCharToMultiByte(subPath);
 }();
 
 GLFWwindow* Application::createGLFWwindow()
@@ -152,7 +164,7 @@ void Application::initializeImGui()
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    imGuiIniPath = getExecutableDirectoryPath() + "/ImGui.ini";
+    imGuiIniPath = APP_DATA_PATH + "imgui_settings.ini";
     io.IniFilename = imGuiIniPath.c_str();
 
     initializeStyle();
@@ -1213,7 +1225,9 @@ void Application::drawBakingFactoryUI()
                     {
                         {"None", DenoiserType::None},
                         {"Optix AI", DenoiserType::Optix},
+#if defined(ENABLE_OIDN)
                         {"oidn", DenoiserType::Oidn},
+#endif
                     },
                     bakeParams.denoiserType);
 
@@ -1427,7 +1441,7 @@ void Application::addRecentStage(const std::string& path)
 
 void Application::loadRecentStages()
 {
-    std::ifstream file(TEMP_FILE_PATH, std::ios::in);
+    std::ifstream file(APP_DATA_PATH + "recent_stages.txt", std::ios::in);
     if (!file.is_open())
         return;
 
@@ -1441,7 +1455,7 @@ void Application::loadRecentStages()
 
 void Application::saveRecentStages() const
 {
-    std::ofstream file(TEMP_FILE_PATH, std::ios::out);
+    std::ofstream file(APP_DATA_PATH + "recent_stages.txt", std::ios::out);
     if (!file.is_open())
         return;
 

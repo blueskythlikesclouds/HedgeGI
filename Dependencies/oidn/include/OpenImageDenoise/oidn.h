@@ -84,11 +84,17 @@ typedef enum
 {
   OIDN_FORMAT_UNDEFINED = 0,
 
-  // 32-bit single-precision floating point scalar and vector formats
+  // 32-bit single-precision floating-point scalar and vector formats
   OIDN_FORMAT_FLOAT  = 1,
-  OIDN_FORMAT_FLOAT2 = 2,
-  OIDN_FORMAT_FLOAT3 = 3,
-  OIDN_FORMAT_FLOAT4 = 4,
+  OIDN_FORMAT_FLOAT2,
+  OIDN_FORMAT_FLOAT3,
+  OIDN_FORMAT_FLOAT4,
+
+  // 16-bit half-precision floating-point scalar and vector formats
+  OIDN_FORMAT_HALF  = 257,
+  OIDN_FORMAT_HALF2,
+  OIDN_FORMAT_HALF3,
+  OIDN_FORMAT_HALF4,
 } OIDNFormat;
 
 // Access modes for mapping buffers
@@ -116,6 +122,12 @@ OIDN_API void* oidnMapBuffer(OIDNBuffer buffer, OIDNAccess access, size_t byteOf
 // Unmaps a region of the buffer.
 // mappedPtr must be a pointer returned by a previous call to oidnMapBuffer.
 OIDN_API void oidnUnmapBuffer(OIDNBuffer buffer, void* mappedPtr);
+
+// Gets a pointer to the buffer data.
+OIDN_API void* oidnGetBufferData(OIDNBuffer buffer);
+
+// Gets the size of the buffer in bytes.
+OIDN_API size_t oidnGetBufferSize(OIDNBuffer buffer);
 
 // Retains the buffer (increments the reference count).
 OIDN_API void oidnRetainBuffer(OIDNBuffer buffer);
@@ -158,9 +170,18 @@ OIDN_API void oidnSetSharedFilterImage(OIDNFilter filter, const char* name,
                                        size_t byteOffset,
                                        size_t bytePixelStride, size_t byteRowStride);
 
+// Removes an image parameter of the filter that was previously set.
+OIDN_API void oidnRemoveFilterImage(OIDNFilter filter, const char* name);
+
 // Sets an opaque data parameter of the filter (owned by the user).
 OIDN_API void oidnSetSharedFilterData(OIDNFilter filter, const char* name,
                                       void* ptr, size_t byteSize);
+
+// Notifies the filter that the contents of an opaque data parameter has been changed.
+OIDN_API void oidnUpdateFilterData(OIDNFilter filter, const char* name);
+
+// Removes an opaque data parameter of the filter that was previously set.
+OIDN_API void oidnRemoveFilterData(OIDNFilter filter, const char* name);
 
 // Sets a boolean parameter of the filter.
 OIDN_API void oidnSetFilter1b(OIDNFilter filter, const char* name, bool value);

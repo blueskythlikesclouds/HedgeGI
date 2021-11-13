@@ -22,7 +22,7 @@ enum class BakingFactoryMode
 
 class Application
 {
-    static std::string TEMP_FILE_PATH;
+    static std::string APP_DATA_PATH;
 
     GLFWwindow* window{};
     Input input;

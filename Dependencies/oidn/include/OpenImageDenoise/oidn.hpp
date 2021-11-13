@@ -17,11 +17,17 @@ OIDN_NAMESPACE_BEGIN
   {
     Undefined = OIDN_FORMAT_UNDEFINED,
 
-    // 32-bit single-precision floating point scalar and vector formats
+    // 32-bit single-precision floating-point scalar and vector formats
     Float  = OIDN_FORMAT_FLOAT,
     Float2 = OIDN_FORMAT_FLOAT2,
     Float3 = OIDN_FORMAT_FLOAT3,
     Float4 = OIDN_FORMAT_FLOAT4,
+
+    // 16-bit half-precision floating-point scalar and vector formats
+    Half  = OIDN_FORMAT_HALF,
+    Half2 = OIDN_FORMAT_HALF2,
+    Half3 = OIDN_FORMAT_HALF3,
+    Half4 = OIDN_FORMAT_HALF4,
   };
 
   // Access modes for mapping buffers
@@ -101,16 +107,28 @@ OIDN_NAMESPACE_BEGIN
 
     // Maps a region of the buffer to host memory.
     // If byteSize is 0, the maximum available amount of memory will be mapped.
-    void* map(Access access = Access::ReadWrite, size_t byteOffset = 0, size_t byteSize = 0)
+    void* map(Access access = Access::ReadWrite, size_t byteOffset = 0, size_t byteSize = 0) const
     {
       return oidnMapBuffer(handle, (OIDNAccess)access, byteOffset, byteSize);
     }
 
     // Unmaps a region of the buffer.
     // mappedPtr must be a pointer returned by a previous call to map.
-    void unmap(void* mappedPtr)
+    void unmap(void* mappedPtr) const
     {
       oidnUnmapBuffer(handle, mappedPtr);
+    }
+
+    // Gets a pointer to the buffer data.
+    void* getData() const
+    {
+      return oidnGetBufferData(handle);
+    }
+
+    // Gets the size of the buffer in bytes.
+    size_t getSize() const
+    {
+      return oidnGetBufferSize(handle);
     }
   };
 
@@ -215,12 +233,30 @@ OIDN_NAMESPACE_BEGIN
                                bytePixelStride, byteRowStride);
     }
 
+    // Removes an image parameter of the filter that was previously set.
+    void removeImage(const char* name)
+    {
+      oidnRemoveFilterImage(handle, name);
+    }
+
     // Sets an opaque data parameter of the filter (owned by the user).
     void setData(const char* name,
                  void* ptr, size_t byteSize)
     {
       oidnSetSharedFilterData(handle, name,
                               ptr, byteSize);
+    }
+
+    // Notifies the filter that the contents of an opaque data parameter has been changed.
+    void updateData(const char* name)
+    {
+      oidnUpdateFilterData(handle, name);
+    }
+
+    // Removes an opaque data parameter of the filter that was previously set.
+    void removeData(const char* name)
+    {
+      oidnRemoveFilterData(handle, name);
     }
 
     // Sets a boolean parameter of the filter.
@@ -243,7 +279,7 @@ OIDN_NAMESPACE_BEGIN
 
     // Gets a parameter of the filter.
     template<typename T>
-    T get(const char* name);
+    T get(const char* name) const;
 
     // Sets the progress monitor callback function of the filter.
     void setProgressMonitorFunction(ProgressMonitorFunction func, void* userPtr = nullptr)
@@ -266,21 +302,21 @@ OIDN_NAMESPACE_BEGIN
 
   // Gets a boolean parameter of the filter.
   template<>
-  inline bool FilterRef::get(const char* name)
+  inline bool FilterRef::get(const char* name) const
   {
     return oidnGetFilter1b(handle, name);
   }
 
   // Gets an integer parameter of the filter.
   template<>
-  inline int FilterRef::get(const char* name)
+  inline int FilterRef::get(const char* name) const
   {
     return oidnGetFilter1i(handle, name);
   }
 
   // Gets a float parameter of the filter.
   template<>
-  inline float FilterRef::get(const char* name)
+  inline float FilterRef::get(const char* name) const
   {
     return oidnGetFilter1f(handle, name);
   }
@@ -392,7 +428,7 @@ OIDN_NAMESPACE_BEGIN
 
     // Gets a parameter of the device.
     template<typename T>
-    T get(const char* name);
+    T get(const char* name) const;
 
     // Sets the error callback function of the device.
     void setErrorFunction(ErrorFunction func, void* userPtr = nullptr)
@@ -422,19 +458,19 @@ OIDN_NAMESPACE_BEGIN
     }
 
     // Creates a new buffer (data allocated and owned by the device).
-    BufferRef newBuffer(size_t byteSize)
+    BufferRef newBuffer(size_t byteSize) const
     {
       return oidnNewBuffer(handle, byteSize);
     }
 
     // Creates a new shared buffer (data allocated and owned by the user).
-    BufferRef newBuffer(void* ptr, size_t byteSize)
+    BufferRef newBuffer(void* ptr, size_t byteSize) const
     {
       return oidnNewSharedBuffer(handle, ptr, byteSize);
     }
 
     // Creates a new filter of the specified type (e.g. "RT").
-    FilterRef newFilter(const char* type)
+    FilterRef newFilter(const char* type) const
     {
       return oidnNewFilter(handle, type);
     }
@@ -442,14 +478,14 @@ OIDN_NAMESPACE_BEGIN
 
   // Gets a boolean parameter of the device.
   template<>
-  inline bool DeviceRef::get(const char* name)
+  inline bool DeviceRef::get(const char* name) const
   {
     return oidnGetDevice1b(handle, name);
   }
 
   // Gets an integer parameter of the device (e.g. "version").
   template<>
-  inline int DeviceRef::get(const char* name)
+  inline int DeviceRef::get(const char* name) const
   {
     return oidnGetDevice1i(handle, name);
   }

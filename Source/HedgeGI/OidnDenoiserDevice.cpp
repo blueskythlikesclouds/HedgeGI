@@ -1,5 +1,6 @@
-﻿#include "OidnDenoiserDevice.h"
+﻿#if defined(ENABLE_OIDN)
 
+#include "OidnDenoiserDevice.h"
 #include "Bitmap.h"
 #include <OpenImageDenoise/oidn.h>
 
@@ -27,9 +28,9 @@ std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool d
 
     for (size_t i = 0; i < bitmap.arraySize; i++)
     {
-        OIDNFilter filter = oidnNewFilter(device, "RT");
-        oidnSetSharedFilterImage(filter, "color", bitmap.getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
-        oidnSetSharedFilterImage(filter, "output", denoised->getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
+        OIDNFilter filter = oidnNewFilter(device, "RTLightmap");
+        oidnSetSharedFilterImage(filter, "color", bitmap.getColors(i), OIDN_FORMAT_FLOAT4, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
+        oidnSetSharedFilterImage(filter, "output", denoised->getColors(i), OIDN_FORMAT_FLOAT4, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
         oidnSetFilter1b(filter, "hdr", true);
         oidnCommitFilter(filter);
         oidnExecuteFilter(filter);
@@ -47,3 +48,5 @@ std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool d
 
     return denoised;
 }
+
+#endif

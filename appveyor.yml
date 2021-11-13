@@ -1,5 +1,5 @@
 image: Visual Studio 2019
-configuration: Release
+configuration: Default
 
 before_build:
     - ps: Start-FileDownload "https://developer.download.nvidia.com/compute/cuda/11.4.0/network_installers/cuda_11.4.0_win10_network.exe" -FileName "CUDA.exe"
@@ -10,11 +10,8 @@ build:
     project: .\Source\HedgeGI.sln
     
 after_build:
-    - del .\Source\HedgeGI\bin\Release\HedgeGI.exp
-    - del .\Source\HedgeGI\bin\Release\HedgeGI.lib
-    - del .\Source\HedgeGI\bin\Release\HedgeGI.pdb
-    - 7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=1024m -ms=on HedgeGI.7z .\Source\HedgeGI\bin\Release\*
+    - 7z a HedgeGI.zip .\Source\HedgeGI\bin\Release\HedgeGI.exe
     
 artifacts:
-    - path: HedgeGI.7z
+    - path: HedgeGI.zip
       name: HedgeGI
