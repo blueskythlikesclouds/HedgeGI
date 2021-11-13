@@ -68,12 +68,11 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib\$(Configuration);..\..\Dependencies\HedgeLib\lib\\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree3.lib;tbb.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "..\..\Dependencies\Embree\bin\*.dll" "$(TargetDir)" &gt; nul
-copy "..\..\Dependencies\oidn\bin\*.dll" "$(TargetDir)" &gt; nul
-copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
+copy "..\..\Dependencies\oidn\bin\*.dll" "$(TargetDir)" &gt; nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -104,12 +103,11 @@ copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib\$(Configuration);..\..\Dependencies\HedgeLib\lib\\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart.lib;d3d11.lib;embree3.lib;tbb.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree3.lib;tbb.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "..\..\Dependencies\Embree\bin\*.dll" "$(TargetDir)" &gt; nul
-copy "..\..\Dependencies\oidn\bin\*.dll" "$(TargetDir)" &gt; nul
-copy "$(CUDA_PATH)\bin\cudart64_110.dll" "$(TargetDir)" &gt; nul</Command>
+copy "..\..\Dependencies\oidn\bin\*.dll" "$(TargetDir)" &gt; nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
