@@ -96,7 +96,6 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const Raytrac
     bakePoints.reserve(shlf.resolution.x() * shlf.resolution.y() * shlf.resolution.z());
 
     const Matrix4 matrix = shlf.getMatrix();
-    const float radius = (shlf.scale.array() / shlf.resolution.cast<float>()).maxCoeff() * sqrtf(2.0f) / 2.0f;
 
     for (size_t z = 0; z < shlf.resolution.z(); z++)
     {
@@ -120,6 +119,8 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const Raytrac
             }
         }
     }
+
+    const float radius = (shlf.scale.array() / shlf.resolution.cast<float>()).maxCoeff() / 10.0f * sqrtf(2.0f) / 2.0f;
 
     std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](SHLightFieldPoint& bakePoint)
     {
