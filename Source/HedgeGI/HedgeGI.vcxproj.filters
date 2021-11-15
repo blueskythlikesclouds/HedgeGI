@@ -213,6 +213,9 @@
     <ClCompile Include="CabinetCompression.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="MetaInstancer.cpp">
+      <Filter>HedgehogEngine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -383,6 +386,9 @@
     </ClInclude>
     <ClInclude Include="CabinetCompression.h">
       <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaInstancer.h">
+      <Filter>HedgehogEngine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

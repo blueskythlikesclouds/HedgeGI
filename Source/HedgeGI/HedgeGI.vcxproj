@@ -331,6 +331,7 @@
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Math.cpp" />
     <ClCompile Include="MeshOptimizer.cpp" />
+    <ClCompile Include="MetaInstancer.cpp" />
     <ClCompile Include="OidnDenoiserDevice.cpp" />
     <ClCompile Include="OptixDenoiserDevice.cpp" />
     <ClCompile Include="Light.cpp" />
@@ -386,6 +387,7 @@
     <ClInclude Include="LightBVH.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="MeshOptimizer.h" />
+    <ClInclude Include="MetaInstancer.h" />
     <ClInclude Include="Model.h" />
     <ClInclude Include="NeedleFxSceneData.h" />
     <ClInclude Include="OidnDenoiserDevice.h" />
