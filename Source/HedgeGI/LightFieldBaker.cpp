@@ -30,51 +30,54 @@ struct LightFieldPoint : BakePoint<8, BAKE_POINT_FLAGS_SHADOW>
     }
 };
 
-struct PointQueryFuncUserData
+namespace
 {
-    const Scene* scene{};
-    const AABB aabb;
-    phmap::parallel_flat_hash_set<const Mesh*> meshes;
-    std::array<Vector3, 8> corners;
-    std::array<Vector3, 8> cornersOptimized;
-    std::array<float, 8> distances;
-};
-
-bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
-{
-    PointQueryFuncUserData* userData = (PointQueryFuncUserData*)args->userPtr;
-
-    const Mesh& mesh = *userData->scene->meshes[args->geomID];
-    const Triangle& triangle = mesh.triangles[args->primID];
-    const Vertex& a = mesh.vertices[triangle.a];
-    const Vertex& b = mesh.vertices[triangle.b];
-    const Vertex& c = mesh.vertices[triangle.c];
-
-    AABB aabb;
-    aabb.extend(a.position);
-    aabb.extend(b.position);
-    aabb.extend(c.position);
-
-    if (userData->aabb.intersects(aabb))
+    struct PointQueryFuncUserData
     {
-        userData->meshes.insert(&mesh);
+        const Scene* scene {};
+        const AABB aabb;
+        phmap::parallel_flat_hash_set<const Mesh*> meshes;
+        std::array<Vector3, 8> corners;
+        std::array<Vector3, 8> cornersOptimized;
+        std::array<float, 8> distances;
+    };
 
-        for (size_t i = 0; i < 8; i++)
+    bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
+    {
+        PointQueryFuncUserData* userData = (PointQueryFuncUserData*)args->userPtr;
+
+        const Mesh& mesh = *userData->scene->meshes[args->geomID];
+        const Triangle& triangle = mesh.triangles[args->primID];
+        const Vertex& a = mesh.vertices[triangle.a];
+        const Vertex& b = mesh.vertices[triangle.b];
+        const Vertex& c = mesh.vertices[triangle.c];
+
+        AABB aabb;
+        aabb.extend(a.position);
+        aabb.extend(b.position);
+        aabb.extend(c.position);
+
+        if (userData->aabb.intersects(aabb))
         {
-            const Vector3 closestPoint = closestPointTriangle(userData->corners[i], a.position, b.position, c.position);
-            const Vector2 baryUV = getBarycentricCoords(closestPoint, a.position, b.position, c.position);
-            const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
+            userData->meshes.insert(&mesh);
 
-            const float distance = (closestPoint - userData->corners[i]).norm();
-            if (userData->distances[i] < distance)
-                continue;
+            for (size_t i = 0; i < 8; i++)
+            {
+                const Vector3 closestPoint = closestPointTriangle(userData->corners[i], a.position, b.position, c.position);
+                const Vector2 baryUV = getBarycentricCoords(closestPoint, a.position, b.position, c.position);
+                const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
 
-            userData->cornersOptimized[i] = closestPoint + normal.normalized() * 0.1f;
-            userData->distances[i] = distance;
+                const float distance = (closestPoint - userData->corners[i]).squaredNorm();
+                if (userData->distances[i] < distance)
+                    continue;
+
+                userData->cornersOptimized[i] = closestPoint + normal.normalized() * 0.1f;
+                userData->distances[i] = distance;
+            }
         }
-    }
 
-    return false;
+        return false;
+    }
 }
 
 void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytracingContext, LightField& lightField, size_t cellIndex, const AABB& aabb,

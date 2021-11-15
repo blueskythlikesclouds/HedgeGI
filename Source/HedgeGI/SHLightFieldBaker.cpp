@@ -54,12 +54,49 @@ struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_SHADOW | BAKE_POINT_FLA
     }
 };
 
-std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const SHLightField& shlf)
+namespace
+{
+    struct PointQueryFuncUserData
+    {
+        const Scene* scene {};
+        Vector3 position {};
+        Vector3 newPosition {};
+        float distance {};
+    };
+
+    bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
+    {
+        PointQueryFuncUserData* userData = (PointQueryFuncUserData*)args->userPtr;
+
+        const Mesh& mesh = *userData->scene->meshes[args->geomID];
+
+        const Triangle& triangle = mesh.triangles[args->primID];
+        const Vertex& a = mesh.vertices[triangle.a];
+        const Vertex& b = mesh.vertices[triangle.b];
+        const Vertex& c = mesh.vertices[triangle.c];
+
+        const Vector3 closestPoint = closestPointTriangle(userData->position, a.position, b.position, c.position);
+        const Vector2 baryUV = getBarycentricCoords(closestPoint, a.position, b.position, c.position);
+        const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
+
+        const float distance = (closestPoint - userData->position).squaredNorm();
+        if (distance > userData->distance)
+            return false;
+
+        userData->newPosition = closestPoint + normal.normalized() * 0.1f;
+        userData->distance = distance;
+
+        return false;
+    }
+}
+
+std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const RaytracingContext& raytracingContext, const SHLightField& shlf)
 {
     std::vector<SHLightFieldPoint> bakePoints;
     bakePoints.reserve(shlf.resolution.x() * shlf.resolution.y() * shlf.resolution.z());
 
     const Matrix4 matrix = shlf.getMatrix();
+    const float radius = (shlf.scale.array() / shlf.resolution.cast<float>()).maxCoeff() * sqrtf(2.0f) / 2.0f;
 
     for (size_t z = 0; z < shlf.resolution.z(); z++)
     {
@@ -83,6 +120,24 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const SHLight
             }
         }
     }
+
+    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](SHLightFieldPoint& bakePoint)
+    {
+        // Snap to the closest triangle
+        RTCPointQueryContext context {};
+        rtcInitPointQueryContext(&context);
+
+        RTCPointQuery query {};
+        query.x = bakePoint.position.x();
+        query.y = bakePoint.position.y();
+        query.z = bakePoint.position.z();
+        query.radius = radius;
+
+        PointQueryFuncUserData userData = { raytracingContext.scene, bakePoint.position, bakePoint.position, INFINITY };
+        rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
+
+        bakePoint.position = userData.newPosition;
+    });
 
     return bakePoints;
 }
@@ -108,7 +163,7 @@ std::unique_ptr<Bitmap> SHLightFieldBaker::paint(const std::vector<SHLightFieldP
 
 std::unique_ptr<Bitmap> SHLightFieldBaker::bake(const RaytracingContext& context, const SHLightField& shlf, const BakeParams& bakeParams)
 {
-    std::vector<SHLightFieldPoint> bakePoints = createBakePoints(shlf);
+    std::vector<SHLightFieldPoint> bakePoints = createBakePoints(context, shlf);
 
     BakingFactory::bake(context, bakePoints, bakeParams);
 

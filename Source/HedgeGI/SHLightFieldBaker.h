@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+class Scene;
 class Bitmap;
 class SHLightField;
 
@@ -9,7 +10,7 @@ struct SHLightFieldPoint;
 
 class SHLightFieldBaker
 {
-    static std::vector<SHLightFieldPoint> createBakePoints(const SHLightField& shlf);
+    static std::vector<SHLightFieldPoint> createBakePoints(const RaytracingContext& raytracingContext, const SHLightField& shlf);
     static std::unique_ptr<Bitmap> paint(const std::vector<SHLightFieldPoint>& bakePoints, const SHLightField& shlf);
 
 public:
