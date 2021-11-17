@@ -21,7 +21,7 @@ struct MtiInstance
     float positionZ;
 
     uint8_t type;
-    uint8_t unknown0;
+    uint8_t windCoeff;
 
     int16_t rotationX;
     int16_t rotationY;
@@ -34,7 +34,7 @@ struct MtiInstance
 };
 
 MetaInstancer::Instance::Instance()
-    : position(Vector3::Zero()), type(0), rotation(Quaternion::Identity()), color(Color4::Ones())
+    : position(Vector3::Zero()), type(0), windCoeff(1), rotation(Quaternion::Identity()), color(Color4::Ones())
 {
 }
 
@@ -70,10 +70,10 @@ void MetaInstancer::save(hl::stream& stream)
             instance.position.y(), // positionY
             instance.position.z(), // positionZ
             instance.type, // type
-            0xFF, // unknown0,
+            (uint8_t)(instance.windCoeff * 255.0f), // windCoeff
             (int16_t)(rotation.x() / PI * 32767.0f), // rotationX
             (int16_t)(rotation.y() / PI * 32767.0f), // rotationY
-            (int16_t)(rotation.z() / PI * 32767.0f), // rotationZ,
+            (int16_t)(rotation.z() / PI * 32767.0f), // rotationZ
             (uint8_t)(instance.color.w() * 255.0f), // colorA
             (uint8_t)(instance.color.x() * 255.0f), // colorR
             (uint8_t)(instance.color.y() * 255.0f), // colorG
