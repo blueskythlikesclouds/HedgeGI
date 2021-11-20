@@ -2,7 +2,6 @@
 #include "Utilities.h"
 
 #include <ShObjIdl.h>
-#include <atlbase.h>
 
 std::string FileDialog::openFile(LPCWSTR filter, LPCWSTR title)
 {
@@ -25,10 +24,26 @@ std::string FileDialog::openFile(LPCWSTR filter, LPCWSTR title)
     return "";
 }
 
+template<class T>
+struct ComPtr
+{
+    T* ptr;
+
+    T** operator&() { return &ptr; }
+    T* operator->() { return ptr; }
+
+    ComPtr() : ptr(nullptr) {}
+    ~ComPtr()
+    {
+        if (ptr) 
+            ptr->Release();
+    }
+};
+
 std::string FileDialog::openFolder(const LPCWSTR title)
 {
-    CComPtr<IFileOpenDialog> folderDialog;
-    folderDialog.CoCreateInstance(CLSID_FileOpenDialog);
+    ComPtr<IFileOpenDialog> folderDialog;
+    CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&folderDialog));
 
     FILEOPENDIALOGOPTIONS options {};
     folderDialog->GetOptions(&options);
@@ -39,15 +54,17 @@ std::string FileDialog::openFolder(const LPCWSTR title)
     if (FAILED(folderDialog->Show(nullptr)))
         return {};
 
-    CComPtr<IShellItem> result;
+    ComPtr<IShellItem> result;
     if (FAILED(folderDialog->GetResult(&result)))
         return {};
 
-    CComHeapPtr<wchar_t> path;
+    wchar_t* path;
     if (FAILED(result->GetDisplayName(SIGDN_FILESYSPATH, &path)))
         return {};
 
-    return wideCharToMultiByte(path);
+    std::string multiByteResult = wideCharToMultiByte(path);
+    CoTaskMemFree(path);
+    return multiByteResult;
 }
 
 std::string FileDialog::saveFile(LPCWSTR filter, LPCWSTR title)
