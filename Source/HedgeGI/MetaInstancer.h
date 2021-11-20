@@ -8,7 +8,7 @@ public:
     public:
         Vector3 position;
         uint8_t type;
-        float windCoeff;
+        float sway;
         Quaternion rotation;
         Color4 color;
 

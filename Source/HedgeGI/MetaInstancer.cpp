@@ -21,20 +21,27 @@ struct MtiInstance
     float positionZ;
 
     uint8_t type;
-    uint8_t windCoeff;
+    uint8_t sway;
 
-    int16_t rotationX;
-    int16_t rotationY;
-    int16_t rotationZ;
+    // Gets applied after sway animation
+    uint8_t pitchAfterSway;
+    uint8_t yawAfterSway;
 
+    // Gets applied before sway animation
+    int16_t pitchBeforeSway;
+    int16_t yawBeforeSway;
+
+    // Shadow
     uint8_t colorA;
+
+    // GI color
     uint8_t colorR;
     uint8_t colorG;
     uint8_t colorB;
 };
 
 MetaInstancer::Instance::Instance()
-    : position(Vector3::Zero()), type(0), windCoeff(1), rotation(Quaternion::Identity()), color(Color4::Ones())
+    : position(Vector3::Zero()), type(0), sway(1), rotation(Quaternion::Identity()), color(Color4::Ones())
 {
 }
 
@@ -62,7 +69,7 @@ void MetaInstancer::save(hl::stream& stream)
 
     for (auto& instance : instances)
     {
-        const Vector3 rotation = instance.rotation.toRotationMatrix().eulerAngles(0, 1, 2);
+        const Vector3 rotation = instance.rotation.toRotationMatrix().eulerAngles(0, 1, 0);
 
         MtiInstance mtiInstance =
         {
@@ -70,22 +77,22 @@ void MetaInstancer::save(hl::stream& stream)
             instance.position.y(), // positionY
             instance.position.z(), // positionZ
             instance.type, // type
-            (uint8_t)(instance.windCoeff * 255.0f), // windCoeff
-            (int16_t)(rotation.x() / PI * 32767.0f), // rotationX
-            (int16_t)(rotation.y() / PI * 32767.0f), // rotationY
-            (int16_t)(rotation.z() / PI * 32767.0f), // rotationZ
-            (uint8_t)(instance.color.w() * 255.0f), // colorA
-            (uint8_t)(instance.color.x() * 255.0f), // colorR
-            (uint8_t)(instance.color.y() * 255.0f), // colorG
-            (uint8_t)(instance.color.z() * 255.0f) // colorB
+            (uint8_t)meshopt_quantizeUnorm(instance.sway, 8), // sway
+            (uint8_t)meshopt_quantizeUnorm(fmodf(rotation.x(), 2 * PI) / (2 * PI), 8), // pitchAfterSway
+            0, // yawAfterSway
+            (int16_t)meshopt_quantizeSnorm(rotation.z() / PI, 16), // pitchBeforeSway
+            (int16_t)meshopt_quantizeSnorm(rotation.y() / PI, 16), // yawBeforeSway
+            (uint8_t)meshopt_quantizeUnorm(instance.color.w(), 8), // colorA
+            (uint8_t)meshopt_quantizeUnorm(instance.color.x(), 8), // colorR
+            (uint8_t)meshopt_quantizeUnorm(instance.color.y(), 8), // colorG
+            (uint8_t)meshopt_quantizeUnorm(instance.color.z(), 8) // colorB
         };
 
         hl::endian_swap(mtiInstance.positionX);
         hl::endian_swap(mtiInstance.positionY);
         hl::endian_swap(mtiInstance.positionZ);
-        hl::endian_swap(mtiInstance.rotationX);
-        hl::endian_swap(mtiInstance.rotationY);
-        hl::endian_swap(mtiInstance.rotationZ);
+        hl::endian_swap(mtiInstance.pitchBeforeSway);
+        hl::endian_swap(mtiInstance.yawBeforeSway);
 
         stream.write_obj(mtiInstance);
     }
