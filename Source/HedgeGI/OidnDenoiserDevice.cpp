@@ -4,14 +4,14 @@
 #include "Bitmap.h"
 #include <OpenImageDenoise/oidn.h>
 
-std::mutex OidnDenoiserDevice::mutex;
+CriticalSection OidnDenoiserDevice::criticalSection;
 bool OidnDenoiserDevice::initialized;
 OIDNDevice OidnDenoiserDevice::device;
 
 std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool denoiseAlpha)
 {
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<CriticalSection> lock(criticalSection);
 
         if (!initialized)
         {

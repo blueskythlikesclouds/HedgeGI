@@ -685,7 +685,7 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
 
     hl::archive stageAddArchive;
 
-    std::mutex mutex;
+    CriticalSection criticalSection;
 
     std::for_each(std::execution::par_unseq, &groupInfo->groups[0], &groupInfo->groups[groupInfo->groups.count], [&](auto& group)
     {
@@ -716,7 +716,7 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
 
         hl::archive_entry entry = hl::archive_entry::make_regular_file(toNchar(name).data(), stream.get_size(), stream.get_data_ptr());
 
-        std::lock_guard lock(mutex);
+        std::lock_guard lock(criticalSection);
         {
             if (group->level == 2)
                 stageArchive.push_back(std::move(entry));

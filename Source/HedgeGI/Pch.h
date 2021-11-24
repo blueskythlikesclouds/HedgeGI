@@ -85,5 +85,32 @@ using Quaternion = Eigen::Quaternionf;
 #include <im3d/im3d_config.h>
 #include <im3d/im3d_math.h>
 
+// Common types
+class CriticalSection
+{
+public:
+	CRITICAL_SECTION criticalSection;
+
+	CriticalSection() 
+	{
+		InitializeCriticalSection(&criticalSection);
+	}
+
+	~CriticalSection()
+	{
+		DeleteCriticalSection(&criticalSection);
+	}
+
+	void lock()
+	{
+		EnterCriticalSection(&criticalSection);
+	}
+
+	void unlock()
+	{
+		LeaveCriticalSection(&criticalSection);
+	}
+};
+
 #undef min
 #undef max

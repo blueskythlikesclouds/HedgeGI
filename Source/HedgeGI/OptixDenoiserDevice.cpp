@@ -10,14 +10,14 @@
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
 
-std::mutex OptixDenoiserDevice::mutex;
+CriticalSection OptixDenoiserDevice::criticalSection;
 bool OptixDenoiserDevice::initialized;
 OptixDeviceContext OptixDenoiserDevice::context;
 OptixDenoiser OptixDenoiserDevice::denoiser;
 
 std::unique_ptr<Bitmap> OptixDenoiserDevice::denoise(const Bitmap& bitmap, const bool denoiseAlpha)
 {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<CriticalSection> lock(criticalSection);
 
     if (!initialized)
     {

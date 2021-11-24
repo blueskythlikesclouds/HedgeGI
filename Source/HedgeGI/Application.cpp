@@ -135,7 +135,7 @@ void Application::createIcons(GLFWwindow* window)
 void Application::logListener(void* owner, const LogType logType, const char* text)
 {
     Application* application = (Application*)owner;
-    std::lock_guard lock(application->logMutex);
+    std::lock_guard lock(application->logCriticalSection);
 
     const auto value = std::make_pair(logType, text);
     application->logs.remove(value);
@@ -149,7 +149,7 @@ void Application::im3dDrawCallback(const ImDrawList* list, const ImDrawCmd* cmd)
 
 void Application::clearLogs()
 {
-    std::lock_guard lock(logMutex);
+    std::lock_guard lock(logCriticalSection);
     logs.clear();
 }
 
@@ -1320,7 +1320,7 @@ void Application::drawViewportUI()
 
 bool Application::drawLogsContainerUI(const ImVec2& size)
 {
-    std::lock_guard lock(logMutex);
+    std::lock_guard lock(logCriticalSection);
     if (logs.empty() || !ImGui::BeginListBox("##Logs", size))
         return false;
 
@@ -1605,7 +1605,7 @@ void Application::bakeGI()
         {
             GIPair pair;
             {
-                const std::lock_guard<std::mutex> lock = BakingFactory::lock();
+                const std::lock_guard<CriticalSection> lock = BakingFactory::lock();
                 {
                     ++bakeProgress;
                     lastBakedInstance = instance.get();
@@ -1651,7 +1651,7 @@ void Application::bakeGI()
         {
             GIPair pair;
             {
-                const std::lock_guard<std::mutex> lock = BakingFactory::lock();
+                const std::lock_guard<CriticalSection> lock = BakingFactory::lock();
                 {
                     ++bakeProgress;
                     lastBakedInstance = instance.get();

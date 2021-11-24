@@ -1,11 +1,11 @@
 ﻿#include "D3D11Device.h"
 
-std::mutex D3D11Device::mutex;
+CriticalSection D3D11Device::criticalSection;
 ID3D11Device* D3D11Device::device;
 
-std::unique_lock<std::mutex> D3D11Device::lock()
+std::unique_lock<CriticalSection> D3D11Device::lock()
 {
-    return std::unique_lock(mutex);
+    return std::unique_lock(criticalSection);
 }
 
 ID3D11Device* D3D11Device::get()

@@ -197,7 +197,7 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transfo
 
             if (format >= DXGI_FORMAT_BC6H_TYPELESS && format <= DXGI_FORMAT_BC7_UNORM_SRGB)
             {
-                std::unique_lock<std::mutex> lock = D3D11Device::lock();
+                std::unique_lock<CriticalSection> lock = D3D11Device::lock();
 
                 Compress(D3D11Device::get(), images.GetImages(), images.GetImageCount(), images.GetMetadata(),
                     format, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);

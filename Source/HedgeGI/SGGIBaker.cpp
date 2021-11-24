@@ -7,10 +7,10 @@
 
 const std::array<Vector3, 4> SG_DIRECTIONS =
 {
-    Vector3(0.0f, 0.57735002f, 1.0f),
-    Vector3(0.0f, 0.57735002f, -1.0f),
-    Vector3(1.0f, 0.57735002f, 0.0f),
-    Vector3(-1.0f, 0.57735002f, 0.0f)
+    Vector3(+0.0f, 0.57735f, +1.0f),
+    Vector3(+0.0f, 0.57735f, -1.0f),
+    Vector3(+1.0f, 0.57735f, +0.0f),
+    Vector3(-1.0f, 0.57735f, +0.0f)
 };
 
 // TODO: This value has been approximated. What's the formula for calculating this?

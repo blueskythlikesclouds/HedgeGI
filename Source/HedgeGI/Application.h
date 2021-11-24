@@ -35,7 +35,7 @@ class Application
 
     std::list<std::pair<LogType, std::string>> logs;
     size_t previousLogSize;
-    std::mutex logMutex;
+    CriticalSection logCriticalSection;
 
     struct ImFont* font {};
     std::string imGuiIniPath;

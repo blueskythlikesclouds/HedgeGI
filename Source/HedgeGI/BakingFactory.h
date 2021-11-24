@@ -15,7 +15,7 @@ class Camera;
 
 class BakingFactory
 {
-    static std::mutex mutex;
+    static CriticalSection criticalSection;
 
 public:
     struct TraceResult
@@ -48,9 +48,9 @@ public:
     static void bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap,
         size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress = 0, bool antiAliasing = true);
 
-    static std::lock_guard<std::mutex> lock()
+    static std::lock_guard<CriticalSection> lock()
     {
-        return std::lock_guard(mutex);
+        return std::lock_guard(criticalSection);
     }
 };
 

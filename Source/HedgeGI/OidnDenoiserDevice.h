@@ -7,7 +7,7 @@ typedef struct OIDNDeviceImpl* OIDNDevice;
 class OidnDenoiserDevice
 {
 public:
-    static std::mutex mutex;
+    static CriticalSection criticalSection;
     static bool initialized;
     static OIDNDevice device;
 

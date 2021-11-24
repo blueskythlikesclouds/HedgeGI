@@ -7,7 +7,7 @@
 #include "Random.h"
 #include "Utilities.h"
 
-std::mutex BakingFactory::mutex;
+CriticalSection BakingFactory::criticalSection;
 
 template <TargetEngine targetEngine, bool tracingFromEye>
 Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, const Vector3& direction, const BakeParams& bakeParams)
