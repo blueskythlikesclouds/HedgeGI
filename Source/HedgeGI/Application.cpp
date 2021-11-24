@@ -28,6 +28,9 @@
 #include "MeshOptimizer.h"
 #include "PostRender.h"
 
+#include "OptixDenoiserDevice.h"
+#include "OidnDenoiserDevice.h"
+
 #include "resource.h"
 
 #include <shlobj_core.h>
@@ -1221,15 +1224,34 @@ void Application::drawBakingFactoryUI()
                 property("Optimize Seams", bakeParams.optimizeSeams);
                 property("Skip Existing Files", skipExistingFiles);
 
-                property("Denoiser Type",
+                // Denoiser types need special handling since they might not be available
+                if (OptixDenoiserDevice::available || OidnDenoiserDevice::available)
+                {
+                    const char* names[] =
                     {
-                        {"None", DenoiserType::None},
-                        {"Optix AI", DenoiserType::Optix},
-#if defined(ENABLE_OIDN)
-                        {"oidn", DenoiserType::Oidn},
-#endif
-                    },
-                    bakeParams.denoiserType);
+                        "None",
+                        "Optix AI",
+                        "oidn"
+                    };
+
+                    const bool flags[] =
+                    {
+                        true,
+                        OptixDenoiserDevice::available,
+                        OidnDenoiserDevice::available
+                    };
+
+                    beginProperty("Denoiser Type");
+                    if (ImGui::BeginCombo("##Denoiser Type", names[(size_t)bakeParams.getDenoiserType()]))
+                    {
+                        for (size_t i = 0; i < _countof(names); i++)
+                        {
+                            if (flags[i] && ImGui::Selectable(names[i]))
+                                bakeParams.denoiserType = (DenoiserType)i;
+                        }
+                        ImGui::EndCombo();
+                    }
+                }
 
                 if (property("Resolution Override", ImGuiDataType_S16, &bakeParams.resolutionOverride) && bakeParams.resolutionOverride >= 0)
                     bakeParams.resolutionOverride = (int16_t)nextPowerOfTwo(bakeParams.resolutionOverride);
@@ -1625,12 +1647,12 @@ void Application::bakeGI()
             TRY_CANCEL()
 
             // Denoise
-            if (bakeParams.denoiserType != DenoiserType::None)
+            if (bakeParams.getDenoiserType() != DenoiserType::None)
             {
-                pair.lightMap = BitmapHelper::denoise(*pair.lightMap, bakeParams.denoiserType);
+                pair.lightMap = BitmapHelper::denoise(*pair.lightMap, bakeParams.getDenoiserType());
     
                 if (bakeParams.denoiseShadowMap)
-                    pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap, bakeParams.denoiserType);
+                    pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap, bakeParams.getDenoiserType());
             }
 
             TRY_CANCEL()
@@ -1676,8 +1698,8 @@ void Application::bakeGI()
             TRY_CANCEL()
 
             // Denoise
-            if (bakeParams.denoiserType != DenoiserType::None)
-                combined = BitmapHelper::denoise(*combined, bakeParams.denoiserType, bakeParams.denoiseShadowMap);
+            if (bakeParams.getDenoiserType() != DenoiserType::None)
+                combined = BitmapHelper::denoise(*combined, bakeParams.getDenoiserType(), bakeParams.denoiseShadowMap);
 
             TRY_CANCEL()
 
@@ -1729,8 +1751,8 @@ void Application::bakeLightField()
 
             TRY_CANCEL()
 
-            if (bakeParams.denoiserType != DenoiserType::None)
-                bitmap = BitmapHelper::denoise(*bitmap, bakeParams.denoiserType);
+            if (bakeParams.getDenoiserType() != DenoiserType::None)
+                bitmap = BitmapHelper::denoise(*bitmap, bakeParams.getDenoiserType());
 
             TRY_CANCEL()
 

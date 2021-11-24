@@ -15,6 +15,12 @@ bool OptixDenoiserDevice::initialized;
 OptixDeviceContext OptixDenoiserDevice::context;
 OptixDenoiser OptixDenoiserDevice::denoiser;
 
+const bool OptixDenoiserDevice::available = []() 
+{
+    int count;
+    return cudaGetDeviceCount(&count) == cudaSuccess && count >= 1;
+}();
+
 std::unique_ptr<Bitmap> OptixDenoiserDevice::denoise(const Bitmap& bitmap, const bool denoiseAlpha)
 {
     std::lock_guard<CriticalSection> lock(criticalSection);

@@ -64,4 +64,6 @@ struct BakeParams
 
     void load(const PropertyBag& propertyBag);
     void store(PropertyBag& propertyBag) const;
+
+    DenoiserType getDenoiserType() const;
 };

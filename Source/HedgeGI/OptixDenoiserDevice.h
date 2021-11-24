@@ -13,5 +13,7 @@ class OptixDenoiserDevice
     static OptixDenoiser denoiser;
 
 public:
+    static const bool available;
+
     static std::unique_ptr<Bitmap> denoise(const Bitmap& bitmap, bool denoiseAlpha = false);
 };

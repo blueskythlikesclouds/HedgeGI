@@ -1,12 +1,14 @@
-﻿#if defined(ENABLE_OIDN)
+﻿#include "OidnDenoiserDevice.h"
 
-#include "OidnDenoiserDevice.h"
+#if defined(ENABLE_OIDN)
 #include "Bitmap.h"
+#include "Logger.h"
 #include <OpenImageDenoise/oidn.h>
 
 CriticalSection OidnDenoiserDevice::criticalSection;
 bool OidnDenoiserDevice::initialized;
 OIDNDevice OidnDenoiserDevice::device;
+const bool OidnDenoiserDevice::available = true;
 
 std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool denoiseAlpha)
 {
@@ -29,15 +31,15 @@ std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool d
     for (size_t i = 0; i < bitmap.arraySize; i++)
     {
         OIDNFilter filter = oidnNewFilter(device, "RTLightmap");
-        oidnSetSharedFilterImage(filter, "color", bitmap.getColors(i), OIDN_FORMAT_FLOAT4, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
-        oidnSetSharedFilterImage(filter, "output", denoised->getColors(i), OIDN_FORMAT_FLOAT4, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
+        oidnSetSharedFilterImage(filter, "color", bitmap.getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
+        oidnSetSharedFilterImage(filter, "output", denoised->getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
         oidnSetFilter1b(filter, "hdr", true);
         oidnCommitFilter(filter);
         oidnExecuteFilter(filter);
 
         const char* errorMessage;
         if (oidnGetDeviceError(device, &errorMessage) != OIDN_ERROR_NONE)
-            printf("OIDN Error: %s\n", errorMessage);
+            Logger::logFormatted(LogType::Error, "OIDN Error: %s\n", errorMessage);
 
         oidnReleaseFilter(filter);
     }
@@ -49,4 +51,6 @@ std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool d
     return denoised;
 }
 
+#else
+const bool OidnDenoiserDevice::available = false;
 #endif

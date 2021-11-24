@@ -1,6 +1,9 @@
 ﻿#include "BakeParams.h"
 #include "PropertyBag.h"
 
+#include "OidnDenoiserDevice.h"
+#include "OptixDenoiserDevice.h"
+
 void BakeParams::load(const PropertyBag& propertyBag)
 {
     targetEngine = propertyBag.get(PROP("bakeParams.targetEngine"), TargetEngine::HE1);
@@ -36,7 +39,8 @@ void BakeParams::load(const PropertyBag& propertyBag)
 
     denoiseShadowMap = propertyBag.get(PROP("bakeParams.denoiseShadowMap"), true);
     optimizeSeams = propertyBag.get(PROP("bakeParams.optimizeSeams"), true);
-    denoiserType = propertyBag.get(PROP("bakeParams.denoiserType"), DenoiserType::Optix);
+    denoiserType = propertyBag.get(PROP("bakeParams.denoiserType"), 
+        OptixDenoiserDevice::available ? DenoiserType::Optix : OidnDenoiserDevice::available ? DenoiserType::Oidn : DenoiserType::None);
 
     lightFieldMinCellRadius = propertyBag.get(PROP("bakeParams.lightFieldMinCellRadius"), 5.0f);
     lightFieldAabbSizeMultiplier = propertyBag.get(PROP("bakeParams.lightFieldAabbSizeMultiplier"), 1.0f);
@@ -81,4 +85,12 @@ void BakeParams::store(PropertyBag& propertyBag) const
 
     propertyBag.set(PROP("bakeParams.lightFieldMinCellRadius"), lightFieldMinCellRadius);
     propertyBag.set(PROP("bakeParams.lightFieldAabbSizeMultiplier"), lightFieldAabbSizeMultiplier);
+}
+
+DenoiserType BakeParams::getDenoiserType() const
+{
+    if (!OidnDenoiserDevice::available && denoiserType == DenoiserType::Oidn) return DenoiserType::None;
+    if (!OptixDenoiserDevice::available && denoiserType == DenoiserType::Optix) return DenoiserType::None;
+
+    return denoiserType;
 }
