@@ -152,8 +152,8 @@ std::unique_ptr<Bitmap> SHLightFieldBaker::paint(const std::vector<SHLightFieldP
         for (uint32_t i = 0; i < 6; i++)
         {
             Color4 color;
-            color.head<3>() = bakePoint.colors[i];
-            color.w() = i == 0 ? bakePoint.shadow : 1.0f;
+            color.head<3>() = bakePoint.colors[i].cwiseMax(0.0f).cwiseMin(65504.0f);
+            color.w() = i == 0 ? saturate(bakePoint.shadow) : 1.0f;
 
             bitmap->putColor(color, i * shlf.resolution.x() + bakePoint.x, bakePoint.y, bakePoint.z);
         }

@@ -58,14 +58,14 @@ void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& ba
             if (paintFlags & PAINT_FLAGS_COLOR)
             {
                 for (size_t j = 0; j < 3; j++)
-                    color[j] = bakePoint.colors[i][j];
+                    color[j] = std::max(0.0f, std::min(65504.0f, bakePoint.colors[i][j]));
 
-                color[3] = paintFlags & PAINT_FLAGS_SHADOW ? bakePoint.shadow : 1.0f;
+                color[3] = paintFlags & PAINT_FLAGS_SHADOW ? saturate(bakePoint.shadow) : 1.0f;
             }
             else if (paintFlags & PAINT_FLAGS_SHADOW)
             {
                 for (size_t j = 0; j < 3; j++)
-                    color[j] = bakePoint.shadow;
+                    color[j] = saturate(bakePoint.shadow);
 
                 color[3] = 1.0f;
             }
