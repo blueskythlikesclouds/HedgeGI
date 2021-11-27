@@ -148,7 +148,7 @@ void Viewport::update(const Application& application)
     const double elapsedTime = time - currentTime;
 
     if ((frameRateUpdateTime += elapsedTime) > 0.5)
-		frameRate = (size_t)lround(1.0 / elapsedTime), frameRateUpdateTime = 0.0;
+        frameRate = (size_t)lround(1.0 / std::max((double)application.getElapsedTime(), elapsedTime)), frameRateUpdateTime = 0.0;
 
     currentTime = time;
 
