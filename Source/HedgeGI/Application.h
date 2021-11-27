@@ -108,6 +108,9 @@ class Application
 
     void clearLogs();
 
+    void initializeAppData();
+    void saveAppData();
+
     void initializeImGui();
     void initializeStyle();
     void initializeFonts();

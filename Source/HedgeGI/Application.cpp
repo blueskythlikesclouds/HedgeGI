@@ -156,6 +156,29 @@ void Application::clearLogs()
     logs.clear();
 }
 
+void Application::initializeAppData()
+{
+    PropertyBag settings;
+    settings.load(APP_DATA_PATH + "settings.hgi");
+
+    showScene = settings.get(PROP("application.showScene"), true);
+    showViewport = settings.get(PROP("application.showViewport"), true);
+    showSettings = settings.get(PROP("application.showSettings"), true);
+    showBakingFactory = settings.get(PROP("application.showBakingFactory"), true);
+    showLogs = settings.get(PROP("application.showLogs"), true);
+}
+
+void Application::saveAppData()
+{
+    PropertyBag settings;
+    settings.set(PROP("application.showScene"), showScene);
+    settings.set(PROP("application.showViewport"), showViewport);
+    settings.set(PROP("application.showSettings"), showSettings);
+    settings.set(PROP("application.showBakingFactory"), showBakingFactory);
+    settings.set(PROP("application.showLogs"), showLogs);
+    settings.save(APP_DATA_PATH + "settings.hgi");
+}
+
 void Application::initializeImGui()
 {
     IMGUI_CHECKVERSION();
@@ -1395,9 +1418,9 @@ void Application::setTitle(const float fps)
     char title[256];
 
     if (!stageName.empty())
-        sprintf(title, "Hedge GI - %s - %s (FPS: %d)", stageName.c_str(), GAME_NAMES[(size_t)game], (int)fps);
+        sprintf(title, "HedgeGI - %s - %s (FPS: %d)", stageName.c_str(), GAME_NAMES[(size_t)game], (int)fps);
     else
-        sprintf(title, "Hedge GI (FPS: %d)", (int)fps);
+        sprintf(title, "HedgeGI (FPS: %d)", (int)fps);
 
     glfwSetWindowTitle(window, title);
 }
@@ -2120,6 +2143,7 @@ Application::Application()
         })
 {
     Logger::addListener(this, logListener);
+    initializeAppData();
     initializeImGui();
     loadRecentStages();
 }
@@ -2127,6 +2151,7 @@ Application::Application()
 Application::~Application()
 {
     Logger::removeListener(this);
+    saveAppData();
     ImGui_ImplGlfw_Shutdown();
     glfwTerminate();
     ImGui_ImplOpenGL3_Shutdown();
