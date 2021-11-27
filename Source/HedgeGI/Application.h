@@ -45,8 +45,6 @@ class Application
     float elapsedTime{};
     double currentTime{};
 
-    float titleUpdateTime {};
-
     int width {};
     int height {};
 
@@ -145,7 +143,6 @@ class Application
     void drawViewportUI();
     bool drawLogsContainerUI(const ImVec2& size);
     void drawLogsUI();
-    void setTitle(float fps);
 
     void loadProperties();
     void storeProperties();

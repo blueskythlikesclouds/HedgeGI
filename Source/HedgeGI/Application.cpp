@@ -315,7 +315,7 @@ void Application::initializeDocks()
 
     ImGui::DockBuilderDockWindow("Scene", topLeftId);
     ImGui::DockBuilderDockWindow("Baking Factory", bottomLeftId);
-    ImGui::DockBuilderDockWindow("Viewport", centerId);
+    ImGui::DockBuilderDockWindow("###Viewport", centerId);
     ImGui::DockBuilderDockWindow("Settings", topRightId);
     ImGui::DockBuilderDockWindow("Logs", bottomRightId);
 
@@ -600,6 +600,15 @@ void Application::draw()
                 processStage(MeshOptimizer::process);
 
             ImGui::EndMenu();
+        }
+
+        if (scene)
+        {
+            char text[0x100];
+            sprintf(text, "%s - %s", stageName.c_str(), GAME_NAMES[(int)game]);
+
+            ImGui::SameLine(ImGui::GetWindowSize().x - ImGui::CalcTextSize(text).x - 8.0f);
+            ImGui::Text(text);
         }
 
         ImGui::EndMainMenuBar();
@@ -1323,7 +1332,10 @@ void Application::drawViewportUI()
     if (!showViewport)
         return;
 
-    if (!ImGui::Begin("Viewport", &showViewport))
+    char title[0x100];
+    sprintf(title, "Viewport (%zd FPS)###Viewport", viewport.getFrameRate());
+
+    if (!ImGui::Begin(title, &showViewport))
         return ImGui::End();
 
     const ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
@@ -1404,25 +1416,6 @@ void Application::drawLogsUI()
 
     drawLogsContainerUI({ max.x - min.x, max.y - min.y });
     ImGui::End();
-}
-
-void Application::setTitle(const float fps)
-{
-    if (titleUpdateTime < 0.5f)
-    {
-        titleUpdateTime += elapsedTime;
-        return;
-    }
-    titleUpdateTime = 0.0f;
-
-    char title[256];
-
-    if (!stageName.empty())
-        sprintf(title, "HedgeGI - %s - %s (FPS: %d)", stageName.c_str(), GAME_NAMES[(size_t)game], (int)fps);
-    else
-        sprintf(title, "HedgeGI (FPS: %d)", (int)fps);
-
-    glfwSetWindowTitle(window, title);
 }
 
 void Application::loadProperties()
@@ -2322,5 +2315,4 @@ void Application::update()
     input.postUpdate();
 
     glfwSwapBuffers(window);
-    setTitle(1.0f / elapsedTime);
 }

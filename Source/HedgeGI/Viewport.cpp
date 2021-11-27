@@ -144,6 +144,14 @@ void Viewport::update(const Application& application)
     if (bakeArgs.baking)
         return;
 
+    const double time = glfwGetTime();
+    const double elapsedTime = time - currentTime;
+
+    if ((frameRateUpdateTime += elapsedTime) > 0.5)
+		frameRate = (size_t)lround(1.0 / elapsedTime), frameRateUpdateTime = 0.0;
+
+    currentTime = time;
+
     if (bitmap != nullptr)
     {
         normalizedWidth = bakeArgs.bakeWidth / (float)bitmap->width;
@@ -180,6 +188,11 @@ float Viewport::getNormalizedWidth() const
 float Viewport::getNormalizedHeight() const
 {
     return normalizedHeight;
+}
+
+size_t Viewport::getFrameRate() const
+{
+    return frameRate;
 }
 
 bool Viewport::isBaking() const

@@ -41,6 +41,10 @@ class Viewport
     float normalizedWidth {};
     float normalizedHeight {};
 
+    double currentTime{};
+    size_t frameRate{};
+    double frameRateUpdateTime{};
+
     std::thread bakeThread;
 
     void bakeThreadFunc();
@@ -64,6 +68,9 @@ public:
 
     float getNormalizedWidth() const;
     float getNormalizedHeight() const;
+
+    size_t getFrameRate() const;
+
     bool isBaking() const;
     void waitForBake() const;
 };
