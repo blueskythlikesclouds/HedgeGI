@@ -1423,7 +1423,7 @@ void Application::loadProperties()
     camera.load(propertyBag);
     bakeParams.load(propertyBag);
     viewportResolutionInvRatio = propertyBag.get(PROP("viewportResolutionInvRatio"), 2.0f);
-    gammaCorrectionFlag = propertyBag.get(PROP("gammaCorrectionFlag"), true);
+    gammaCorrectionFlag = propertyBag.get(PROP("gammaCorrectionFlag"), false);
     colorCorrectionFlag = propertyBag.get(PROP("colorCorrectionFlag"), true);
     outputDirectoryPath = propertyBag.getString(PROP("outputDirectoryPath"), stageDirectoryPath + "-HedgeGI");
     mode = propertyBag.get(PROP("mode"), BakingFactoryMode::GI);
