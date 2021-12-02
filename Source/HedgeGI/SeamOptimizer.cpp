@@ -125,7 +125,7 @@ std::unique_ptr<Bitmap> SeamOptimizer::optimize(const Bitmap& bitmap) const
         list.push_back(&node);
         for (auto it = list.begin(); it != list.end();)
         {
-            if (node.key + 0.0001f > (*it)->key - 0.0001f)
+            if (abs(node.key - (*it)->key) < 0.0001f)
             {
                 const Mesh* meshA = instance.meshes[node.meshIndex];
                 const Triangle& triangleA = meshA->triangles[node.triangleIndex];
