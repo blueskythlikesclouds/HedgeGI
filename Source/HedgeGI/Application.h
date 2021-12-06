@@ -69,6 +69,10 @@ class Application
     bool dirty {};
     bool dirtyBVH {};
 
+    char instanceSearch[1024]{};
+    char lightSearch[1024]{};
+    char shlfSearch[1024]{};
+
     std::string stageName;
     std::string stageDirectoryPath;
     std::list<std::string> recentStages;

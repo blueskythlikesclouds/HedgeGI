@@ -688,10 +688,8 @@ void Application::drawInstancesUI()
     if (!ImGui::CollapsingHeader("Instances"))
         return;
 
-    char search[1024] {};
-
     ImGui::SetNextItemWidth(-1);
-    const bool doSearch = ImGui::InputText("##SearchInstances", search, sizeof(search));
+    const bool doSearch = ImGui::InputText("##SearchInstances", instanceSearch, sizeof(instanceSearch)) || strlen(instanceSearch) > 0;
 
     ImGui::SetNextItemWidth(-1);
     if (ImGui::BeginListBox("##Instances"))
@@ -703,7 +701,7 @@ void Application::drawInstancesUI()
             char name[1024];
             sprintf(name, "%s (%dx%d)", instance->name.c_str(), resolution, resolution);
 
-            if (doSearch && !strstr(name, search))
+            if (doSearch && !strstr(name, instanceSearch))
                 continue;
 
             if (ImGui::Selectable(name, selectedInstance == instance.get()))
@@ -752,17 +750,15 @@ void Application::drawLightsUI()
     if (!ImGui::CollapsingHeader("Lights"))
         return;
 
-    char search[1024] {};
-
     ImGui::SetNextItemWidth(-1);
-    const bool doSearch = ImGui::InputText("##SearchLights", search, sizeof(search));
+    const bool doSearch = ImGui::InputText("##SearchLights", lightSearch, sizeof(lightSearch)) || strlen(lightSearch) > 0;
 
     ImGui::SetNextItemWidth(-1);
     if (ImGui::BeginListBox("##Lights"))
     {
         for (auto& light : scene->lights)
         {
-            if (doSearch && light->name.find(search) == std::string::npos)
+            if (doSearch && light->name.find(lightSearch) == std::string::npos)
                 continue;
 
             if (ImGui::Selectable(light->name.c_str(), selectedLight == light.get()))
@@ -912,17 +908,15 @@ void Application::drawSHLightFieldsUI()
     if (bakeParams.targetEngine != TargetEngine::HE2 || !ImGui::CollapsingHeader("Light Fields"))
         return;
 
-    char search[1024] {};
-
     ImGui::SetNextItemWidth(-1);
-    const bool doSearch = ImGui::InputText("##SearchSHLFs", search, sizeof(search));
+    const bool doSearch = ImGui::InputText("##SearchSHLFs", shlfSearch, sizeof(shlfSearch)) || strlen(shlfSearch) > 0;
 
     ImGui::SetNextItemWidth(-1);
     if (ImGui::BeginListBox("##SHLFs"))
     {
         for (auto& shlf : scene->shLightFields)
         {
-            if (doSearch && shlf->name.find(search) == std::string::npos)
+            if (doSearch && shlf->name.find(shlfSearch) == std::string::npos)
                 continue;
 
             if (ImGui::Selectable(shlf->name.c_str(), selectedShlf == shlf.get()))
