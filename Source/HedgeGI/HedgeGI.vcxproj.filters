@@ -60,9 +60,6 @@
     <ClCompile Include="..\..\Dependencies\glad\src\glad.c">
       <Filter>Dependencies</Filter>
     </ClCompile>
-    <ClCompile Include="Viewport.cpp">
-      <Filter>Application</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\Dependencies\imgui\backends\imgui_impl_opengl3.cpp">
       <Filter>Dependencies</Filter>
     </ClCompile>
@@ -83,15 +80,6 @@
     </ClCompile>
     <ClCompile Include="..\..\Dependencies\imgui\imgui_widgets.cpp">
       <Filter>Dependencies</Filter>
-    </ClCompile>
-    <ClCompile Include="Camera.cpp">
-      <Filter>Application</Filter>
-    </ClCompile>
-    <ClCompile Include="Input.cpp">
-      <Filter>Application</Filter>
-    </ClCompile>
-    <ClCompile Include="Application.cpp">
-      <Filter>Application</Filter>
     </ClCompile>
     <ClCompile Include="Texture.cpp">
       <Filter>Rendering\Textures</Filter>
@@ -120,13 +108,10 @@
     <ClCompile Include="FileDialog.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="Logger.cpp">
-      <Filter>Application</Filter>
-    </ClCompile>
     <ClCompile Include="BakeParams.cpp">
       <Filter>Baker</Filter>
     </ClCompile>
-    <ClCompile Include="Game.cpp">
+    <ClCompile Include="GameType.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="SceneEffect.cpp">
@@ -216,6 +201,117 @@
     <ClCompile Include="MetaInstancer.cpp">
       <Filter>HedgehogEngine</Filter>
     </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="App.cpp">
+      <Filter>App</Filter>
+    </ClCompile>
+    <ClCompile Include="Component.cpp">
+      <Filter>App\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Document.cpp">
+      <Filter>App\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="StateBase.cpp">
+      <Filter>App\States</Filter>
+    </ClCompile>
+    <ClCompile Include="StateMachineBase.cpp">
+      <Filter>App\States</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage.cpp">
+      <Filter>App\Components\Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Im3DManager.cpp">
+      <Filter>App\Components\Im3D</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGuiManager.cpp">
+      <Filter>App\Components\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="AppData.cpp">
+      <Filter>App\Components\App</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGuiPresenter.cpp">
+      <Filter>App\Components\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="StageParams.cpp">
+      <Filter>App\Components\Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="BakingFactoryWindow.cpp">
+      <Filter>App\Components\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UIComponent.cpp">
+      <Filter>App\Components\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="StateManager.cpp">
+      <Filter>App\Components\App</Filter>
+    </ClCompile>
+    <ClCompile Include="DockSpaceManager.cpp">
+      <Filter>App\Components\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
+      <Filter>App\Components\App</Filter>
+    </ClCompile>
+    <ClCompile Include="LogListener.cpp">
+      <Filter>App\Components\App</Filter>
+    </ClCompile>
+    <ClCompile Include="MenuBar.cpp">
+      <Filter>App\Components\App</Filter>
+    </ClCompile>
+    <ClCompile Include="StateProcess.cpp">
+      <Filter>App\States</Filter>
+    </ClCompile>
+    <ClCompile Include="StateLoadStage.cpp">
+      <Filter>App\States</Filter>
+    </ClCompile>
+    <ClCompile Include="StateEditStage.cpp">
+      <Filter>App\States</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneWindow.cpp">
+      <Filter>App\Components\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="LogWindow.cpp">
+      <Filter>App\Components\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="SettingWindow.cpp">
+      <Filter>App\Components\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="InstanceEditor.cpp">
+      <Filter>App\Components\UI\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="SHLightFieldEditor.cpp">
+      <Filter>App\Components\UI\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="LightEditor.cpp">
+      <Filter>App\Components\UI\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewportWindow.cpp">
+      <Filter>App\Components\UI\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="Viewport.cpp">
+      <Filter>App\Components\UI\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraController.cpp">
+      <Filter>App\Components\UI\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>App\Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="PackService.cpp">
+      <Filter>App\Components\Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="BakeService.cpp">
+      <Filter>App\Components\Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="StateBakeStage.cpp">
+      <Filter>App\States</Filter>
+    </ClCompile>
+    <ClCompile Include="AppWindow.cpp">
+      <Filter>App\Components\App</Filter>
+    </ClCompile>
+    <ClCompile Include="AppWindowPresenter.cpp">
+      <Filter>App\Components\App</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -300,18 +396,6 @@
     <ClInclude Include="SeamOptimizer.h">
       <Filter>Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="Viewport.h">
-      <Filter>Application</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
-      <Filter>Application</Filter>
-    </ClInclude>
-    <ClInclude Include="Input.h">
-      <Filter>Application</Filter>
-    </ClInclude>
-    <ClInclude Include="Application.h">
-      <Filter>Application</Filter>
-    </ClInclude>
     <ClInclude Include="Texture.h">
       <Filter>Rendering\Textures</Filter>
     </ClInclude>
@@ -339,13 +423,10 @@
     <ClInclude Include="FileDialog.h">
       <Filter>Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="Logger.h">
-      <Filter>Application</Filter>
-    </ClInclude>
     <ClInclude Include="BakeParams.h">
       <Filter>Baker</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
+    <ClInclude Include="GameType.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -390,6 +471,126 @@
     <ClInclude Include="MetaInstancer.h">
       <Filter>HedgehogEngine</Filter>
     </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="App.h">
+      <Filter>App</Filter>
+    </ClInclude>
+    <ClInclude Include="Document.h">
+      <Filter>App\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Component.h">
+      <Filter>App\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="StateMachineBase.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="StateBase.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage.h">
+      <Filter>App\Components\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Im3DManager.h">
+      <Filter>App\Components\Im3D</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiManager.h">
+      <Filter>App\Components\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="AppData.h">
+      <Filter>App\Components\App</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiPresenter.h">
+      <Filter>App\Components\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="State.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="StateMachine.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="StageParams.h">
+      <Filter>App\Components\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="BakingFactoryWindow.h">
+      <Filter>App\Components\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UIComponent.h">
+      <Filter>App\Components\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="StateManager.h">
+      <Filter>App\Components\App</Filter>
+    </ClInclude>
+    <ClInclude Include="DockSpaceManager.h">
+      <Filter>App\Components\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>App\Components\App</Filter>
+    </ClInclude>
+    <ClInclude Include="LogListener.h">
+      <Filter>App\Components\App</Filter>
+    </ClInclude>
+    <ClInclude Include="MenuBar.h">
+      <Filter>App\Components\App</Filter>
+    </ClInclude>
+    <ClInclude Include="StateProcess.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="StateLoadStage.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="StateEditStage.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="StateIdle.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneWindow.h">
+      <Filter>App\Components\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="LogWindow.h">
+      <Filter>App\Components\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="SettingWindow.h">
+      <Filter>App\Components\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="InstanceEditor.h">
+      <Filter>App\Components\UI\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="SHLightFieldEditor.h">
+      <Filter>App\Components\UI\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="LightEditor.h">
+      <Filter>App\Components\UI\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewportWindow.h">
+      <Filter>App\Components\UI\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Viewport.h">
+      <Filter>App\Components\UI\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraController.h">
+      <Filter>App\Components\UI\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>App\Entities</Filter>
+    </ClInclude>
+    <ClInclude Include="PackService.h">
+      <Filter>App\Components\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="BakeService.h">
+      <Filter>App\Components\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="StateBakeStage.h">
+      <Filter>App\States</Filter>
+    </ClInclude>
+    <ClInclude Include="AppWindow.h">
+      <Filter>App\Components\App</Filter>
+    </ClInclude>
+    <ClInclude Include="AppWindowPresenter.h">
+      <Filter>App\Components\App</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scene">
@@ -418,9 +619,6 @@
     </Filter>
     <Filter Include="Dependencies">
       <UniqueIdentifier>{db8feea6-5593-4d28-8818-607a9a41bfe6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Application">
-      <UniqueIdentifier>{2960306b-f0d9-4be6-a66f-86219aaa9e32}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources">
       <UniqueIdentifier>{c1e56859-279b-4164-86f8-ded18a81c252}</UniqueIdentifier>
@@ -454,6 +652,39 @@
     </Filter>
     <Filter Include="Resources\Shaders\Im3d">
       <UniqueIdentifier>{a9876139-a6aa-4d5e-ad19-1085e9ace7c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App">
+      <UniqueIdentifier>{a6ace7ec-a9e8-4493-bea4-cc31a0670ae9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Components">
+      <UniqueIdentifier>{f5e6f83b-163c-4bcb-8c89-35163ac7ca4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Components\ImGui">
+      <UniqueIdentifier>{c34e82a3-4758-426b-a59c-0b64dc36361b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Components\Im3D">
+      <UniqueIdentifier>{df77d3a6-6492-4a11-9dc2-7ad162aa0358}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\States">
+      <UniqueIdentifier>{b87f696d-2fb7-4683-bc7a-47b384c218ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Components\Stage">
+      <UniqueIdentifier>{21a6f54c-b246-4bb0-9cab-ae634ec29613}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Components\UI">
+      <UniqueIdentifier>{f5629a84-162e-45ec-937f-8dc98b9374d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Components\App">
+      <UniqueIdentifier>{7c2aaba0-68db-4c6e-880d-c0252db48a6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Entities">
+      <UniqueIdentifier>{394a9778-96e3-434e-ab5b-e02da5d0a218}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Components\UI\Scene">
+      <UniqueIdentifier>{361cc76c-ee35-429e-bbd1-19ebd09a2cb3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App\Components\UI\Viewport">
+      <UniqueIdentifier>{f1f000a3-a7ab-4f54-8117-62f37c13eb9d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

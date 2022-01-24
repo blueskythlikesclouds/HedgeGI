@@ -1,12 +1,12 @@
 ﻿#include "Viewport.h"
-
-#include "Application.h"
 #include "BakingFactory.h"
 #include "Bitmap.h"
-#include "Camera.h"
 #include "Framebuffer.h"
 #include "ShaderProgram.h"
+#include "Stage.h"
+#include "StageParams.h"
 #include "Texture.h"
+#include "ViewportWindow.h"
 
 void Viewport::bakeThreadFunc()
 {
@@ -23,17 +23,30 @@ void Viewport::bakeThreadFunc()
     }
 }
 
+void Viewport::drawQuad() const
+{
+    quad.vertexArray.bind();
+    quad.elementArray.bind();
+    quad.elementArray.draw();
+}
+
 void Viewport::initialize()
 {
     avgLuminanceFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_R32F, 256, 256, GL_RED, GL_FLOAT);
     avgLuminanceFramebufferTex->bind();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 8);
+
+    bakeThread = std::thread(&Viewport::bakeThreadFunc, this);
 }
 
-void Viewport::validate(const Application& application)
+void Viewport::validate()
 {
-    const size_t bakeWidth = application.getBakeWidth();
-    const size_t bakeHeight = application.getBakeHeight();
+    const auto stage = get<Stage>();
+    const auto params = get<StageParams>();
+    const auto viewportUI = get<ViewportWindow>();
+
+    const size_t bakeWidth = viewportUI->getBakeWidth();
+    const size_t bakeHeight = viewportUI->getBakeHeight();
 
     if (bitmap == nullptr || bitmap->width < bakeWidth || bitmap->height < bakeHeight)
     {
@@ -46,28 +59,31 @@ void Viewport::validate(const Application& application)
         progress = 0;
     }
 
-    else if (bakeArgs.bakeWidth != bakeWidth || bakeArgs.bakeHeight != bakeHeight || application.isDirty())
+    else if (bakeArgs.bakeWidth != bakeWidth || bakeArgs.bakeHeight != bakeHeight || params->dirty)
         progress = 0;
 
-    if (application.isDirtyBVH())
-        application.getScene().createLightBVH(true);
+    if (params->dirtyBVH)
+        stage->getScene()->createLightBVH(true);
 
-    bakeArgs.antiAliasing = !application.isDirty(); // Random jitter is very eye-killing when moving/modifying values
+    bakeArgs.antiAliasing = !params->dirty; // Random jitter is very eye-killing when moving/modifying values
 
-    const auto& sceneRgbTable = application.getScene().rgbTable;
+    const auto& sceneRgbTable = stage->getScene()->rgbTable;
 
     if (rgbTable != sceneRgbTable.get())
     {
         rgbTable = sceneRgbTable.get();
         rgbTableTex = rgbTable ? std::make_unique<Texture>(GL_TEXTURE_2D, GL_RGBA32F, rgbTable->width, rgbTable->height, GL_RGBA, GL_FLOAT, rgbTable->data.get()) : nullptr;
     }
+
+    params->dirty = false;
+    params->dirtyBVH = false;
 }
 
-void Viewport::copy(const Application& application) const
+void Viewport::copy()
 {
     hdrFramebufferTex->texture.subImage(0, (GLint)(bitmap->height - bakeArgs.bakeHeight), (GLsizei)bakeArgs.bakeWidth, (GLsizei)bakeArgs.bakeHeight, GL_RGBA, GL_FLOAT, bitmap->data.get());
 
-    const SceneEffect& sceneEffect = application.getSceneEffect();
+    const SceneEffect& sceneEffect = get<Stage>()->getScene()->effect;
 
     copyTexShader.use();
     copyTexShader.set("uRect", Vector4(0, 1 - normalizedHeight, normalizedWidth, normalizedHeight));
@@ -77,27 +93,30 @@ void Viewport::copy(const Application& application) const
     avgLuminanceFramebufferTex->bind();
     hdrFramebufferTex->texture.bind(0);
 
-    application.drawQuad();
+    drawQuad();
 
     avgLuminanceFramebufferTex->texture.bind();
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-void Viewport::toneMap(const Application& application) const
+void Viewport::toneMap()
 {
-    const float middleGray = application.getSceneEffect().hdr.middleGray;
+    const auto stage = get<Stage>();
+    const auto params = get<StageParams>();
+
+    const float middleGray = stage->getScene()->effect.hdr.middleGray;
 
     toneMapShader.use();
     toneMapShader.set("uRect", Vector4(0, 1 - normalizedHeight, normalizedWidth, normalizedHeight));
-    toneMapShader.set("uMiddleGray", application.getGame() == Game::Forces ? middleGray * 0.5f : middleGray);
+    toneMapShader.set("uMiddleGray", stage->getGameType() == GameType::Forces ? middleGray * 0.5f : middleGray);
     toneMapShader.set("uTexture", 0);
     toneMapShader.set("uAvgLuminanceTex", 1);
     toneMapShader.set("uGamma",
-        application.getBakeParams().targetEngine == TargetEngine::HE2 ? 1.0f / 2.2f :
-        application.getGame() == Game::Generations && application.getGammaCorrectionFlag() ? 1.25f :
+        params->bakeParams.targetEngine == TargetEngine::HE2 ? 1.0f / 2.2f :
+        stage->getGameType() == GameType::Generations && params->gammaCorrectionFlag ? 1.25f :
         1.0f);
 
-    const bool enableRgbTable = application.getBakeParams().targetEngine == TargetEngine::HE2 && application.getColorCorrectionFlag() && rgbTable != nullptr;
+    const bool enableRgbTable = params->bakeParams.targetEngine == TargetEngine::HE2 && params->colorCorrectionFlag && rgbTable != nullptr;
 
     toneMapShader.set("uEnableRgbTable", enableRgbTable);
 
@@ -112,25 +131,28 @@ void Viewport::toneMap(const Application& application) const
     avgLuminanceFramebufferTex->texture.bind(1);
 
     glViewport(0, (GLint)(ldrFramebufferTex->height - bakeArgs.bakeHeight), (GLsizei)bakeArgs.bakeWidth, (GLsizei)bakeArgs.bakeHeight);
-    application.drawQuad();
+    drawQuad();
 }
 
-void Viewport::notifyBakeThread(const Application& application)
+void Viewport::notifyBakeThread()
 {
-    bakeArgs.raytracingContext = application.getRaytracingContext();
-    bakeArgs.bakeWidth = application.getBakeWidth();
-    bakeArgs.bakeHeight = application.getBakeHeight();
-    bakeArgs.camera = application.getCamera();
-    bakeArgs.bakeParams = application.getBakeParams();
+    const auto stage = get<Stage>();
+    const auto params = get<StageParams>();
+    const auto camera = get<CameraController>();
+    const auto viewportUI = get<ViewportWindow>();
+
+    bakeArgs.raytracingContext = stage->getScene()->getRaytracingContext();
+    bakeArgs.bakeWidth = viewportUI->getBakeWidth();
+    bakeArgs.bakeHeight = viewportUI->getBakeHeight();
+    bakeArgs.camera = camera->current;
+    bakeArgs.bakeParams = params->bakeParams;
     bakeArgs.baking = true;
 }
 
 Viewport::Viewport() :
     copyTexShader(ShaderProgram::get("CopyTexture")),
-    toneMapShader(ShaderProgram::get("ToneMap")),
-    bakeThread(&Viewport::bakeThreadFunc, this)
+    toneMapShader(ShaderProgram::get("ToneMap"))
 {
-    initialize();
 }
 
 Viewport::~Viewport()
@@ -139,16 +161,18 @@ Viewport::~Viewport()
     bakeThread.join();
 }
 
-void Viewport::update(const Application& application)
+void Viewport::update(float deltaTime)
 {
-    if (bakeArgs.baking)
+    const auto viewportUI = get<ViewportWindow>();
+
+    if (!viewportUI->show || bakeArgs.baking)
         return;
 
     const double time = glfwGetTime();
-    const double elapsedTime = time - currentTime;
-
-    if ((frameRateUpdateTime += elapsedTime) > 0.5)
-        frameRate = (size_t)lround(1.0 / std::max((double)application.getElapsedTime(), elapsedTime)), frameRateUpdateTime = 0.0;
+    const double viewportDeltaTime = time - currentTime;
+    
+    if ((frameRateUpdateTime += viewportDeltaTime) > 0.5)
+        frameRate = (size_t)lround(1.0 / std::max((double)deltaTime, viewportDeltaTime)), frameRateUpdateTime = 0.0;
 
     currentTime = time;
 
@@ -157,12 +181,12 @@ void Viewport::update(const Application& application)
         normalizedWidth = bakeArgs.bakeWidth / (float)bitmap->width;
         normalizedHeight = bakeArgs.bakeHeight / (float)bitmap->height;
 
-        copy(application);
-        toneMap(application);
+        copy();
+        toneMap();
     }
 
-    validate(application);
-    notifyBakeThread(application);
+    validate();
+    notifyBakeThread();
 }
 
 const Texture* Viewport::getInitialTexture() const

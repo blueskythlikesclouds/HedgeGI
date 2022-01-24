@@ -54,6 +54,8 @@ using Quaternion = Eigen::Quaternionf;
 #include <random>
 #include <unordered_set>
 #include <vector>
+#include <stack>
+#include <map>
 
 // parallel_hashmap
 #include <phmap.h>

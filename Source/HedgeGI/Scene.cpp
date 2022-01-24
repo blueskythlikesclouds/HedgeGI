@@ -1,13 +1,13 @@
 ﻿#include "Scene.h"
 
 #include "Bitmap.h"
+#include "Instance.h"
+#include "Light.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "Model.h"
-#include "Instance.h"
-#include "Light.h"
-#include "SHLightField.h"
 #include "RaytracingDevice.h"
+#include "SHLightField.h"
 
 Scene::~Scene()
 {

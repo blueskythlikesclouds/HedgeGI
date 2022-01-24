@@ -1,19 +1,21 @@
 ﻿#pragma once
 
 #include "BakeParams.h"
-#include "Camera.h"
+#include "CameraController.h"
+#include "Quad.h"
 #include "Scene.h"
 
-class Application;
 class Bitmap;
 class FramebufferTexture;
 class ShaderProgram;
 class Texture;
 
-class Viewport
+class Viewport final : public Component
 {
+    const Quad quad;
+
     std::unique_ptr<Bitmap> bitmap;
-    size_t progress {};
+    size_t progress{};
 
     const ShaderProgram& copyTexShader;
     const ShaderProgram& toneMapShader;
@@ -38,8 +40,8 @@ class Viewport
         std::atomic<bool> end;
     } bakeArgs{};
 
-    float normalizedWidth {};
-    float normalizedHeight {};
+    float normalizedWidth{};
+    float normalizedHeight{};
 
     double currentTime{};
     size_t frameRate{};
@@ -49,17 +51,19 @@ class Viewport
 
     void bakeThreadFunc();
 
-    void initialize();
-    void validate(const Application& application);
-    void copy(const Application& application) const;
-    void toneMap(const Application& application) const;
-    void notifyBakeThread(const Application& application);
+    void drawQuad() const;
+
+    void validate();
+    void copy();
+    void toneMap();
+    void notifyBakeThread();
 
 public:
     Viewport();
-    ~Viewport();
+    ~Viewport() override;
 
-    void update(const Application& application);
+    void initialize() override;
+    void update(float deltaTime) override;
 
     const Texture* getInitialTexture() const;
     const Texture* getFinalTexture() const;

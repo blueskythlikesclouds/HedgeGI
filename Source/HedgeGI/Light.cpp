@@ -1,5 +1,4 @@
 ﻿#include "Light.h"
-#include "Math.h"
 
 void Light::saveLightList(hl::stream& stream, const std::vector<std::unique_ptr<Light>>& lights)
 {

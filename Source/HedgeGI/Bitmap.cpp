@@ -1,7 +1,6 @@
 ﻿#include "Bitmap.h"
 
 #include "D3D11Device.h"
-#include "FileStream.h"
 #include "Math.h"
 
 void Bitmap::transformToLightMap(Color4* color)

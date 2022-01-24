@@ -1,6 +1,8 @@
 ﻿#pragma once
 
-class Input
+#include "Component.h"
+
+class Input final : public Component
 {
     static void keyCallback(GLFWwindow* window, int key, int scanCode, int action, int mods);
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
@@ -21,7 +23,6 @@ public:
         double cursorY{};
     } history{};
 
-    Input(GLFWwindow* window);
-
-    void postUpdate();
+    void initialize() override;
+    void update(float deltaTime) override;
 };

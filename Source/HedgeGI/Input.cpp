@@ -1,5 +1,7 @@
 ﻿#include "Input.h"
 
+#include "AppWindow.h"
+
 void Input::keyCallback(GLFWwindow* window, int key, int scanCode, int action, int mods)
 {
     Input* input = (Input*)glfwGetWindowUserPointer(window);
@@ -30,16 +32,19 @@ void Input::cursorPosCallback(GLFWwindow* window, const double cursorX, const do
     input->cursorY = cursorY;
 }
 
-Input::Input(GLFWwindow* window)
+void Input::initialize()
 {
+    GLFWwindow* window = get<AppWindow>()->getWindow();
     glfwSetWindowUserPointer(window, this);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
 }
 
-void Input::postUpdate()
+void Input::update(const float deltaTime)
 {
+    if (!get<AppWindow>()->isFocused()) return;
+
     tappedKeys = {};
     tappedMouseButtons = {};
     history.cursorX = cursorX;

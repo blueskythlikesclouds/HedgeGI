@@ -1,4 +1,4 @@
-#include "Application.h"
+#include "App.h"
 
 #pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
 
@@ -16,11 +16,13 @@ int32_t main(int32_t argc, const char* argv[])
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
     {
-        Application application;
+        App app;
+#if 0
         if (argc > 1)
-            application.loadScene(argv[1]);
+            app.loadScene(argv[1]);
+#endif
 
-        application.run();
+        app.run();
     }
 
     // Calling exit forces any async tasks to quit

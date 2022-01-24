@@ -1,10 +1,10 @@
 ﻿#pragma once
 
+typedef std::function<void(hl::hh::mirage::terrain_model&)> ProcModelFunc;
+
 class ModelProcessor
 {
 public:
-    typedef std::function<void(hl::hh::mirage::terrain_model&)> ProcModelFunc;
-
     static bool processArchive(hl::archive& archive, ProcModelFunc function);
     static void processArchive(const std::string& filePath, ProcModelFunc function, const std::string& displayName = std::string());
 
