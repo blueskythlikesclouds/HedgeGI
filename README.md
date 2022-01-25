@@ -6,7 +6,6 @@ HedgeGI is a tool that allows you to bake global illumination and light field da
 
 # Requirements
 * Windows 10 (or later) with latest updates.
-* [Visual C++ Redist 2015/2017/2019 x64](https://aka.ms/vs/16/release/VC_redist.x64.exe)
 * x64 CPU with AVX2 support.
     * SSE2 builds are going to be provided in the future.
 * NVIDIA GPU on the latest drivers if you wish to use the Optix AI Denoiser.
