@@ -35,6 +35,62 @@ void LightEditor::update(float deltaTime)
         ImGui::EndListBox();
     }
 
+    if (ImGui::Button("Add"))
+    {
+        std::unique_ptr<Light> light = std::make_unique<Light>();
+        light->type = LightType::Point;
+        light->position = get<CameraController>()->current.getNewObjectPosition();
+        light->color = Color3::Ones();
+        light->range = Vector4(0, 0, 0, 3);
+
+        char name[16];
+        sprintf(name, "Omni%03d", (int)stage->getScene()->lights.size());
+        light->name = name;
+
+        selection = light.get();
+        stage->getScene()->lights.push_back(std::move(light));
+        params->dirtyBVH = true;
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Clone"))
+    {
+        if (selection != nullptr)
+        {
+            std::unique_ptr<Light> light = std::make_unique<Light>(*selection);
+
+            char name[16];
+            sprintf(name, "Omni%03d", (int)stage->getScene()->lights.size());
+            light->name = name;
+
+            selection = light.get();
+            stage->getScene()->lights.push_back(std::move(light));
+            params->dirtyBVH = true;
+        }
+    }
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Remove"))
+    {
+        if (selection != nullptr)
+        {
+            for (auto it = stage->getScene()->lights.begin(); it != stage->getScene()->lights.end(); ++it)
+            {
+                if ((*it).get() != selection)
+                    continue;
+
+                stage->getScene()->lights.erase(it);
+                params->dirtyBVH = true;
+
+                break;
+            }
+
+            selection = nullptr;
+        }
+    }
+
     if (selection != nullptr)
     {
         Im3d::DrawSphere(*(const Im3d::Vec3*)selection->position.data(), selection->range.w());
@@ -120,51 +176,9 @@ void LightEditor::update(float deltaTime)
 
             endProperties();
         }
-    }
 
-    const float buttonWidth = (ImGui::GetWindowSize().x - ImGui::GetStyle().ItemSpacing.x * 3) / 3;
-
-    if (ImGui::Button("Add", { buttonWidth / 2, 0 }))
-    {
-        std::unique_ptr<Light> light = std::make_unique<Light>();
-        light->type = LightType::Point;
-        light->position = get<CameraController>()->current.getNewObjectPosition();
-        light->color = Color3::Ones();
-        light->range = Vector4(0, 0, 0, 3);
-
-        char name[16];
-        sprintf(name, "Omni%03d", (int)stage->getScene()->lights.size());
-        light->name = name;
-
-        selection = light.get();
-        stage->getScene()->lights.push_back(std::move(light));
-        params->dirtyBVH = true;
-    }
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Save Changes", { buttonWidth * 2, 0 }))
-        get<StateManager>()->packResources(PackResourceMode::Light);
-
-    ImGui::SameLine();
-
-    if (ImGui::Button("Remove", { buttonWidth / 2, 0 }))
-    {
-        if (selection != nullptr)
-        {
-            for (auto it = stage->getScene()->lights.begin(); it != stage->getScene()->lights.end(); ++it)
-            {
-                if ((*it).get() != selection)
-                    continue;
-
-                stage->getScene()->lights.erase(it);
-                params->dirtyBVH = true;
-
-                break;
-            }
-
-            selection = nullptr;
-        }
+        if (ImGui::Button("Save Changes"))
+            get<StateManager>()->packResources(PackResourceMode::Light);
     }
 
     params->dirty |= params->dirtyBVH;

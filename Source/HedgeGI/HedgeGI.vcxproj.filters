@@ -267,9 +267,6 @@
     <ClCompile Include="StateEditStage.cpp">
       <Filter>App\States</Filter>
     </ClCompile>
-    <ClCompile Include="SceneWindow.cpp">
-      <Filter>App\Components\UI</Filter>
-    </ClCompile>
     <ClCompile Include="LogWindow.cpp">
       <Filter>App\Components\UI</Filter>
     </ClCompile>
@@ -311,6 +308,9 @@
     </ClCompile>
     <ClCompile Include="AppWindowPresenter.cpp">
       <Filter>App\Components\App</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneWindow.cpp">
+      <Filter>App\Components\UI\Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -546,9 +546,6 @@
     <ClInclude Include="StateIdle.h">
       <Filter>App\States</Filter>
     </ClInclude>
-    <ClInclude Include="SceneWindow.h">
-      <Filter>App\Components\UI</Filter>
-    </ClInclude>
     <ClInclude Include="LogWindow.h">
       <Filter>App\Components\UI</Filter>
     </ClInclude>
@@ -590,6 +587,9 @@
     </ClInclude>
     <ClInclude Include="AppWindowPresenter.h">
       <Filter>App\Components\App</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneWindow.h">
+      <Filter>App\Components\UI\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
