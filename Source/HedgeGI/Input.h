@@ -8,6 +8,10 @@ class Input final : public Component
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void cursorPosCallback(GLFWwindow* window, double cursorX, double cursorY);
 
+    GLFWkeyfun prevKeyFun{};
+    GLFWmousebuttonfun prevMouseButtonFun{};
+    GLFWcursorposfun prevCursorPosFun{};
+
 public:
     std::array<bool, GLFW_KEY_LAST + 1> tappedKeys{};
     std::array<bool, GLFW_KEY_LAST + 1> heldKeys{};
