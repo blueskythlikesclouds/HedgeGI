@@ -37,7 +37,7 @@ void SHLightFieldEditor::update(float deltaTime)
     if (ImGui::Button("Add"))
     {
         std::unique_ptr<SHLightField> shlf = std::make_unique<SHLightField>();
-        shlf->position = get<CameraController>()->current.getNewObjectPosition() * 10;
+        shlf->position = get<CameraController>()->getNewObjectPosition() * 10;
         shlf->rotation = Vector3::Zero();
         shlf->scale = { 80, 120, 750 };
         shlf->resolution = { 2, 2, 10 };

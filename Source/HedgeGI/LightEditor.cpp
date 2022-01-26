@@ -39,7 +39,7 @@ void LightEditor::update(float deltaTime)
     {
         std::unique_ptr<Light> light = std::make_unique<Light>();
         light->type = LightType::Point;
-        light->position = get<CameraController>()->current.getNewObjectPosition();
+        light->position = get<CameraController>()->getNewObjectPosition();
         light->color = Color3::Ones();
         light->range = Vector4(0, 0, 0, 3);
 

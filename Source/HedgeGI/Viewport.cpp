@@ -43,10 +43,10 @@ void Viewport::validate()
 {
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
-    const auto viewportUI = get<ViewportWindow>();
+    const auto viewportWindow = get<ViewportWindow>();
 
-    const size_t bakeWidth = viewportUI->getBakeWidth();
-    const size_t bakeHeight = viewportUI->getBakeHeight();
+    const size_t bakeWidth = viewportWindow->getBakeWidth();
+    const size_t bakeHeight = viewportWindow->getBakeHeight();
 
     if (bitmap == nullptr || bitmap->width < bakeWidth || bitmap->height < bakeHeight)
     {
@@ -139,12 +139,12 @@ void Viewport::notifyBakeThread()
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
     const auto camera = get<CameraController>();
-    const auto viewportUI = get<ViewportWindow>();
+    const auto viewportWindow = get<ViewportWindow>();
 
     bakeArgs.raytracingContext = stage->getScene()->getRaytracingContext();
-    bakeArgs.bakeWidth = viewportUI->getBakeWidth();
-    bakeArgs.bakeHeight = viewportUI->getBakeHeight();
-    bakeArgs.camera = camera->current;
+    bakeArgs.bakeWidth = viewportWindow->getBakeWidth();
+    bakeArgs.bakeHeight = viewportWindow->getBakeHeight();
+    bakeArgs.camera = *static_cast<Camera*>(camera);
     bakeArgs.bakeParams = params->bakeParams;
     bakeArgs.baking = true;
 }
@@ -163,9 +163,9 @@ Viewport::~Viewport()
 
 void Viewport::update(float deltaTime)
 {
-    const auto viewportUI = get<ViewportWindow>();
+    const auto viewportWindow = get<ViewportWindow>();
 
-    if (!viewportUI->show || bakeArgs.baking)
+    if (!viewportWindow->show || bakeArgs.baking)
         return;
 
     const double time = glfwGetTime();

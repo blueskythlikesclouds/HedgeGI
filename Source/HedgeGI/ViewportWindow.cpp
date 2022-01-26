@@ -107,8 +107,8 @@ void ViewportWindow::update(float deltaTime)
     width = (int)(max.x - min.x);
     height = (int)(max.y - min.y);
 
-    bakeWidth = std::max(1, width >> (params->dirty ? 1 : 0));
-    bakeHeight = std::max(1, height >> (params->dirty ? 1 : 0));
+    bakeWidth = width;
+    bakeHeight = height;
 
     mouseX = saturate((ImGui::GetMousePos().x - min.x) / (max.x - min.x));
     mouseY = saturate((ImGui::GetMousePos().y - min.y) / (max.y - min.y));
@@ -117,6 +117,15 @@ void ViewportWindow::update(float deltaTime)
     bakeWidth = (int)((float)bakeWidth / params->viewportResolutionInvRatio);
     bakeHeight = (int)((float)bakeHeight / params->viewportResolutionInvRatio);
     focused = ImGui::IsMouseHoveringRect(min, max) || ImGui::IsWindowFocused();
+
+    if (params->dirty)
+    {
+        bakeWidth /= 2;
+        bakeHeight /= 2;
+    }
+
+    bakeWidth = std::max(1, bakeWidth);
+    bakeHeight = std::max(1, bakeHeight);
 
     ImGui::End();
 }

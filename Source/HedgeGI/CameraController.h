@@ -5,14 +5,9 @@
 
 class PropertyBag;
 
-class CameraController final : public Component
+class CameraController final : public Component, public Camera
 {
 public:
-    Camera current;
-    Camera previous;
-
-    bool hasChanged() const;
-
     void load(const PropertyBag& propertyBag);
     void store(PropertyBag& propertyBag) const;
 
