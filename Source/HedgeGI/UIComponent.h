@@ -4,6 +4,9 @@
 
 class UIComponent : public Component
 {
+    static char tmp[256];
+    static const char* makeName(const char* name);
+
 public:
     static bool beginProperties(const char* name);
     static void beginProperty(const char* label, float width = -1);
@@ -28,7 +31,7 @@ public:
             break;
         }
 
-        if (!ImGui::BeginCombo((std::string("##") + label).c_str(), preview))
+        if (!ImGui::BeginCombo(makeName(label), preview))
             return false;
 
         bool any = false;

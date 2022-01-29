@@ -123,52 +123,52 @@ void ShaderProgram::use() const
     glUseProgram(id);
 }
 
-GLint ShaderProgram::getUniformLocation(const std::string& name) const
+GLint ShaderProgram::getUniformLocation(const char* name) const
 {
     auto pair = uniforms.find(name);
 
     if (pair != uniforms.end())
         return pair->second;
 
-    return glGetUniformLocation(id, name.c_str());
+    return glGetUniformLocation(id, name);
 }
 
-void ShaderProgram::set(const std::string& name, const GLint value) const
+void ShaderProgram::set(const char* name, const GLint value) const
 {
     glUniform1i(getUniformLocation(name), value);
 }
 
-void ShaderProgram::set(const std::string& name, const GLfloat value) const
+void ShaderProgram::set(const char* name, const GLfloat value) const
 {
     glUniform1f(getUniformLocation(name), value);
 }
 
-void ShaderProgram::set(const std::string& name, const bool value) const
+void ShaderProgram::set(const char* name, const bool value) const
 {
     glUniform1i(getUniformLocation(name), (GLint)value);
 }
 
-void ShaderProgram::set(const std::string& name, const Vector2& value) const
+void ShaderProgram::set(const char* name, const Vector2& value) const
 {
     glUniform2fv(getUniformLocation(name), 1, value.data());
 }
 
-void ShaderProgram::set(const std::string& name, const Vector3& value) const
+void ShaderProgram::set(const char* name, const Vector3& value) const
 {
     glUniform3fv(getUniformLocation(name), 1, value.data());
 }
 
-void ShaderProgram::set(const std::string& name, const Vector4& value) const
+void ShaderProgram::set(const char* name, const Vector4& value) const
 {
     glUniform4fv(getUniformLocation(name), 1, value.data());
 }
 
-void ShaderProgram::set(const std::string& name, const Color4& value) const
+void ShaderProgram::set(const char* name, const Color4& value) const
 {
     glUniform4fv(getUniformLocation(name), 1, value.data());
 }
 
-void ShaderProgram::set(const std::string& name, const Matrix4& value) const
+void ShaderProgram::set(const char* name, const Matrix4& value) const
 {
     glUniformMatrix4fv(getUniformLocation(name), 1, false, value.data());
 }

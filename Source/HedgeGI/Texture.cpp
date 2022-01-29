@@ -18,7 +18,7 @@ Texture::Texture(const int rc) : Texture(ImageUtil::load(rc))
 }
 
 Texture::Texture(const DirectX::ScratchImage& image) :
-    Texture(GL_TEXTURE_2D, GL_RGBA, image.GetMetadata().width, image.GetMetadata().height, GL_RGBA, GL_UNSIGNED_BYTE, image.GetPixels())
+    Texture(GL_TEXTURE_2D, GL_RGBA, (GLsizei)image.GetMetadata().width, (GLsizei)image.GetMetadata().height, GL_RGBA, GL_UNSIGNED_BYTE, image.GetPixels())
 {
 }
 

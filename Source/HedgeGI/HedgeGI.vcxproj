@@ -347,6 +347,7 @@
     <ClCompile Include="GameType.cpp" />
     <ClCompile Include="ImGuiPresenter.cpp" />
     <ClCompile Include="MenuBar.cpp" />
+    <ClCompile Include="Utilities.cpp" />
     <ClCompile Include="Viewport.cpp" />
     <ClCompile Include="ViewportWindow.cpp" />
     <ClCompile Include="AppWindow.cpp" />

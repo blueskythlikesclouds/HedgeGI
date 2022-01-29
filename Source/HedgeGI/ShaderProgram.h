@@ -5,7 +5,7 @@ class ShaderProgram
     static std::unordered_map<std::string, std::unique_ptr<ShaderProgram>> shaders;
     static GLuint create(GLenum type, const GLchar* string, GLint length);
 
-    std::unordered_map<std::string, GLint> uniforms;
+    std::unordered_map<const char*, GLint> uniforms;
 
     void registerUniforms();
 
@@ -21,14 +21,14 @@ public:
 
     void use() const;
 
-    GLint getUniformLocation(const std::string& name) const;
+    GLint getUniformLocation(const char* name) const;
 
-    void set(const std::string& name, GLint value) const;
-    void set(const std::string& name, GLfloat value) const;
-    void set(const std::string& name, bool value) const;
-    void set(const std::string& name, const Vector2& value) const;
-    void set(const std::string& name, const Vector3& value) const;
-    void set(const std::string& name, const Vector4& value) const;
-    void set(const std::string& name, const Color4& value) const;
-    void set(const std::string& name, const Matrix4& value) const;
+    void set(const char* name, GLint value) const;
+    void set(const char* name, GLfloat value) const;
+    void set(const char* name, bool value) const;
+    void set(const char* name, const Vector2& value) const;
+    void set(const char* name, const Vector3& value) const;
+    void set(const char* name, const Vector4& value) const;
+    void set(const char* name, const Color4& value) const;
+    void set(const char* name, const Matrix4& value) const;
 };

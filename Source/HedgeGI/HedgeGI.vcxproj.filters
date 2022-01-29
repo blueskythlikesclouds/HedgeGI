@@ -315,6 +315,9 @@
     <ClCompile Include="ImageUtil.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="Utilities.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
