@@ -42,11 +42,13 @@ public:
     static float sampleShadow(const RaytracingContext& raytracingContext, 
         const Vector3& position, const Vector3& direction, const Matrix3& tangentToWorldMatrix, float distance, float radius, const BakeParams& bakeParams, Random& random);
 
-    template <typename TBakePoint>
+    template<typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
 
     static void bake(const RaytracingContext& raytracingContext, const Bitmap& bitmap,
         size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress = 0, bool antiAliasing = true);
+
+    static bool rayCast(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, TargetEngine targetEngine, Vector3& hitPosition);
 
     static std::lock_guard<CriticalSection> lock()
     {

@@ -17,6 +17,16 @@ Im3DManager::Im3DManager() : shader(ShaderProgram::get("Im3d")),
 {
 }
 
+const Vector3& Im3DManager::getRayPosition() const
+{
+    return rayPosition;
+}
+
+const Vector3& Im3DManager::getRayDirection() const
+{
+    return rayDirection;
+}
+
 void Im3DManager::endFrame()
 {
     Im3d::EndFrame();
@@ -105,7 +115,9 @@ void Im3DManager::update(const float deltaTime)
     const float xNormalized = viewportWindow->getMouseX() * 2 - 1;
     const float yNormalized = viewportWindow->getMouseY() * -2 + 1;
     const float tanFovy = tanf(camera.fieldOfView / 2.0f);
-    const Vector3 rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio, yNormalized * tanFovy, -1)).normalized();
+
+    rayPosition = camera.position;
+    rayDirection = (camera.rotation * Vector3(xNormalized * tanFovy * camera.aspectRatio, yNormalized * tanFovy, -1)).normalized();
 
     Im3d::AppData& appData = Im3d::GetAppData();
     appData.m_keyDown[Im3d::Mouse_Left] = input->heldMouseButtons[GLFW_MOUSE_BUTTON_LEFT];

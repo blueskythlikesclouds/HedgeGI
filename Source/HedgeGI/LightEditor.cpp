@@ -1,13 +1,57 @@
 ﻿#include "LightEditor.h"
 
+#include "BakingFactory.h"
 #include "CameraController.h"
 #include "Im3DManager.h"
+#include "Input.h"
 #include "Stage.h"
 #include "StageParams.h"
 #include "Light.h"
 #include "Math.h"
 #include "PackService.h"
 #include "StateManager.h"
+#include "ViewportWindow.h"
+
+void LightEditor::rayCastAndUpdateSelection()
+{
+    const auto input = get<Input>();
+    if (!input->tappedMouseButtons[GLFW_MOUSE_BUTTON_LEFT])
+        return;
+
+    const auto viewportWindow = get<ViewportWindow>();
+    if (!viewportWindow->isFocused())
+        return;
+
+    const auto stage = get<Stage>();
+    const auto params = get<StageParams>();
+    const auto im3d = get<Im3DManager>();
+
+    // todo: maybe raycast onto the spheres of the lights instead?
+
+    Vector3 hitPosition;
+    if (!BakingFactory::rayCast(stage->getScene()->getRaytracingContext(), 
+        im3d->getRayPosition(), im3d->getRayDirection(), params->bakeParams.targetEngine, hitPosition))
+        return;
+
+    float currentDistance = INFINITY;
+    Light* currentLight = nullptr;
+
+    stage->getScene()->getLightBVH().traverse(hitPosition, [&](const Light* light)
+    {
+        if (light->type != LightType::Point)
+            return;
+
+        const float distance = (light->position - hitPosition).squaredNorm() / (light->range.w() * light->range.w());
+        if (distance < currentDistance)
+        {
+            currentDistance = distance;
+            currentLight = const_cast<Light*>(light);
+        }
+    });
+
+    if (currentLight)
+        selection = currentLight;
+}
 
 void LightEditor::update(float deltaTime)
 {
@@ -180,6 +224,9 @@ void LightEditor::update(float deltaTime)
         if (ImGui::Button("Save Changes"))
             get<StateManager>()->packResources(PackResourceMode::Light);
     }
+
+    if (!params->dirtyBVH)
+        rayCastAndUpdateSelection();
 
     params->dirty |= params->dirtyBVH;
 }

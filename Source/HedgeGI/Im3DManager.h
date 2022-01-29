@@ -12,8 +12,14 @@ class Im3DManager final : public Component
     const VertexArray vertexArray;
     Camera camera;
 
+    Vector3 rayPosition;
+    Vector3 rayDirection;
+
 public:
     Im3DManager();
+
+    const Vector3& getRayPosition() const;
+    const Vector3& getRayDirection() const;
 
     void endFrame();
 

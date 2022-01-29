@@ -624,3 +624,39 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
         output.head<3>() = progress == 0 ? result.color : (output.head<3>() * progress + result.color) / (progress + 1);
     });
 }
+
+bool BakingFactory::rayCast(const RaytracingContext& raytracingContext, const Vector3& position,
+    const Vector3& direction, const TargetEngine targetEngine, Vector3& hitPosition)
+{
+    IntersectContext context(raytracingContext, Random::get());
+
+    context.init();
+    context.filter = targetEngine == TargetEngine::HE2 ?
+        intersectContextFilter<TargetEngine::HE2, true> :
+        intersectContextFilter<TargetEngine::HE1, true>;
+
+    context.flags = RTC_INTERSECT_CONTEXT_FLAG_COHERENT;
+
+    RTCRayHit query{};
+    setRayOrigin(query.ray, position, 0.001f);
+    setRayDirection(query.ray, direction);
+
+    query.ray.tfar = INFINITY;
+    query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+    query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+    rtcIntersect1(raytracingContext.rtcScene, &context, &query);
+
+    if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
+        return false;
+
+    const Mesh& mesh = *raytracingContext.scene->meshes[query.hit.geomID];
+
+    const Triangle& triangle = mesh.triangles[query.hit.primID];
+    const Vertex& a = mesh.vertices[triangle.a];
+    const Vertex& b = mesh.vertices[triangle.b];
+    const Vertex& c = mesh.vertices[triangle.c];
+
+    hitPosition = barycentricLerp(a.position, b.position, c.position, query.hit.u, query.hit.v);
+    return true;
+}
