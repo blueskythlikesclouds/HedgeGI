@@ -26,7 +26,7 @@ void LightEditor::rayCastAndUpdateSelection()
     const auto params = get<StageParams>();
     const auto im3d = get<Im3DManager>();
 
-    // todo: maybe raycast onto the spheres of the lights instead?
+    // TODO: Maybe raycast onto the spheres of the lights instead?
 
     Vector3 hitPosition;
     if (!BakingFactory::rayCast(stage->getScene()->getRaytracingContext(), 
@@ -34,7 +34,7 @@ void LightEditor::rayCastAndUpdateSelection()
         return;
 
     float currentDistance = INFINITY;
-    Light* currentLight = nullptr;
+    const Light* currentLight = nullptr;
 
     stage->getScene()->getLightBVH().traverse(hitPosition, [&](const Light* light)
     {
@@ -42,15 +42,25 @@ void LightEditor::rayCastAndUpdateSelection()
             return;
 
         const float distance = (light->position - hitPosition).squaredNorm() / (light->range.w() * light->range.w());
-        if (distance < currentDistance)
+
+        bool set = false;
+
+        // HACK: Give priority to the selection in case the distances are nearly equal when cloning
+        if (nearlyEqual(distance, currentDistance))
+            set = light == selection || currentLight != selection;
+
+        else
+            set = distance < currentDistance;
+
+        if (set)
         {
             currentDistance = distance;
-            currentLight = const_cast<Light*>(light);
+            currentLight = light;
         }
     });
 
     if (currentLight)
-        selection = currentLight;
+        selection = const_cast<Light*>(currentLight);
 }
 
 void LightEditor::update(float deltaTime)
