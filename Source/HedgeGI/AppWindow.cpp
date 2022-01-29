@@ -1,5 +1,6 @@
 ﻿#include "AppWindow.h"
 
+#include "ImageUtil.h"
 #include "resource.h"
 #include "Utilities.h"
 
@@ -23,23 +24,7 @@ void AppWindow::initializeGLFW()
 
 void AppWindow::initializeIcons()
 {
-    const HRSRC hIconRes = FindResource(nullptr, MAKEINTRESOURCE(ResRawData_WindowIcon), TEXT("TEXT"));
-    const HGLOBAL hIconGlobal = LoadResource(nullptr, hIconRes);
-
-    DirectX::ScratchImage image;
-    DirectX::TexMetadata metadata;
-
-    DirectX::LoadFromWICMemory(LockResource(hIconGlobal), SizeofResource(nullptr, hIconRes), DirectX::WIC_FLAGS_NONE, &metadata, image);
-
-    if (metadata.format != DXGI_FORMAT_R8G8B8A8_UNORM)
-    {
-        DirectX::ScratchImage tmpImage;
-        DirectX::Convert(image.GetImages(), image.GetImageCount(), metadata,
-            DXGI_FORMAT_R8G8B8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, tmpImage);
-
-        std::swap(image, tmpImage);
-        metadata = image.GetMetadata();
-    }
+    const DirectX::ScratchImage image = ImageUtil::load(ResRawData_WindowIcon);
 
     const int resolutions[] = { 16, 24, 32, 40, 48, 64, 96, 128, 256 };
 
@@ -48,7 +33,7 @@ void AppWindow::initializeIcons()
 
     for (size_t i = 0; i < _countof(resolutions); i++)
     {
-        DirectX::Resize(image.GetImages(), image.GetImageCount(), metadata,
+        DirectX::Resize(image.GetImages(), image.GetImageCount(), image.GetMetadata(),
             resolutions[i], resolutions[i], DirectX::TEX_FILTER_BOX, scratchImages[i]);
 
         glfwImages[i].width = resolutions[i];
@@ -57,8 +42,6 @@ void AppWindow::initializeIcons()
     }
 
     glfwSetWindowIcon(window, _countof(glfwImages), glfwImages);
-
-    FreeResource(hIconGlobal);
 }
 
 AppWindow::AppWindow() : window(nullptr), width(1), height(1), focused(false)

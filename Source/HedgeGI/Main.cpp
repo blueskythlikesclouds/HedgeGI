@@ -17,11 +17,6 @@ int32_t main(int32_t argc, const char* argv[])
 
     {
         App app;
-#if 0
-        if (argc > 1)
-            app.loadScene(argv[1]);
-#endif
-
         app.run();
     }
 

@@ -29,5 +29,6 @@ public:
     void set(const std::string& name, const Vector2& value) const;
     void set(const std::string& name, const Vector3& value) const;
     void set(const std::string& name, const Vector4& value) const;
+    void set(const std::string& name, const Color4& value) const;
     void set(const std::string& name, const Matrix4& value) const;
 };

@@ -319,6 +319,7 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="BakeService.cpp" />
     <ClCompile Include="BakeParams.cpp" />
+    <ClCompile Include="ImageUtil.cpp" />
     <ClCompile Include="StateBakeStage.cpp" />
     <ClCompile Include="BakingFactoryWindow.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -405,6 +406,8 @@
     <ClInclude Include="App.h" />
     <ClInclude Include="BakeService.h" />
     <ClInclude Include="BakeParams.h" />
+    <ClInclude Include="Frustum.h" />
+    <ClInclude Include="ImageUtil.h" />
     <ClInclude Include="StateBakeStage.h" />
     <ClInclude Include="BakingFactoryWindow.h" />
     <ClInclude Include="Camera.h" />
@@ -496,6 +499,8 @@
     <ClInclude Include="VertexArray.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Billboard.frag.glsl" />
+    <None Include="Billboard.vert.glsl" />
     <None Include="Im3d.vert.glsl" />
     <None Include="ToneMap.frag.glsl">
       <FileType>Document</FileType>

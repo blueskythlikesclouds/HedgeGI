@@ -25,6 +25,17 @@ void Light::saveLightList(hl::stream& stream, const std::vector<std::unique_ptr<
     hl::hh::mirage::raw_header::finish_write(0, offTable, stream, "");
 }
 
+float Light::computeIntensity() const
+{
+    float intensity = color.maxCoeff();
+    if (intensity > 1.0f)
+        intensity /= 2.0f;
+    else
+        intensity = 1.0f;
+
+    return intensity;
+}
+
 void Light::save(hl::stream& stream) const
 {
     hl::off_table offTable;

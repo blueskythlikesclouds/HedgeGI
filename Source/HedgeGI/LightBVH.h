@@ -1,7 +1,8 @@
 ﻿#pragma once
 
-class Scene;
 class Light;
+struct Frustum;
+class Scene;
 
 class LightBVH
 {
@@ -15,6 +16,7 @@ class LightBVH
         std::unique_ptr<Node> right;
 
         bool contains(const Vector3& position) const;
+        bool contains(const Frustum& frustum) const;
     };
 
     std::unique_ptr<Node> node;
@@ -30,6 +32,16 @@ class LightBVH
         if (node.light) callback(node.light);
         if (node.left) traverse(position, callback, *node.left);
         if (node.right) traverse(position, callback, *node.right);
+    }
+
+    template<typename T>
+    void traverse(const Frustum& frustum, const T& callback, const Node& node) const
+    {
+        if (!node.contains(frustum)) return;
+
+        if (node.light) callback(node.light);
+        if (node.left) traverse(frustum, callback, *node.left);
+        if (node.right) traverse(frustum, callback, *node.right);
     }
 
     template<int N>
@@ -56,6 +68,13 @@ public:
     void traverse(const Vector3& position, const T& callback) const
     {
         if (node) traverse(position, callback, *node);
+        if (sunLight) callback(sunLight);
+    }
+
+    template<typename T>
+    void traverse(const Frustum& frustum, const T& callback) const
+    {
+        if (node) traverse(frustum, callback, *node);
         if (sunLight) callback(sunLight);
     }
 

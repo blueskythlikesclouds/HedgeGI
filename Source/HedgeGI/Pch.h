@@ -41,6 +41,7 @@ using Matrix3 = Eigen::Matrix3f;
 using Matrix4 = Eigen::Matrix4f;
 using Affine3 = Eigen::Affine3f;
 using AABB = Eigen::AlignedBox3f;
+using Plane = Eigen::Hyperplane<float, 3>;
 using Quaternion = Eigen::Quaternionf;
 
 // std

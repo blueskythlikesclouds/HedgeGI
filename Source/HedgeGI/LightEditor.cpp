@@ -4,63 +4,63 @@
 #include "CameraController.h"
 #include "Im3DManager.h"
 #include "Input.h"
-#include "Stage.h"
-#include "StageParams.h"
 #include "Light.h"
 #include "Math.h"
 #include "PackService.h"
+#include "resource.h"
+#include "Stage.h"
+#include "StageParams.h"
 #include "StateManager.h"
 #include "ViewportWindow.h"
 
-void LightEditor::rayCastAndUpdateSelection()
+void LightEditor::drawBillboardsAndUpdateSelection()
 {
-    const auto input = get<Input>();
-    if (!input->tappedMouseButtons[GLFW_MOUSE_BUTTON_LEFT])
-        return;
-
     const auto viewportWindow = get<ViewportWindow>();
-    if (!viewportWindow->isFocused())
+    if (!viewportWindow->show)
         return;
 
+    const auto camera = get<CameraController>();
+    const auto im3d = get<Im3DManager>();
+    const auto input = get<Input>();
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
-    const auto im3d = get<Im3DManager>();
 
-    // TODO: Maybe raycast onto the spheres of the lights instead?
+    const Light* current = nullptr;
+    float currentDepth = INFINITY;
 
-    Vector3 hitPosition;
-    if (!BakingFactory::rayCast(stage->getScene()->getRaytracingContext(), 
-        im3d->getRayPosition(), im3d->getRayDirection(), params->bakeParams.targetEngine, hitPosition))
-        return;
-
-    float currentDistance = INFINITY;
-    const Light* currentLight = nullptr;
-
-    stage->getScene()->getLightBVH().traverse(hitPosition, [&](const Light* light)
+    stage->getScene()->getLightBVH().traverse(camera->frustum, [&](const Light* light)
     {
         if (light->type != LightType::Point)
             return;
 
-        const float distance = (light->position - hitPosition).squaredNorm();
+        const Color3 color = light->color / light->computeIntensity();
 
-        bool set = false;
+        const Billboard* billboard = im3d->drawBillboard(light->position, 1.0f, Color4(color.x(), color.y(), color.z(), 1.0f), lightBulb);
 
-        // HACK: Give priority to the selection in case the distances are nearly equal when cloning
-        if (nearlyEqual(distance, currentDistance))
-            set = light == selection || currentLight != selection;
+        if (!billboard || !viewportWindow->isFocused() || params->dirtyBVH ||
+            !input->tappedMouseButtons[GLFW_MOUSE_BUTTON_LEFT] || !im3d->checkCursorOnBillboard(*billboard))
+            return;
 
+        bool proceed;
+
+        if (nearlyEqual(billboard->depth, currentDepth))
+            proceed = light == selection || current != selection;
         else
-            set = distance < currentDistance;
+            proceed = billboard->depth < currentDepth;
 
-        if (set)
-        {
-            currentDistance = distance;
-            currentLight = light;
-        }
+        if (!proceed)
+            return;
+
+        current = light;
+        currentDepth = billboard->depth;
     });
 
-    if (currentLight)
-        selection = const_cast<Light*>(currentLight);
+    if (current)
+        selection = const_cast<Light*>(current);
+}
+
+LightEditor::LightEditor() : lightBulb(ResRawData_LightBulb)
+{
 }
 
 void LightEditor::update(float deltaTime)
@@ -70,6 +70,7 @@ void LightEditor::update(float deltaTime)
 
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
+    const auto im3d = get<Im3DManager>();
 
     ImGui::SetNextItemWidth(-1);
     const bool doSearch = ImGui::InputText("##SearchLights", search, sizeof(search)) || strlen(search) > 0;
@@ -235,8 +236,7 @@ void LightEditor::update(float deltaTime)
             get<StateManager>()->packResources(PackResourceMode::Light);
     }
 
-    if (!params->dirtyBVH)
-        rayCastAndUpdateSelection();
-
     params->dirty |= params->dirtyBVH;
+
+    drawBillboardsAndUpdateSelection();
 }

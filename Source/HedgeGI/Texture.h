@@ -9,6 +9,8 @@ inline GLuint glGenTexture()
 
 class Texture
 {
+    Texture(const DirectX::ScratchImage& image);
+
 public:
     const GLuint id;
     const GLenum target;
@@ -16,6 +18,7 @@ public:
     const GLsizei height;
 
     Texture(GLenum target, GLint internalformat, GLsizei width, GLsizei height, GLenum format, GLenum type, void* pixels = nullptr);
+    Texture(int rc);
     ~Texture();
 
     void bind() const;

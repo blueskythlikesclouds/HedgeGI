@@ -40,7 +40,7 @@ void CameraController::update(const float deltaTime)
     fieldOfView = PI / 2.0f;
 
     if (!viewportWindow->isFocused())
-        return;
+        return computeValues();
 
     const auto input = get<Input>();
     const auto params = get<StageParams>();
@@ -89,5 +89,7 @@ void CameraController::update(const float deltaTime)
         position += Eigen::Vector3f::UnitY() * (input->heldKeys[GLFW_KEY_LEFT_CONTROL] ? -speed : speed) * newDeltaTime;
         params->dirty = true;
     }
+
+    computeValues();
 }
 

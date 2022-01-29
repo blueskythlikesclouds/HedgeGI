@@ -1,10 +1,16 @@
 ﻿#include "LightBVH.h"
+#include "Frustum.h"
 #include "Light.h"
 #include "Scene.h"
 
 bool LightBVH::Node::contains(const Vector3& position) const
 {
     return light ? (position - light->position).squaredNorm() < squaredRange : aabb.contains(position);
+}
+
+bool LightBVH::Node::contains(const Frustum& frustum) const
+{
+    return light ? frustum.intersects(light->position, light->range.w()) : frustum.intersects(aabb);
 }
 
 std::unique_ptr<LightBVH::Node> LightBVH::build(const std::vector<const Light*>& lights)

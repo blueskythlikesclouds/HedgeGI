@@ -5,24 +5,20 @@ Camera::Camera() : aspectRatio(1.0f), fieldOfView(PI / 2.0f)
 {
     position.setZero();
     rotation.setIdentity();
+    direction.setZero();
+    view.setIdentity();
+    projection.setIdentity();
 }
 
-Vector3 Camera::getDirection() const
+void Camera::computeValues()
 {
-    return (rotation * -Vector3::UnitZ()).normalized();
-}
-
-Matrix4 Camera::getView() const
-{
-    return (Eigen::Translation3f(position) * rotation).inverse().matrix();
-}
-
-Matrix4 Camera::getProjection() const
-{
-    return Eigen::CreatePerspectiveMatrix(fieldOfView, aspectRatio, 0.01f, 1000.0f);
+    direction = (rotation * -Vector3::UnitZ()).normalized();
+    view = (Eigen::Translation3f(position) * rotation).inverse().matrix();
+    projection = Eigen::CreatePerspectiveMatrix(fieldOfView, aspectRatio, 0.01f, 1000.0f);
+    frustum.set(projection * view);
 }
 
 Vector3 Camera::getNewObjectPosition() const
 {
-    return position + getDirection() * 2.0f * (4.0f / PI / fieldOfView);
+    return position + direction * 2.0f * (4.0f / PI / fieldOfView);
 }

@@ -562,9 +562,6 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
 {
     const Light* sunLight = raytracingContext.lightBVH->getSunLight();
 
-    const Matrix4 view = camera.getView();
-    const Matrix4 proj = camera.getProjection();
-
     const float tanFovy = tanf(camera.fieldOfView / 2);
 
     std::for_each(std::execution::par_unseq, &bitmap.data[0], &bitmap.data[width * height], [&](Color4& outputColor)
@@ -602,7 +599,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
 
         if (result.any)
         {
-            const Vector4 viewPos = view * Vector4(result.position.x(), result.position.y(), result.position.z(), 1);
+            const Vector4 viewPos = camera.view * Vector4(result.position.x(), result.position.y(), result.position.z(), 1);
 
             if (sunLight && raytracingContext.scene->effect.lightScattering.enable)
             {
@@ -612,7 +609,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
 
             if (progress == 0)
             {
-                const Vector4 projectedPos = proj * viewPos;
+                const Vector4 projectedPos = camera.projection * viewPos;
                 output.w() = projectedPos.z() / projectedPos.w();
             }
         }

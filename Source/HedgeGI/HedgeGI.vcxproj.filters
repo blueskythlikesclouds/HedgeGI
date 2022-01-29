@@ -312,6 +312,9 @@
     <ClCompile Include="SceneWindow.cpp">
       <Filter>App\Components\UI\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="ImageUtil.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -591,6 +594,12 @@
     <ClInclude Include="SceneWindow.h">
       <Filter>App\Components\UI\Scene</Filter>
     </ClInclude>
+    <ClInclude Include="ImageUtil.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Frustum.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scene">
@@ -709,6 +718,12 @@
       <Filter>Resources\Shaders\Im3d</Filter>
     </None>
     <None Include="Im3d.frag.glsl">
+      <Filter>Resources\Shaders\Im3d</Filter>
+    </None>
+    <None Include="Billboard.frag.glsl">
+      <Filter>Resources\Shaders\Im3d</Filter>
+    </None>
+    <None Include="Billboard.vert.glsl">
       <Filter>Resources\Shaders\Im3d</Filter>
     </None>
   </ItemGroup>

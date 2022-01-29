@@ -1,4 +1,5 @@
 ﻿#include "Texture.h"
+#include "ImageUtil.h"
 
 Texture::Texture(GLenum target, GLint internalformat, GLsizei width, GLsizei height, GLenum format, GLenum type, void* pixels)
     : id(glGenTexture()), target(target), width(width), height(height)
@@ -10,6 +11,15 @@ Texture::Texture(GLenum target, GLint internalformat, GLsizei width, GLsizei hei
     glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 0);
     glTexImage2D(target, 0, internalformat, width, height, 0, format, type, pixels);
+}
+
+Texture::Texture(const int rc) : Texture(ImageUtil::load(rc))
+{
+}
+
+Texture::Texture(const DirectX::ScratchImage& image) :
+    Texture(GL_TEXTURE_2D, GL_RGBA, image.GetMetadata().width, image.GetMetadata().height, GL_RGBA, GL_UNSIGNED_BYTE, image.GetPixels())
+{
 }
 
 Texture::~Texture()

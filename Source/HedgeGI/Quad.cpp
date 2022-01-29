@@ -18,3 +18,14 @@ Quad::Quad() : vertexArray(sizeof(vertices), vertices, {{0, 3, GL_FLOAT, false, 
     elementArray(sizeof(indices), indices, GL_TRIANGLES, _countof(indices), GL_UNSIGNED_BYTE)
 {
 }
+
+void Quad::bind() const
+{
+    vertexArray.bind();
+    elementArray.bind();
+}
+
+void Quad::draw() const
+{
+    elementArray.draw();
+}

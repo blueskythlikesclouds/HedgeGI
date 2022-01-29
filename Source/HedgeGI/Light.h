@@ -17,5 +17,7 @@ public:
 
     static void saveLightList(hl::stream& stream, const std::vector<std::unique_ptr<Light>>& lights);
 
+    float computeIntensity() const;
+
     void save(hl::stream& stream) const;
 };

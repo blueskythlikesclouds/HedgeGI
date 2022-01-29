@@ -8,3 +8,6 @@
 #define ResFragmentShader_Im3d               106
 #define ResIcon_ExeIcon                      107
 #define ResRawData_WindowIcon                108
+#define ResVertexShader_Billboard            109
+#define ResFragmentShader_Billboard          110
+#define ResRawData_LightBulb                 111

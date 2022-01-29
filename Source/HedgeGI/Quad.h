@@ -13,4 +13,7 @@ public:
     const ElementArray elementArray;
 
     Quad();
+
+    void bind() const;
+    void draw() const;
 };
