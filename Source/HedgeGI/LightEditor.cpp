@@ -41,7 +41,7 @@ void LightEditor::rayCastAndUpdateSelection()
         if (light->type != LightType::Point)
             return;
 
-        const float distance = (light->position - hitPosition).squaredNorm() / (light->range.w() * light->range.w());
+        const float distance = (light->position - hitPosition).squaredNorm();
 
         bool set = false;
 
