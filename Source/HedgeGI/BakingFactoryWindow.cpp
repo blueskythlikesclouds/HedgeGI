@@ -136,6 +136,9 @@ void BakingFactoryWindow::update(const float deltaTime)
 
                 if (property("Resolution Override", ImGuiDataType_S16, &params->bakeParams.resolutionOverride) && params->bakeParams.resolutionOverride >= 0)
                     params->bakeParams.resolutionOverride = (int16_t)nextPowerOfTwo(params->bakeParams.resolutionOverride);
+
+                if (property("Resolution Supersample Scale", ImGuiDataType_U64, &params->resolutionSuperSampleScale))
+                    params->resolutionSuperSampleScale = nextPowerOfTwo(std::max<size_t>(1, params->resolutionSuperSampleScale));
             }
 
             endProperties();

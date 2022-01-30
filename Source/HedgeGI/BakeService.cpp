@@ -125,8 +125,8 @@ void BakeService::bakeGI()
             return;
         }
 
-        const uint16_t resolution = params->bakeParams.resolutionOverride > 0 ? params->bakeParams.resolutionOverride :
-            params->propertyBag.get(instance->name + ".resolution", 256);
+        const uint16_t resolution = (uint16_t)((params->bakeParams.resolutionOverride > 0 ? params->bakeParams.resolutionOverride :
+            params->propertyBag.get(instance->name + ".resolution", 256)) * params->resolutionSuperSampleScale);
     
         if (isSg)
         {
@@ -171,8 +171,11 @@ void BakeService::bakeGI()
 
             TRY_CANCEL()
     
-            pair.lightMap->save(lightMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT);
-            pair.shadowMap->save(shadowMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT);
+            pair.lightMap->save(lightMapFileName, 
+                stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, nullptr, params->resolutionSuperSampleScale);
+
+            pair.shadowMap->save(shadowMapFileName, 
+                stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, nullptr, params->resolutionSuperSampleScale);
         }
         else
         {
@@ -222,17 +225,20 @@ void BakeService::bakeGI()
 
             if (stage->getGameType() == GameType::Generations && params->bakeParams.targetEngine == TargetEngine::HE1)
             {
-                combined->save(lightMapFileName, Bitmap::transformToLightMap);
-                combined->save(shadowMapFileName, Bitmap::transformToShadowMap);
+                combined->save(lightMapFileName, Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
+                combined->save(shadowMapFileName, Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
             }
             else if (stage->getGameType() == GameType::LostWorld)
             {
-                combined->save(lightMapFileName, DXGI_FORMAT_BC3_UNORM);
+                combined->save(lightMapFileName, DXGI_FORMAT_BC3_UNORM, nullptr, params->resolutionSuperSampleScale);
             }
             else if (params->bakeParams.targetEngine == TargetEngine::HE2)
             {
-                combined->save(lightMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, Bitmap::transformToLightMap);
-                combined->save(shadowMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, Bitmap::transformToShadowMap);
+                combined->save(lightMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, 
+                    Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
+
+                combined->save(shadowMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, 
+                    Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
             }
         }
     });

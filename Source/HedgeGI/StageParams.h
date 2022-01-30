@@ -23,6 +23,8 @@ public:
 
     bool skipExistingFiles{ true };
 
+    size_t resolutionSuperSampleScale{ 1 };
+
     PropertyBag propertyBag;
 
     bool dirty{ false };

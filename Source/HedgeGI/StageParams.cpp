@@ -16,6 +16,7 @@ void StageParams::loadProperties()
     outputDirectoryPath = propertyBag.getString(PROP("outputDirectoryPath"), stage->getDirectoryPath() + "-HedgeGI");
     mode = propertyBag.get(PROP("mode"), BakingFactoryMode::GI);
     skipExistingFiles = propertyBag.get(PROP("skipExistingFiles"), false);
+    resolutionSuperSampleScale = propertyBag.get(PROP("resolutionSuperSampleScale"), 1);
 
     if (stage->getGameType() == GameType::Forces)
         bakeParams.targetEngine = TargetEngine::HE2;
@@ -31,6 +32,7 @@ void StageParams::storeProperties()
     propertyBag.setString(PROP("outputDirectoryPath"), outputDirectoryPath);
     propertyBag.set(PROP("mode"), mode);
     propertyBag.set(PROP("skipExistingFiles"), skipExistingFiles);
+    propertyBag.set(PROP("resolutionSuperSampleScale"), resolutionSuperSampleScale);
 }
 
 bool StageParams::validateOutputDirectoryPath(const bool create) const

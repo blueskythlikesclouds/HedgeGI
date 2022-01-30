@@ -151,11 +151,11 @@ void Bitmap::clear() const
     memset(data.get(), 0, sizeof(Color4) * width * height * arraySize);
 }
 
-void Bitmap::save(const std::string& filePath, Transformer* const transformer) const
+void Bitmap::save(const std::string& filePath, Transformer* const transformer, const size_t downScaleFactor) const
 {
     DirectX::ScratchImage scratchImage;
     {
-        const DirectX::ScratchImage images = toScratchImage(transformer);
+        const DirectX::ScratchImage images = toScratchImage(transformer, downScaleFactor);
 
         Convert(images.GetImages(), images.GetImageCount(), images.GetMetadata(), 
             DXGI_FORMAT_B8G8R8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
@@ -167,16 +167,16 @@ void Bitmap::save(const std::string& filePath, Transformer* const transformer) c
     SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_NONE, GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
 }
 
-void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transformer* const transformer) const
+void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transformer* const transformer, const size_t downScaleFactor) const
 {
     DirectX::ScratchImage scratchImage;
 
     if (format == DXGI_FORMAT_R32G32B32A32_FLOAT)
-        scratchImage = toScratchImage(transformer);
+        scratchImage = toScratchImage(transformer, downScaleFactor);
 
     else
     {
-        DirectX::ScratchImage images = toScratchImage(transformer);
+        DirectX::ScratchImage images = toScratchImage(transformer, downScaleFactor);
 
         if (DirectX::IsCompressed(format))
         {
@@ -221,7 +221,7 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transfo
     SaveToDDSFile(scratchImage.GetImages(), scratchImage.GetImageCount(), scratchImage.GetMetadata(), DirectX::DDS_FLAGS_NONE, wideCharFilePath);
 }
 
-DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) const
+DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer, const size_t downScaleFactor) const
 {
     DirectX::ScratchImage scratchImage;
 
@@ -254,6 +254,15 @@ DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer) con
                     transformer(&pixels[getColorIndex(x, y, i)]);
             }
         }
+    }
+
+    if (downScaleFactor > 1)
+    {
+        DirectX::ScratchImage tmpImage;
+        DirectX::Resize(scratchImage.GetImages(), scratchImage.GetImageCount(), scratchImage.GetMetadata(),
+            std::max<size_t>(1, width / downScaleFactor), std::max<size_t>(1, height / downScaleFactor), DirectX::TEX_FILTER_BOX, tmpImage);
+
+        return tmpImage;
     }
 
     return scratchImage;

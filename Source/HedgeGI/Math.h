@@ -483,6 +483,19 @@ inline int nextPowerOfTwo(int value)
     return value;
 }
 
+inline size_t nextPowerOfTwo(size_t value)
+{
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value++;
+
+    return value;
+}
+
 inline float getRadius(const AABB& aabb)
 {
     float radius = 0.0f;

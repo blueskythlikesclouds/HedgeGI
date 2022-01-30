@@ -74,7 +74,15 @@ void StateBakeStage::update(float deltaTime)
             if (lastBakedInstance != nullptr)
             {
                 const uint16_t resolution = params->bakeParams.resolutionOverride > 0 ? params->bakeParams.resolutionOverride : params->propertyBag.get(lastBakedInstance->name + ".resolution", 256);
-                sprintf(overlay, "%s (%dx%d)", lastBakedInstance->name.c_str(), resolution, resolution);
+                if (params->resolutionSuperSampleScale > 1)
+                {
+                    const uint16_t resolutionSuperSampled = (uint16_t)(resolution * params->resolutionSuperSampleScale);
+                    sprintf(overlay, "%s (%dx%d to %dx%d)", lastBakedInstance->name.c_str(), resolutionSuperSampled, resolutionSuperSampled, resolution, resolution);
+                }
+                else
+                {
+                    sprintf(overlay, "%s (%dx%d)", lastBakedInstance->name.c_str(), resolution, resolution);
+                }
             }
 
             ImGui::ProgressBar(bakeProgress / ((float)stage->getScene()->instances.size() + 1), { 0, 0 }, lastBakedInstance ? overlay : nullptr);

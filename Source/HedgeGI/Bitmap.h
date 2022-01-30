@@ -47,10 +47,10 @@ public:
 
     void clear() const;
 
-    void save(const std::string& filePath, Transformer* transformer = nullptr) const;
-    void save(const std::string& filePath, DXGI_FORMAT format, Transformer* transformer = nullptr) const;
+    void save(const std::string& filePath, Transformer* transformer = nullptr, size_t downScaleFactor = 1) const;
+    void save(const std::string& filePath, DXGI_FORMAT format, Transformer* transformer = nullptr, size_t downScaleFactor = 1) const;
 
-    DirectX::ScratchImage toScratchImage(Transformer* transformer = nullptr) const;
+    DirectX::ScratchImage toScratchImage(Transformer* transformer = nullptr, size_t downScaleFactor = 1) const;
 
     void transform(Transformer* transformer) const;
 };
