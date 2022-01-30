@@ -29,5 +29,7 @@ public:
     bool dirtyBVH{ false };
 
     void loadProperties();
-    void storeProperties(); 
+    void storeProperties();
+
+    bool validateOutputDirectoryPath(bool create) const;
 };

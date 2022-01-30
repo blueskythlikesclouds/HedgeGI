@@ -62,6 +62,8 @@ void Stage::destroyStage()
 void Stage::clean()
 {
     const auto params = get<StageParams>();
+    if (!params->validateOutputDirectoryPath(false))
+        return;
 
     for (auto& file : std::filesystem::directory_iterator(params->outputDirectoryPath))
     {

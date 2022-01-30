@@ -17,7 +17,8 @@ void PackService::pack()
     if (params->mode == BakingFactoryMode::LightField)
         packResources(PackResourceMode::LightField);
 
-    else if (params->mode == BakingFactoryMode::GI)
+    else if (params->mode == BakingFactoryMode::GI && 
+        params->validateOutputDirectoryPath(false))
     {
         switch (stage->getGameType())
         {
@@ -33,14 +34,15 @@ void PackService::pack()
         default: break;
         }
     }
-
-    get<AppWindow>()->alert();
 }
 
 void PackService::packResources(PackResourceMode mode)
 {
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
+
+    if (!params->validateOutputDirectoryPath(false))
+        return;
 
     std::string archiveFileName;
 

@@ -1,6 +1,7 @@
 ﻿#include "StageParams.h"
 
 #include "CameraController.h"
+#include "Logger.h"
 #include "Stage.h"
 
 void StageParams::loadProperties()
@@ -30,4 +31,20 @@ void StageParams::storeProperties()
     propertyBag.setString(PROP("outputDirectoryPath"), outputDirectoryPath);
     propertyBag.set(PROP("mode"), mode);
     propertyBag.set(PROP("skipExistingFiles"), skipExistingFiles);
+}
+
+bool StageParams::validateOutputDirectoryPath(const bool create) const
+{
+    if (create)
+    {
+        std::error_code errorCode;
+        std::filesystem::create_directory(outputDirectoryPath, errorCode);
+    }
+
+    // The directory might fail to be created if the HGI file was received from a different computer
+    if (std::filesystem::exists(outputDirectoryPath))
+        return true;
+
+    Logger::log(LogType::Error, "Unable to locate output directory path");
+    return false;
 }

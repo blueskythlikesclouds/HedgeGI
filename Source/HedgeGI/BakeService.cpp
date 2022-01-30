@@ -52,8 +52,8 @@ void BakeService::bake()
     cancel = false;
 
     const auto params = get<StageParams>();
-
-    std::filesystem::create_directory(params->outputDirectoryPath);
+    if (!params->validateOutputDirectoryPath(true))
+        return;
 
     const auto begin = std::chrono::high_resolution_clock::now();
 
