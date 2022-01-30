@@ -41,7 +41,7 @@ void PackService::packResources(PackResourceMode mode)
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
 
-    if (!params->validateOutputDirectoryPath(false))
+    if (mode == PackResourceMode::LightField && !params->validateOutputDirectoryPath(false))
         return;
 
     std::string archiveFileName;
