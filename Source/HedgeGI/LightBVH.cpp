@@ -5,12 +5,12 @@
 
 bool LightBVH::Node::contains(const Vector3& position) const
 {
-    return light ? (position - light->position).squaredNorm() < squaredRange : aabb.contains(position);
+    return light ? (position - light->position).squaredNorm() < light->range.w() * light->range.w() : aabb.contains(position);
 }
 
 bool LightBVH::Node::contains(const Frustum& frustum) const
 {
-    return light ? frustum.intersects(light->position, light->range.w()) : frustum.intersects(aabb);
+    return light ? frustum.intersects(light->position, light->range.w()) : frustum.intersects(center, radius);
 }
 
 std::unique_ptr<LightBVH::Node> LightBVH::build(const std::vector<const Light*>& lights)
@@ -29,15 +29,14 @@ std::unique_ptr<LightBVH::Node> LightBVH::build(const std::vector<const Light*>&
         aabb.extend(item->position + vec3);
     }
 
-    const Eigen::Vector3f center = aabb.center();
-
     std::unique_ptr<Node> node = std::make_unique<Node>();
     node->aabb = aabb;
+    node->center = aabb.center();
+    node->radius = (aabb.min() - aabb.max()).norm() / 2.0f;
 
     if (lights.size() == 1)
     {
         node->light = lights[0];
-        node->squaredRange = lights[0]->range.w() * lights[0]->range.w();
         return node;
     }
 
@@ -49,7 +48,7 @@ std::unique_ptr<LightBVH::Node> LightBVH::build(const std::vector<const Light*>&
 
     for (auto& item : lights)
     {
-        if (item->position[dimIndex] < center[dimIndex])
+        if (item->position[dimIndex] < node->center[dimIndex])
             left.push_back(item);
         else
             right.push_back(item);

@@ -10,8 +10,10 @@ class LightBVH
     {
     public:
         AABB aabb;
+        Vector3 center;
+        float radius{};
         const Light* light {};
-        float squaredRange {};
+
         std::unique_ptr<Node> left;
         std::unique_ptr<Node> right;
 
