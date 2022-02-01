@@ -734,7 +734,7 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
         loadTerrain({ CabinetCompression::load(data.get(), entry->dataSize) }, *scene);
     }
 
-    scene->removeUnusedBitmaps();
+    scene->sortAndUnify();
     scene->buildAABB();
     scene->createLightBVH();
 
@@ -788,7 +788,7 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
     if (hl::path::exists(skyFilePath.data()))
         loadResources(hl::pacx::load(skyFilePath.data()), *scene, stageName);
 
-    scene->removeUnusedBitmaps();
+    scene->sortAndUnify();
     scene->buildAABB();
     scene->createLightBVH();
 

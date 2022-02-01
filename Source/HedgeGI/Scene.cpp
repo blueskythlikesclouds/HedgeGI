@@ -121,7 +121,7 @@ RaytracingContext Scene::getRaytracingContext()
     return { this, createRTCScene(), createSkyRTCScene(), createLightBVH() };
 }
 
-void Scene::removeUnusedBitmaps()
+void Scene::sortAndUnify()
 {
     std::unordered_set<const Bitmap*> bitmapSet;
     for (auto& material : materials)
@@ -149,4 +149,6 @@ void Scene::removeUnusedBitmaps()
     }
 
     std::swap(bitmaps, distinctBitmaps);
+
+    std::stable_sort(instances.begin(), instances.end(), [](const auto& left, const auto& right) { return left->name < right->name; });
 }

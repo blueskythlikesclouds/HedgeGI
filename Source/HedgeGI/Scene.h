@@ -52,5 +52,5 @@ public:
     const LightBVH* createLightBVH(bool force = false);
     RaytracingContext getRaytracingContext();
 
-    void removeUnusedBitmaps();
+    void sortAndUnify();
 };
