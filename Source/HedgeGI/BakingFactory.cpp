@@ -412,7 +412,10 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                             (random.next() * 2 - 1) * radius,
                             1);
 
-                        shadowDirection = -(getTangentToWorldMatrix(lightDirection) * shadowSample).normalized();
+                        Vector3 tangent, binormal;
+                        computeTangent(lightDirection, tangent, binormal);
+
+                        shadowDirection = -tangentToWorld(shadowSample, tangent, binormal, lightDirection).normalized();
                     }
                     else
                     {

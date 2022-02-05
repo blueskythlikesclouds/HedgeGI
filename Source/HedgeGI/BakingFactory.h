@@ -40,7 +40,7 @@ public:
 
     template<typename TBakePoint>
     static float sampleShadow(const RaytracingContext& raytracingContext, 
-        const Vector3& position, const Vector3& direction, const Matrix3& tangentToWorldMatrix, float distance, float radius, const BakeParams& bakeParams, Random& random);
+        const Vector3& position, const Vector3& direction, const Vector3& tangent, const Vector3& binormal, float distance, float radius, const BakeParams& bakeParams, Random& random);
 
     template<typename TBakePoint>
     static void bake(const RaytracingContext& raytracingContext, std::vector<TBakePoint>& bakePoints, const BakeParams& bakeParams);
@@ -139,7 +139,7 @@ void intersectContextFilter(const RTCFilterFunctionNArguments* args)
 
 template <typename TBakePoint>
 float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
-    const Vector3& position, const Vector3& direction, const Matrix3& tangentToWorldMatrix, const float distance, const float radius, const BakeParams& bakeParams, Random& random)
+    const Vector3& position, const Vector3& direction, const Vector3& tangent, const Vector3& binormal, const float distance, const float radius, const BakeParams& bakeParams, Random& random)
 {
     if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SHADOW) == 0)
         return 1.0f;
@@ -160,9 +160,9 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
         {
             const Vector2 vogelDiskSample = sampleVogelDisk(i, bakeParams.shadowSampleCount, phi);
 
-            rayDirection = (tangentToWorldMatrix * Vector3(
+            rayDirection = tangentToWorld(Vector3(
                 vogelDiskSample[0] * radius,
-                vogelDiskSample[1] * radius, 1)).normalized();
+                vogelDiskSample[1] * radius, 1), tangent, binormal, direction).normalized();
         }
         else
         {
@@ -194,9 +194,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 {
     const Light* sunLight = raytracingContext.lightBVH->getSunLight();
 
-    Matrix3 lightTangentToWorldMatrix;
+    Vector3 tangent, binormal;
     if (sunLight != nullptr)
-        lightTangentToWorldMatrix = getTangentToWorldMatrix(sunLight->position);
+        computeTangent(sunLight->position, tangent, binormal);
 
     std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](TBakePoint& bakePoint)
     {
@@ -253,8 +253,11 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 attenuation *= saturate(bakePoint.normal.dot(-lightDirection));
                 if (attenuation == 0.0f) continue;
 
+                Vector3 tangent, binormal;
+                computeTangent(lightDirection, tangent, binormal);
+
                 attenuation *= sampleShadow<TBakePoint>(raytracingContext,
-                    bakePoint.position, lightDirection, getTangentToWorldMatrix(lightDirection), distance, 1.0f / light->range.w(), bakeParams, random);
+                    bakePoint.position, lightDirection, tangent, binormal, distance, 1.0f / light->range.w(), bakeParams, random);
 
                 bakePoint.addSample(light->color * attenuation, lightDirection);
             }
@@ -263,7 +266,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         if (sunLight)
         {
             bakePoint.shadow = sampleShadow<TBakePoint>(raytracingContext, 
-                bakePoint.position, sunLight->position, lightTangentToWorldMatrix, INFINITY, bakeParams.shadowSearchRadius, bakeParams, random);
+                bakePoint.position, sunLight->position, tangent, binormal, INFINITY, bakeParams.shadowSearchRadius, bakeParams, random);
         }
     });
 }

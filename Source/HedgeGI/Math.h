@@ -575,20 +575,12 @@ inline Vector3 tangentToWorld(const Vector3& value, const Vector3& tangent, cons
     return value.x() * tangent + value.y() * binormal + value.z() * normal;
 }
 
-inline Matrix3 getTangentToWorldMatrix(const Vector3& normal)
+inline void computeTangent(const Vector3& normal, Vector3& tangent, Vector3& binormal)
 {
     const Vector3 t1 = normal.cross(Vector3(0, 0, 1));
     const Vector3 t2 = normal.cross(Vector3(0, 1, 0));
-    const Vector3 tangent = (t1.norm() > t2.norm() ? t1 : t2).normalized();
-    const Vector3 binormal = tangent.cross(normal).normalized();
-
-    Matrix3 tangentToWorld;
-    tangentToWorld <<
-        tangent[0], binormal[0], normal[0],
-        tangent[1], binormal[1], normal[1],
-        tangent[2], binormal[2], normal[2];
-
-    return tangentToWorld;
+    tangent = (t1.norm() > t2.norm() ? t1 : t2).normalized();
+    binormal = tangent.cross(normal).normalized();
 }
 
 inline Color3 ldrReady(const Color3& color)
