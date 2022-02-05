@@ -507,14 +507,14 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                 const float nDotL = saturate(hitNormal.dot(hitDirection));
                 const float nDotH = saturate(hitNormal.dot(halfwayDirection));
-                const float hDotL = saturate(halfwayDirection.dot(hitDirection));
+                const float hDotV = saturate(halfwayDirection.dot(viewDirection));
 
-                if (nDotL == 0 || nDotH == 0 || hDotL == 0)
+                if (nDotL == 0 || nDotH == 0 || hDotV == 0)
                     break;
 
-                const Color3 F = fresnelSchlick(F0, hDotL);
+                const Color3 F = fresnelSchlick(F0, hDotV);
                 const float Vis = visSchlick(roughness, nDotV, nDotL);
-                const float PDF = nDotH / (4 * hDotL);
+                const float PDF = nDotH / (4 * hDotV);
 
                 throughput *= nDotL * (Vis * F) / (PDF * (1 - probability));
             }
