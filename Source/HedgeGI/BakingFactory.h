@@ -194,9 +194,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 {
     const Light* sunLight = raytracingContext.lightBVH->getSunLight();
 
-    Vector3 tangent, binormal;
+    Vector3 sunLightTangent, sunLightBinormal;
     if (sunLight != nullptr)
-        computeTangent(sunLight->position, tangent, binormal);
+        computeTangent(sunLight->position, sunLightTangent, sunLightBinormal);
 
     std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](TBakePoint& bakePoint)
     {
@@ -253,11 +253,11 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                 attenuation *= saturate(bakePoint.normal.dot(-lightDirection));
                 if (attenuation == 0.0f) continue;
 
-                Vector3 tangent, binormal;
-                computeTangent(lightDirection, tangent, binormal);
+                Vector3 lightTangent, lightBinormal;
+                computeTangent(lightDirection, lightTangent, lightBinormal);
 
                 attenuation *= sampleShadow<TBakePoint>(raytracingContext,
-                    bakePoint.position, lightDirection, tangent, binormal, distance, 1.0f / light->range.w(), bakeParams, random);
+                    bakePoint.position, lightDirection, lightTangent, lightBinormal, distance, 1.0f / light->range.w(), bakeParams, random);
 
                 bakePoint.addSample(light->color * attenuation, lightDirection);
             }
@@ -266,7 +266,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         if (sunLight)
         {
             bakePoint.shadow = sampleShadow<TBakePoint>(raytracingContext, 
-                bakePoint.position, sunLight->position, tangent, binormal, INFINITY, bakeParams.shadowSearchRadius, bakeParams, random);
+                bakePoint.position, sunLight->position, sunLightTangent, sunLightBinormal, INFINITY, bakeParams.shadowSearchRadius, bakeParams, random);
         }
     });
 }
