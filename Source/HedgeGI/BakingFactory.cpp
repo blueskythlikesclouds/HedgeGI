@@ -509,6 +509,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 const float nDotH = saturate(hitNormal.dot(halfwayDirection));
                 const float hDotL = saturate(halfwayDirection.dot(hitDirection));
 
+                if (nDotL == 0 || nDotH == 0 || hDotL == 0)
+                    break;
+
                 const Color3 F = fresnelSchlick(F0, hDotL);
                 const float Vis = visSchlick(roughness, nDotV, nDotL);
                 const float PDF = nDotH / (4 * hDotL);
