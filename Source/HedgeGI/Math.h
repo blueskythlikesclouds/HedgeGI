@@ -54,7 +54,7 @@ inline T lerp(const T& a, const T& b, float factor)
 
 inline float saturate(const float value)
 {
-    return std::min(1.0f, std::max(0.0f, value));
+    return DirectX::XMMax(DirectX::XMMin(value, 1.0f), 0.0f);
 }
 
 template<typename T>
