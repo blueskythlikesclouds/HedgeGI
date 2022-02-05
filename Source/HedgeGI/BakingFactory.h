@@ -29,7 +29,7 @@ public:
     };
 
     template<TargetEngine targetEngine, bool tracingFromEye>
-    static Color3 sampleSky(const RaytracingContext& raytracingContext, const Vector3& direction, const BakeParams& bakeParams);
+    static Color3 sampleSky(const RaytracingContext& raytracingContext, const Vector3& direction, const BakeParams& bakeParams, const size_t depth);
 
     template <TargetEngine targetEngine, bool tracingFromEye>
     static TraceResult pathTrace(const RaytracingContext& raytracingContext, 

@@ -315,9 +315,6 @@
     <ClCompile Include="Utilities.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="SnapshotManager.cpp">
-      <Filter>Components\Common</Filter>
-    </ClCompile>
     <ClCompile Include="App.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -600,9 +597,6 @@
     </ClInclude>
     <ClInclude Include="Frustum.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="SnapshotManager.h">
-      <Filter>Components\Common</Filter>
     </ClInclude>
     <ClInclude Include="App.h" />
   </ItemGroup>

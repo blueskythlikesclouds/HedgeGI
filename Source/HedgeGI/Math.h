@@ -203,7 +203,7 @@ inline float ndfGGX(float cosLh, float roughness)
     float alphaSq = alpha * alpha;
 
     float denom = (cosLh * alphaSq - cosLh) * cosLh + 1;
-    return alphaSq / std::max(1e-8f, PI * denom * denom);
+    return alphaSq / (PI * denom * denom);
 }
 
 inline float visSchlick(float roughness, float cosLo, float cosLi)
@@ -212,7 +212,7 @@ inline float visSchlick(float roughness, float cosLo, float cosLi)
     float k = (r * r) / 8;
     float schlickV = cosLo * (1 - k) + k;
     float schlickL = cosLi * (1 - k) + k;
-    return 0.25f / std::max(1e-8f, schlickV * schlickL);
+    return 0.25f / (schlickV * schlickL);
 }
 
 // http://cwyman.org/code/dxrTutors/tutors/Tutor14/tutorial14.md.html

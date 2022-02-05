@@ -10,9 +10,11 @@
 CriticalSection BakingFactory::criticalSection;
 
 template <TargetEngine targetEngine, bool tracingFromEye>
-Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, const Vector3& direction, const BakeParams& bakeParams)
+Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, const Vector3& direction, const BakeParams& bakeParams, const size_t depth)
 {
-    if (bakeParams.environmentColorMode == EnvironmentColorMode::Color)
+    const bool skyModelInViewport = tracingFromEye && depth == 0;
+
+    if (!skyModelInViewport && bakeParams.environmentColorMode == EnvironmentColorMode::Color)
     {
         Color3 color = bakeParams.environmentColor;
         if (targetEngine == TargetEngine::HE2)
@@ -21,7 +23,7 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
         return color;
     }
 
-    if (bakeParams.environmentColorMode == EnvironmentColorMode::TwoColor)
+    if (!skyModelInViewport && bakeParams.environmentColorMode == EnvironmentColorMode::TwoColor)
     {
         Color3 color = lerp(bakeParams.secondaryEnvironmentColor, bakeParams.environmentColor, direction.y() * 0.5f + 0.5f);
         if (targetEngine == TargetEngine::HE2)
@@ -107,7 +109,12 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
         skyColor = lerp<Color3>(skyColor, color, colors[j].w());
     }
 
-    return (skyColor * bakeParams.skyIntensity * bakeParams.skyIntensityScale).cwiseMax(0);
+    if (!skyModelInViewport)
+        skyColor *= bakeParams.skyIntensity;
+
+    skyColor *= bakeParams.skyIntensityScale;
+
+    return skyColor.cwiseMax(0);
 }
 
 template <TargetEngine targetEngine, bool tracingFromEye>
@@ -157,7 +164,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         rtcIntersect1(raytracingContext.rtcScene, &context, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
         {
-            radiance += throughput * sampleSky<targetEngine, tracingFromEye>(raytracingContext, rayNormal, bakeParams);
+            radiance += throughput * sampleSky<targetEngine, tracingFromEye>(raytracingContext, rayNormal, bakeParams, i);
             break;
         }
 
