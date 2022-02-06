@@ -498,12 +498,15 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
             probability = isMetallic ? 0.0f : roughness * 0.5f + 0.5f;
 
             // Randomly select specular BRDF
-            if (isMetallic || random.next() > probability)
+            const float u1 = random.next();
+            const float u2 = random.next();
+
+            if (isMetallic || u1 > probability)
             {
-                const Vector3 halfwayDirection = microfacetGGX(roughness, random.next(), random.next(), 
+                const Vector3 halfwayDirection = microfacetGGX(roughness, u1, u2, 
                     hitTangent, hitBinormal, hitNormal).normalized();
 
-                hitDirection = (2 * halfwayDirection.dot(viewDirection) * halfwayDirection - viewDirection).normalized();
+                hitDirection = 2 * halfwayDirection.dot(viewDirection) * halfwayDirection - viewDirection;
 
                 const float nDotL = saturate(hitNormal.dot(hitDirection));
                 const float nDotH = saturate(hitNormal.dot(halfwayDirection));
@@ -514,15 +517,15 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                 const Color3 F = fresnelSchlick(F0, hDotV);
                 const float Vis = visSchlick(roughness, nDotV, nDotL);
-                const float PDF = nDotH / (4 * hDotV);
+                const float PDF = 4 * hDotV / nDotH;
 
-                throughput *= nDotL * (Vis * F) / (PDF * (1 - probability));
+                throughput *= Vis * F * PDF / (1 - probability);
             }
 
             // Diffuse BRDF
             else
             {
-                hitDirection = tangentToWorld(sampleCosineWeightedHemisphere(random.next(), random.next()),
+                hitDirection = tangentToWorld(sampleCosineWeightedHemisphere(u1, u2),
                     hitTangent, hitBinormal, hitNormal).normalized();
 
                 const Color3 kd = lerp<Color3>(1 - F0, Color3::Zero(), metalness);
