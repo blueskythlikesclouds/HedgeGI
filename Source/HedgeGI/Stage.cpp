@@ -42,6 +42,9 @@ void Stage::loadStage(const std::string& directoryPath)
 
     scene = SceneFactory::create(directoryPath);
     params->bakeParams.skyIntensityScale = scene->effect.def.skyIntensityScale;
+
+    // This forces all components to be created.
+    (void)scene->getRaytracingContext();
 }
 
 void Stage::destroyStage()
