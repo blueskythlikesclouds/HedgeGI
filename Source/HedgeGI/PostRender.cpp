@@ -2,6 +2,7 @@
 
 #include "BakeParams.h"
 #include "CabinetCompression.h"
+#include "D3D11Device.h"
 #include "Logger.h"
 #include "Utilities.h"
 
@@ -209,8 +210,9 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
 
     std::unordered_map<std::string, std::unique_ptr<DirectX::ScratchImage>> images;
 
-    std::list<Texture> bc3Textures;
-    std::list<Texture> bc4Textures;
+    std::list<Texture> giTextures;
+    std::list<Texture> sgTextures;
+    std::list<Texture> occlusionTextures;
 
     processInstancesRecursively([&](const std::string& name)
     {
@@ -289,97 +291,6 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                 shadowMapMetadata = shadowMapImage->GetMetadata();
 
                 const bool isSg = lightMapMetadata.arraySize == 4;
-                if (isSg)
-                {
-                    std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-                    tmpImage->Initialize2D(DXGI_FORMAT_R16G16B16A16_FLOAT, lightMapMetadata.width * 2, lightMapMetadata.height * 2, 1, 1);
-
-                    DirectX::CopyRectangle(
-                        *lightMapImage->GetImage(0, 0, 0), { 0, 0, lightMapMetadata.width, lightMapMetadata.height },
-                        *tmpImage->GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT,
-                        0, 0);
-
-                    DirectX::CopyRectangle(
-                        *lightMapImage->GetImage(0, 1, 0), { 0, 0, lightMapMetadata.width, lightMapMetadata.height },
-                        *tmpImage->GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT,
-                        lightMapMetadata.width, 0);
-
-                    DirectX::CopyRectangle(
-                        *lightMapImage->GetImage(0, 2, 0), { 0, 0, lightMapMetadata.width, lightMapMetadata.height },
-                        *tmpImage->GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT,
-                        0, lightMapMetadata.height);
-
-                    DirectX::CopyRectangle(
-                        *lightMapImage->GetImage(0, 3, 0), { 0, 0, lightMapMetadata.width, lightMapMetadata.height },
-                        *tmpImage->GetImage(0, 0, 0), DirectX::TEX_FILTER_DEFAULT,
-                        lightMapMetadata.width, lightMapMetadata.height);
-
-                    lightMapImage.swap(tmpImage);
-                }
-
-                {
-                    double averageIntensity = 0;
-                    size_t averageCount = 0;
-
-                    DirectX::EvaluateImage(*lightMapImage->GetImages(), [&](const DirectX::XMVECTOR* pixels, size_t w, size_t y)
-                        {
-                            for (size_t j = 0; j < w; j++)
-                            {
-                                DirectX::XMFLOAT4 v;
-                                DirectX::XMStoreFloat4(&v, pixels[j]);
-
-                                averageIntensity = (averageIntensity * averageCount + std::max(v.x, std::max(v.y, v.z))) / (averageCount + 1);
-                                averageCount++;
-                            }
-                        });
-
-                    std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-
-                    DirectX::TransformImage(lightMapImage->GetImages(), lightMapImage->GetImageCount(), lightMapImage->GetMetadata(),
-                        [&](DirectX::XMVECTOR* outPixels, const DirectX::XMVECTOR* inPixels, size_t w, size_t y)
-                        {
-                            for (size_t j = 0; j < w; j++)
-                            {
-                                DirectX::XMFLOAT4 v;
-                                DirectX::XMStoreFloat4(&v, inPixels[j]);
-
-                                const DirectX::XMFLOAT4 org = v;
-
-                                const float intensity = std::max((float)averageIntensity, std::max(v.x, std::max(v.y, v.z)));
-                                if (intensity > 0.00001f)
-                                {
-                                    const float exponentSmooth = (logf(intensity) + 4) / 16.0f;
-                                    const float exponentHard = ceilf(std::min(255.0f, std::max(0.0f, exponentSmooth * 255.0f))) / 255.0f;
-                                    const float hardIntensity = expf(exponentHard * 16 - 4);
-
-                                    v.x /= hardIntensity;
-                                    v.y /= hardIntensity;
-                                    v.z /= hardIntensity;
-                                    v.w = exponentHard;
-                                }
-                                else
-                                {
-                                    v.x = 0;
-                                    v.y = 0;
-                                    v.z = 0;
-                                    v.w = 4.0f / 16.0f;
-                                }
-
-                                outPixels[j] = DirectX::XMLoadFloat4(&v);
-                            }
-                        }, *tmpImage);
-
-                    lightMapImage.swap(tmpImage);
-                }
-
-                {
-                    std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-                    DirectX::Convert(lightMapImage->GetImages(), lightMapImage->GetImageCount(), lightMapImage->GetMetadata(), DXGI_FORMAT_B8G8R8A8_UNORM, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, *tmpImage);
-                    lightMapImage.swap(tmpImage);
-                }
-
-                lightMapMetadata = lightMapImage->GetMetadata();
-                shadowMapMetadata = shadowMapImage->GetMetadata();
 
                 const std::string lightMapName = isSg ? name + "_sg" + levelSuffix : name + levelSuffix;
                 const std::string shadowMapName = name + "_occlusion" + levelSuffix;
@@ -387,8 +298,12 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                 images[lightMapName] = std::move(lightMapImage);
                 images[shadowMapName] = std::move(shadowMapImage);
 
-                bc3Textures.push_back({lightMapName, lightMapMetadata.width, lightMapMetadata.height});
-                bc4Textures.push_back({shadowMapName, shadowMapMetadata.width, shadowMapMetadata.height});
+                if (isSg)
+                    sgTextures.push_back({lightMapName, lightMapMetadata.width, lightMapMetadata.height});
+                else
+                    giTextures.push_back({lightMapName, lightMapMetadata.width, lightMapMetadata.height});
+
+                occlusionTextures.push_back({shadowMapName, shadowMapMetadata.width, shadowMapMetadata.height});
             }
             else
             {
@@ -478,7 +393,7 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                 const std::string lightMapName = name + levelSuffix;
                 images[lightMapName] = std::move(image);
 
-                bc3Textures.push_back({ lightMapName, metadata.width, metadata.height });
+                giTextures.push_back({ lightMapName, metadata.width, metadata.height });
             }
             else
             {
@@ -487,36 +402,47 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
         }
     }, group, groupInfo);
 
-    std::vector<Atlas> bc3Atlases = createAtlases(bc3Textures);
-    std::vector<Atlas> bc4Atlases = createAtlases(bc4Textures);
+    std::vector<Atlas> giAtlases = createAtlases(giTextures);
+    std::vector<Atlas> sgAtlases = createAtlases(sgTextures);
+    std::vector<Atlas> occlusionAtlases = createAtlases(occlusionTextures);
 
     hl::archive archive;
 
     size_t atlasIndex = 0;
 
-    auto processAtlas = [&](Atlas& atlas, const bool isBc4)
+    auto processAtlas = [&](Atlas& atlas, const bool isBc4, const size_t arraySize)
     {
         std::unique_ptr<DirectX::ScratchImage> atlasImage = std::make_unique<DirectX::ScratchImage>();
-        atlasImage->Initialize2D(isBc4 ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_B8G8R8A8_UNORM, atlas.width, atlas.height, 1, 1);
+        atlasImage->Initialize2D(
+            isBc4
+                ? DXGI_FORMAT_R8_UNORM
+                : targetEngine == TargetEngine::HE2 ? DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_B8G8R8A8_UNORM,
+            atlas.width, atlas.height, arraySize, 1);
 
-        const auto atlasMip = atlasImage->GetImage(0, 0, 0);
-        memset(atlasMip->pixels, 0, atlasMip->width* atlasMip->height * (isBc4 ? 1 : 4));
+        for (size_t i = 0; i < arraySize; i++)
+        {
+            const auto atlasMip = atlasImage->GetImage(0, i, 0);
+            memset(atlasMip->pixels, 0, atlasMip->width * atlasMip->height * (isBc4 ? 1 : targetEngine == TargetEngine::HE2 ? 8 : 4));
+        }
 
         for (auto& texture : atlas.textures)
         {
             const auto& img = images[texture.name];
-            const auto mip = img->GetImage(0, 0, 0);
 
-            DirectX::CopyRectangle(
-                *mip,
-                { 0, 0, mip->width, mip->height },
-                *atlasMip,
-                DirectX::TEX_FILTER_POINT,
-                texture.x,
-                texture.y);
+            for (size_t i = 0; i < arraySize; i++)
+            {
+                const auto mip = img->GetImage(0, i, 0);
+
+                DirectX::CopyRectangle(
+                    *mip,
+                    { 0, 0, mip->width, mip->height },
+                    *atlasImage->GetImage(0, i, 0),
+                    DirectX::TEX_FILTER_POINT,
+                    texture.x,
+                    texture.y);
+            }
         }
 
-        if (targetEngine == TargetEngine::HE1)
         {
             std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
 
@@ -531,6 +457,27 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
             atlasImage.swap(tmpImage);
         }
 
+        if (targetEngine == TargetEngine::HE2 && !isBc4)
+        {
+            std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
+            {
+                const auto lock = D3D11Device::lock();
+
+                DirectX::Compress(
+                    D3D11Device::get(),
+                    atlasImage->GetImages(),
+                    atlasImage->GetImageCount(),
+                    atlasImage->GetMetadata(),
+                    DXGI_FORMAT_BC6H_UF16,
+                    DirectX::TEX_COMPRESS_PARALLEL,
+                    DirectX::TEX_THRESHOLD_DEFAULT,
+                    *tmpImage);
+            }
+
+            atlasImage.swap(tmpImage);
+        }
+
+        else
         {
             std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
 
@@ -567,8 +514,9 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
         archive.push_back(std::move(hl::archive_entry::make_regular_file(toNchar(textureName.c_str()).data(), blob.GetBufferSize(), blob.GetBufferPointer())));
     };
 
-    for (auto& atlas : bc3Atlases) processAtlas(atlas, false);
-    for (auto& atlas : bc4Atlases) processAtlas(atlas, true);
+    for (auto& atlas : giAtlases) processAtlas(atlas, false, 1);
+    for (auto& atlas : sgAtlases) processAtlas(atlas, false, 4);
+    for (auto& atlas : occlusionAtlases) processAtlas(atlas, true, 1);
 
     hl::hh::mirage::atlas_info atlasInfo;
 
@@ -596,8 +544,9 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
         atlasInfo.atlases.push_back(std::move(hhAtlas));
     };
 
-    for (auto& atlas : bc3Atlases) addAtlas(atlas);
-    for (auto& atlas : bc4Atlases) addAtlas(atlas);
+    for (auto& atlas : giAtlases) addAtlas(atlas);
+    for (auto& atlas : sgAtlases) addAtlas(atlas);
+    for (auto& atlas : occlusionAtlases) addAtlas(atlas);
 
     hl::mem_stream stream;
     atlasInfo.write(stream);
