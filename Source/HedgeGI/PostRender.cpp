@@ -270,20 +270,23 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                     shadowMapImage.swap(tmpImage);
                 }
 
-                const size_t width = std::max((size_t)4, std::max(lightMapMetadata.width, shadowMapMetadata.width) >> group->level);
-                const size_t height = std::max((size_t)4, std::max(lightMapMetadata.height, shadowMapMetadata.height) >> group->level);
+                const size_t lightMapWidth = std::max((size_t)4, lightMapMetadata.width >> group->level);
+                const size_t lightMapHeight = std::max((size_t)4, lightMapMetadata.height >> group->level);     
 
-                if (lightMapMetadata.width != width || lightMapMetadata.height != height)
+                const size_t shadowMapWidth = std::max((size_t)4, shadowMapMetadata.width >> group->level);
+                const size_t shadowMapHeight = std::max((size_t)4, shadowMapMetadata.height >> group->level);
+
+                if (lightMapMetadata.width != lightMapWidth || lightMapMetadata.height != lightMapHeight)
                 {
                     std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-                    DirectX::Resize(lightMapImage->GetImages(), lightMapImage->GetImageCount(), lightMapImage->GetMetadata(), width, height, DirectX::TEX_FILTER_BOX, *tmpImage);
+                    DirectX::Resize(lightMapImage->GetImages(), lightMapImage->GetImageCount(), lightMapImage->GetMetadata(), lightMapWidth, lightMapHeight, DirectX::TEX_FILTER_BOX, *tmpImage);
                     lightMapImage.swap(tmpImage);
                 }
 
-                if (shadowMapMetadata.width != width || shadowMapMetadata.height != height)
+                if (shadowMapMetadata.width != shadowMapWidth || shadowMapMetadata.height != shadowMapHeight)
                 {
                     std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-                    DirectX::Resize(shadowMapImage->GetImages(), shadowMapImage->GetImageCount(), shadowMapImage->GetMetadata(), width, height, DirectX::TEX_FILTER_BOX, *tmpImage);
+                    DirectX::Resize(shadowMapImage->GetImages(), shadowMapImage->GetImageCount(), shadowMapImage->GetMetadata(), shadowMapWidth, shadowMapHeight, DirectX::TEX_FILTER_BOX, *tmpImage);
                     shadowMapImage.swap(tmpImage);
                 }
 
