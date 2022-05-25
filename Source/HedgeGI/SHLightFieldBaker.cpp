@@ -145,7 +145,7 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const Raytrac
 
 std::unique_ptr<Bitmap> SHLightFieldBaker::paint(const std::vector<SHLightFieldPoint>& bakePoints, const SHLightField& shlf)
 {
-    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(shlf.resolution.x() * 9, shlf.resolution.y(), shlf.resolution.z(), BitmapType::_3D);
+    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(shlf.resolution.x() * 9, shlf.resolution.y(), shlf.resolution.z(), BitmapType::Texture3D);
 
     for (auto& bakePoint : bakePoints)
     {

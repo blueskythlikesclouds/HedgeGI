@@ -4,9 +4,9 @@ class FileStream;
 
 enum class BitmapType : uint32_t
 {
-    _2D,
-    _3D,
-    Cube
+    Texture2D,
+    Texture3D,
+    TextureCube
 };
 
 class Bitmap
