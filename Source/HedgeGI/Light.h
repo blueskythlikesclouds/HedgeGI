@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-enum class LightType
+enum class LightType : uint32_t
 {
     Directional,
     Point
@@ -10,9 +10,9 @@ class Light
 {
 public:
     std::string name;
-    LightType type{};
     Vector3 position;
     Color3 color;
+    LightType type{};
     Vector4 range;
 
     static void saveLightList(hl::stream& stream, const std::vector<std::unique_ptr<Light>>& lights);

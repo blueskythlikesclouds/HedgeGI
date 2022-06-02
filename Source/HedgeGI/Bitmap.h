@@ -2,11 +2,11 @@
 
 class FileStream;
 
-enum class BitmapType : uint32_t
+enum BitmapType : uint32_t
 {
-    Texture2D,
-    Texture3D,
-    TextureCube
+    BITMAP_TYPE_2D,
+    BITMAP_TYPE_3D,
+    BITMAP_TYPE_CUBE
 };
 
 class Bitmap
@@ -26,7 +26,7 @@ public:
     static void transformToLinearSpace(Color4* color);
 
     Bitmap();
-    Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1, BitmapType type = BitmapType::_2D);
+    Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1, BitmapType type = BITMAP_TYPE_2D);
 
     float* getColors(size_t index) const;
     size_t getColorIndex(size_t x, size_t y, size_t arrayIndex = 0) const;
