@@ -23,3 +23,6 @@ HedgeGI is a tool that allows you to bake global illumination and light field da
         * Linker -> General -> Additional Library Directories
 * Open the solution in the latest version of Visual Studio 2019 (or later).
 * Build the solution.
+
+# Screenshot
+![](https://i.imgur.com/L2ooCB7.png)
