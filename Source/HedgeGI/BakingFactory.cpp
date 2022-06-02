@@ -345,18 +345,30 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         hitPosition += hitPosition.cwiseAbs().cwiseProduct(hitNormal.cwiseSign()) * 0.0000002f;
 
         const Vector3 viewDirection = -rayNormal;
+        const float nDotV = saturate(hitNormal.dot(viewDirection));
 
+        // HE1
+        float fresnel;
+
+        // HE2
         float metalness;
         float roughness;
         Color3 F0;
-        float nDotV;
 
         if (targetEngine == TargetEngine::HE2)
         {
             metalness = specular.w();
             roughness = std::max(0.01f, 1 - specular.y());
             F0 = lerp<Color3>(Color3(specular.x()), diffuse, metalness);
-            nDotV = saturate(hitNormal.dot(viewDirection));
+        }
+        else
+        {
+            // pow(1.0 - nDotV, 5.0) * 0.6 + 0.4
+            float tmp = 1.0f - nDotV;
+            fresnel = tmp * tmp;
+            fresnel *= fresnel;
+            fresnel *= tmp;
+            fresnel = fresnel * 0.6f + 0.4f;
         }
 
         if (material == nullptr || material->type == MaterialType::Common || material->type == MaterialType::Blend)
@@ -450,7 +462,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                         if (glossLevel > 0.0f)
                         {
                             const Vector3 halfwayDirection = (viewDirection - lightDirection).normalized();
-                            directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>();
+                            directLighting += powf(saturate(halfwayDirection.dot(hitNormal)), glossPower) * glossLevel * specular.head<3>() * fresnel;
                         }
                     }
                     else if (targetEngine == TargetEngine::HE2)
