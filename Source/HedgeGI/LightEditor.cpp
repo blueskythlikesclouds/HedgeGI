@@ -152,7 +152,30 @@ void LightEditor::update(float deltaTime)
 
         Im3d::PushLayerId(IM3D_TRANSPARENT_DISCARD_ID);
         {
-            params->dirtyBVH |= Im3d::GizmoTranslation(selection->name.c_str(), selection->position.data());
+            if (selection->type == LightType::Point)
+                params->dirtyBVH |= Im3d::GizmoTranslation(selection->name.c_str(), selection->position.data());
+
+            else
+            {
+                Affine3 position;
+                position = Eigen::Translation3f(im3d->getCamera().getNewObjectPosition());
+
+                Im3d::PushMatrix(*(const Im3d::Mat4*)position.data());
+                Im3d::DrawArrow(Im3d::Vec3(0), *(const Im3d::Vec3*)selection->position.data());
+
+                Matrix3 rotation;
+                rotation.col(0) = selection->position.cross(Vector3::UnitX());
+                rotation.col(1) = selection->position;
+                rotation.col(2) = selection->position.cross(Vector3::UnitZ());
+
+                if (Im3d::GizmoRotation(selection->name.c_str(), rotation.data()))
+                {
+                    selection->position = rotation.col(1).normalized();
+                    params->dirty = true;
+                }
+
+                Im3d::PopMatrix();
+            }
         }
         Im3d::PopLayerId();
 

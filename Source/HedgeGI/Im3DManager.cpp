@@ -17,6 +17,11 @@ Im3DManager::Im3DManager() : billboardShader(ShaderProgram::get("Billboard")), i
 {
 }
 
+const Camera& Im3DManager::getCamera() const
+{
+    return camera;
+}
+
 const Vector3& Im3DManager::getRayPosition() const
 {
     return rayPosition;

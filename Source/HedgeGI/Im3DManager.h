@@ -37,6 +37,7 @@ class Im3DManager final : public Component
 public:
     Im3DManager();
 
+    const Camera& getCamera() const;
     const Vector3& getRayPosition() const;
     const Vector3& getRayDirection() const;
 
