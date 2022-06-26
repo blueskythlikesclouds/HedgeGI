@@ -710,16 +710,13 @@
     <None Include="ToneMap.vert.glsl">
       <Filter>Resources\Shaders\ToneMap</Filter>
     </None>
-    <None Include="Im3d.vert.glsl">
-      <Filter>Resources\Shaders\Im3d</Filter>
-    </None>
-    <None Include="Im3d.frag.glsl">
-      <Filter>Resources\Shaders\Im3d</Filter>
-    </None>
     <None Include="Billboard.frag.glsl">
       <Filter>Resources\Shaders\Im3d</Filter>
     </None>
     <None Include="Billboard.vert.glsl">
+      <Filter>Resources\Shaders\Im3d</Filter>
+    </None>
+    <None Include="Im3d.glsl">
       <Filter>Resources\Shaders\Im3d</Filter>
     </None>
   </ItemGroup>

@@ -3,15 +3,13 @@
 class ShaderProgram
 {
     static std::unordered_map<std::string, std::unique_ptr<ShaderProgram>> shaders;
-    static GLuint create(GLenum type, const GLchar* string, GLint length);
+    static GLuint create(GLenum type, const char* defines, const char* shader, size_t shaderSize);
 
     std::unordered_map<const char*, GLint> uniforms;
 
     void registerUniforms();
 
 public:
-    static std::unique_ptr<ShaderProgram> create(const GLchar* vertexShader, GLint vertexShaderLength, const GLchar* fragmentShader, GLint fragmentShaderLength);
-
     static const ShaderProgram& get(const char* name);
 
     const GLuint id;

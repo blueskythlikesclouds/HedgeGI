@@ -1,25 +1,114 @@
 ﻿#include "ShaderProgram.h"
 #include "resource.h"
 
-const struct ShaderDescriptor
+#define SHADER_VER "#version 330"
+#define SHADER_VER_LEN strlen(SHADER_VER)
+
+#define MAX_SHADER_INFOS 3
+
+struct ShaderInfo
 {
-    const char* const name;
-    const size_t vertexShader;
-    const size_t fragmentShader;
-} shaderDescriptors[] =
+    GLenum type;
+    size_t resource;
+    const char* defines;
+};
+
+struct ShaderProgramInfo
 {
-    { "CopyTexture", ResVertexShader_CopyTexture, ResFragmentShader_CopyTexture },
-    { "ToneMap", ResVertexShader_ToneMap, ResFragmentShader_ToneMap },
-    { "Im3d", ResVertexShader_Im3d, ResFragmentShader_Im3d },
-    { "Billboard", ResVertexShader_Billboard, ResFragmentShader_Billboard }
+    const char* name;
+    ShaderInfo shaders[MAX_SHADER_INFOS];
+};
+
+const ShaderProgramInfo shaderInfos[] =
+{
+    {
+        "CopyTexture",
+        {
+            {GL_VERTEX_SHADER, ResVertexShader_CopyTexture},
+            {GL_FRAGMENT_SHADER, ResFragmentShader_CopyTexture}
+        }
+    },
+    {
+        "ToneMap",
+        {
+            {GL_VERTEX_SHADER, ResVertexShader_ToneMap},
+            {GL_FRAGMENT_SHADER, ResFragmentShader_ToneMap}
+        }
+    },
+    {
+        "Im3d_Points",
+        {
+            {GL_VERTEX_SHADER, ResShader_Im3d, "POINTS\0VERTEX_SHADER\0"},
+            {GL_FRAGMENT_SHADER, ResShader_Im3d, "POINTS\0FRAGMENT_SHADER\0"}
+        }
+    },
+    {
+        "Im3d_Lines",
+        {
+            {GL_VERTEX_SHADER, ResShader_Im3d, "LINES\0VERTEX_SHADER\0"},
+            {GL_GEOMETRY_SHADER, ResShader_Im3d, "LINES\0GEOMETRY_SHADER\0"},
+            {GL_FRAGMENT_SHADER, ResShader_Im3d, "LINES\0FRAGMENT_SHADER\0"}
+        }
+    },
+    {
+        "Im3d_Triangles",
+        {
+            {GL_VERTEX_SHADER, ResShader_Im3d, "TRIANGLES\0VERTEX_SHADER\0"},
+            {GL_FRAGMENT_SHADER, ResShader_Im3d, "TRIANGLES\0FRAGMENT_SHADER\0"}
+        }
+    },
+    {
+        "Billboard",
+        {
+            {GL_VERTEX_SHADER, ResVertexShader_Billboard},
+            {GL_FRAGMENT_SHADER, ResFragmentShader_Billboard}
+        }
+    },
 };
 
 std::unordered_map<std::string, std::unique_ptr<ShaderProgram>> ShaderProgram::shaders;
 
-GLuint ShaderProgram::create(GLenum type, const GLchar* string, GLint length)
+GLuint ShaderProgram::create(GLenum type, const char* defines, const char* shader, size_t shaderSize)
 {
+    std::string str;
+    GLint size = (GLint)shaderSize;
+
+    if (defines)
+    {
+        str = SHADER_VER "\n";
+
+        size_t defineSize;
+        while ((defineSize = strlen(defines)) != 0)
+        {
+            str += "#define ";
+            str += defines;
+            str += "\n";
+            defines += defineSize + 1;
+        }
+
+        for (int i = 0; i < shaderSize - SHADER_VER_LEN; i++)
+        {
+            const char* current = shader + i;
+
+            if (strncmp(current, SHADER_VER, SHADER_VER_LEN) != 0)
+                continue;
+
+            current += SHADER_VER_LEN;
+
+            shaderSize = shader + shaderSize - current;
+            shader = current;
+
+            break;
+        }
+
+        str.append(shader, shaderSize);
+
+        shader = str.c_str();
+        size = (GLint)str.size();
+    }
+
     GLuint id = glCreateShader(type);
-    glShaderSource(id, 1, &string, &length);
+    glShaderSource(id, 1, &shader, &size);
     glCompileShader(id);
 
     GLint status;
@@ -30,8 +119,7 @@ GLuint ShaderProgram::create(GLenum type, const GLchar* string, GLint length)
         GLchar infoLog[1024];
         glGetShaderInfoLog(id, sizeof(infoLog), nullptr, infoLog);
 
-        printf(infoLog);
-        getchar();
+        MessageBoxA(nullptr, infoLog, "HedgeGI", MB_ICONERROR);
     }
 
     return id;
@@ -55,22 +143,6 @@ void ShaderProgram::registerUniforms()
     }
 }
 
-std::unique_ptr<ShaderProgram> ShaderProgram::create(const GLchar* vertexShader, GLint vertexShaderLength, const GLchar* fragmentShader, GLint fragmentShaderLength)
-{
-    GLuint vertexShaderId = create(GL_VERTEX_SHADER, vertexShader, vertexShaderLength);
-    GLuint fragmentShaderId = create(GL_FRAGMENT_SHADER, fragmentShader, fragmentShaderLength);
-
-    GLuint id = glCreateProgram();
-    glAttachShader(id, vertexShaderId);
-    glAttachShader(id, fragmentShaderId);
-    glLinkProgram(id);
-
-    glDeleteShader(vertexShaderId);
-    glDeleteShader(fragmentShaderId);
-
-    return std::make_unique<ShaderProgram>(id);
-}
-
 const ShaderProgram& ShaderProgram::get(const char* name)
 {
     const auto& pair = shaders.find(name);
@@ -78,34 +150,47 @@ const ShaderProgram& ShaderProgram::get(const char* name)
     if (pair != shaders.end())
         return *pair->second;
 
-    const ShaderDescriptor* shaderDescriptor = nullptr;
-    for (size_t i = 0; i < _countof(shaderDescriptors); i++)
+    const ShaderProgramInfo* info = nullptr;
+
+    for (size_t i = 0; i < _countof(shaderInfos); i++)
     {
-        if (strcmp(shaderDescriptors[i].name, name) != 0)
+        if (shaderInfos[i].name != name && strcmp(shaderInfos[i].name, name) != 0)
             continue;
 
-        shaderDescriptor = &shaderDescriptors[i];
+        info = &shaderInfos[i];
         break;
     }
 
-    const HRSRC hVertexShaderResource = FindResource(nullptr, MAKEINTRESOURCE(shaderDescriptor->vertexShader), TEXT("TEXT"));
-    const HRSRC hFragmentShaderResource = FindResource(nullptr, MAKEINTRESOURCE(shaderDescriptor->fragmentShader), TEXT("TEXT"));
+    const GLuint id = glCreateProgram();
+    GLuint shaderArr[MAX_SHADER_INFOS];
 
-    const HGLOBAL hVertexShaderGlobal = LoadResource(nullptr, hVertexShaderResource);
-    const HGLOBAL hFragmentShaderGlobal = LoadResource(nullptr, hFragmentShaderResource);
+    for (size_t i = 0; i < MAX_SHADER_INFOS; i++)
+    {
+        if (info->shaders[i].type == GL_NONE)
+        {
+            shaderArr[i] = GL_NONE;
+            continue;
+        }
 
-    const size_t vertexShaderSize = SizeofResource(nullptr, hVertexShaderResource);
-    const size_t fragmentShaderSize = SizeofResource(nullptr, hFragmentShaderResource);
+        const HRSRC hResInfo = FindResource(nullptr, MAKEINTRESOURCE(info->shaders[i].resource), TEXT("TEXT"));
+        const HGLOBAL hResData = LoadResource(nullptr, hResInfo);
 
-    const char* vertexShader = (const char*)LockResource(hVertexShaderGlobal);
-    const char* fragmentShader = (const char*)LockResource(hFragmentShaderGlobal);
+        glAttachShader(id, shaderArr[i] = 
+            create(info->shaders[i].type, info->shaders[i].defines, 
+                (const GLchar*)LockResource(hResData), SizeofResource(nullptr, hResInfo)));
 
-    const ShaderProgram& shader = *(shaders[name] = std::move(create(vertexShader, (GLint)vertexShaderSize, fragmentShader, (GLint)fragmentShaderSize)));
+        FreeResource(hResData);
+    }
 
-    FreeResource(hVertexShaderGlobal);
-    FreeResource(hFragmentShaderGlobal);
+    glLinkProgram(id);
 
-    return shader;
+    for (const auto shader : shaderArr)
+    {
+        if (shader != GL_NONE)
+            glDeleteShader(shader);
+    }
+
+    return *(shaders[name] = std::make_unique<ShaderProgram>(id));
 }
 
 ShaderProgram::ShaderProgram(GLuint id) : id(id)

@@ -502,7 +502,7 @@
   <ItemGroup>
     <None Include="Billboard.frag.glsl" />
     <None Include="Billboard.vert.glsl" />
-    <None Include="Im3d.vert.glsl" />
+    <None Include="Im3d.glsl" />
     <None Include="ToneMap.frag.glsl">
       <FileType>Document</FileType>
     </None>
@@ -518,11 +518,6 @@
       <FileType>Document</FileType>
     </None>
     <None Include="CopyTexture.vert.glsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Im3d.frag.glsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

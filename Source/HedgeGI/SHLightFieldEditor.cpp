@@ -100,7 +100,9 @@ void SHLightFieldEditor::update(float deltaTime)
     drawOrientedBoxFilled(matrix, 0.1f);
     Im3d::PopColor();
 
+    Im3d::PushSize(IM3D_LINE_SIZE);
     drawOrientedBox(matrix, 0.1f);
+    Im3d::PopSize();
 
     const float radius = (selection->scale.array() / selection->resolution.cast<float>()).minCoeff() / 40.0f;
 
@@ -129,7 +131,7 @@ void SHLightFieldEditor::update(float deltaTime)
                     const Vector3 a = position + lineOffsets[i];
                     const Vector3 b = position - lineOffsets[i];
 
-                    Im3d::DrawLine({ a.x(), a.y(), a.z() }, { b.x(), b.y(), b.z() }, 1.0f, Im3d::Color_White);
+                    Im3d::DrawLine({ a.x(), a.y(), a.z() }, { b.x(), b.y(), b.z() }, IM3D_LINE_SIZE, Im3d::Color_White);
                 }
             }
         }

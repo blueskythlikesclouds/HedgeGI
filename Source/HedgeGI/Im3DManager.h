@@ -24,8 +24,10 @@ class Im3DManager final : public Component
     const Quad billboardQuad;
     std::vector<Billboard> billboards;
 
-    const ShaderProgram& im3dShader;
-    const VertexArray im3dVertexArray;
+    const ShaderProgram& triangleShader;
+    const ShaderProgram& lineShader;
+    const ShaderProgram& pointShader;
+    const VertexArray vertexArray;
 
     Camera camera;
     Vector3 rayPosition;
@@ -50,3 +52,4 @@ public:
 };
 
 static const inline Im3d::Id IM3D_TRANSPARENT_DISCARD_ID = Im3d::MakeId("TRANSPARENT_DISCARD");
+static const inline float IM3D_LINE_SIZE = 3.0f;

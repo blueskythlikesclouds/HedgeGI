@@ -8,8 +8,12 @@
 
 constexpr size_t IM3D_VERTEX_BUFFER_SIZE = 3 * 1024 * 1024;
 
-Im3DManager::Im3DManager() : billboardShader(ShaderProgram::get("Billboard")), im3dShader(ShaderProgram::get("Im3d")),
-    im3dVertexArray(IM3D_VERTEX_BUFFER_SIZE * sizeof(Im3d::VertexData), nullptr,
+Im3DManager::Im3DManager() :
+    billboardShader(ShaderProgram::get("Billboard")),
+    triangleShader(ShaderProgram::get("Im3d_Triangles")),
+    lineShader(ShaderProgram::get("Im3d_Lines")),
+    pointShader(ShaderProgram::get("Im3d_Points")),
+    vertexArray(IM3D_VERTEX_BUFFER_SIZE * sizeof(Im3d::VertexData), nullptr,
     {
         { 0, 4, GL_FLOAT, false, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_positionSize) },
         { 1, 4, GL_UNSIGNED_BYTE, true, sizeof(Im3d::VertexData), offsetof(Im3d::VertexData, m_color) },
@@ -80,9 +84,7 @@ void Im3DManager::endFrame()
 
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
-    glEnable(GL_LINE_SMOOTH);
-    glLineWidth(2.0f);
-    glPointSize(2.0f);
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     if (!billboards.empty())
     {
@@ -109,56 +111,58 @@ void Im3DManager::endFrame()
         billboards.clear();
     }
 
-    im3dVertexArray.buffer.bind();
-    im3dVertexArray.bind();
-
-    im3dShader.use();
-    im3dShader.set("uView", camera.view);
-    im3dShader.set("uProjection", camera.projection);
-    im3dShader.set("uCamPosition", camera.position);
-
-    if (const Texture* texture = viewport->getInitialTexture(); texture)
-    {
-        im3dShader.set("uTexture", 0);
-        im3dShader.set("uRect", Vector4(0, 1 - viewport->getNormalizedHeight(),
-            viewport->getNormalizedWidth(), viewport->getNormalizedHeight()));
-
-        texture->bind(0);
-    }
+    vertexArray.buffer.bind();
+    vertexArray.bind();
 
     for (Im3d::U32 i = 0; i < Im3d::GetDrawListCount(); i++)
     {
         const auto& drawList = Im3d::GetDrawLists()[i];
 
-        im3dShader.set("uDiscardFactor", drawList.m_layerId == IM3D_TRANSPARENT_DISCARD_ID ? 0.5f : 0.0f);
+        GLenum mode;
+        const ShaderProgram* shader;
+
+        switch (drawList.m_primType)
+        {
+        case Im3d::DrawPrimitive_Triangles:
+            mode = GL_TRIANGLES;
+            shader = &triangleShader;
+            break;
+
+        case Im3d::DrawPrimitive_Lines:
+            mode = GL_LINES;
+            shader = &lineShader;
+            break;
+
+        case Im3d::DrawPrimitive_Points:
+            mode = GL_POINTS;
+            shader = &pointShader;
+            break;
+
+        default:
+            continue;
+        }
+
+        shader->use();
+        shader->set("uView", camera.view);
+        shader->set("uProjection", camera.projection);
+        shader->set("uCamPosition", camera.position);
+        shader->set("uDiscardFactor", drawList.m_layerId == IM3D_TRANSPARENT_DISCARD_ID ? 0.5f : 0.0f);
+        shader->set("uViewport", Vector2(viewportWindow->getWidth(), viewportWindow->getHeight()));
+
+        if (const Texture* texture = viewport->getInitialTexture(); texture)
+        {
+            shader->set("uTexture", 0);
+            shader->set("uRect", Vector4(0, 1 - viewport->getNormalizedHeight(),
+                viewport->getNormalizedWidth(), viewport->getNormalizedHeight()));
+
+            texture->bind(0);
+        }
 
         for (Im3d::U32 j = 0; j < drawList.m_vertexCount; j += IM3D_VERTEX_BUFFER_SIZE)
         {
             const GLsizei vertexCount = std::min<GLsizei>(drawList.m_vertexCount - j, IM3D_VERTEX_BUFFER_SIZE);
 
-            glBufferSubData(im3dVertexArray.buffer.target, 0,
-                vertexCount * sizeof(Im3d::VertexData), &drawList.m_vertexData[j]);
-
-            GLenum mode;
-
-            switch (drawList.m_primType)
-            {
-            case Im3d::DrawPrimitive_Triangles:
-                mode = GL_TRIANGLES;
-                break;
-
-            case Im3d::DrawPrimitive_Lines:
-                mode = GL_LINES;
-                break;
-
-            case Im3d::DrawPrimitive_Points:
-                mode = GL_POINTS;
-                break;
-
-            default:
-                continue;
-            }
-
+            glBufferSubData(vertexArray.buffer.target, 0, vertexCount * sizeof(Im3d::VertexData), &drawList.m_vertexData[j]);
             glDrawArrays(mode, 0, vertexCount);
         }
     }
@@ -189,7 +193,7 @@ void Im3DManager::update(const float deltaTime)
     appData.m_viewOrigin = { camera.position.x(), camera.position.y(), camera.position.z() };
     appData.m_viewDirection = { camera.direction.x(), camera.direction.y(), camera.direction.z() };
     appData.m_viewportSize = { (float)viewportWindow->getWidth(), (float)viewportWindow->getHeight() };
-    appData.m_projScaleY = tanFovy * 2.0f;
+    appData.m_projScaleY = 1.5f * (tanFovy * 2.0f);
     appData.m_deltaTime = deltaTime;
 
     Im3d::NewFrame();

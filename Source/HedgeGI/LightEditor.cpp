@@ -148,7 +148,9 @@ void LightEditor::update(float deltaTime)
 
     if (selection != nullptr)
     {
+        Im3d::PushSize(IM3D_LINE_SIZE);
         Im3d::DrawSphere(*(const Im3d::Vec3*)selection->position.data(), selection->range.w());
+        Im3d::PopSize();
 
         Im3d::PushLayerId(IM3D_TRANSPARENT_DISCARD_ID);
         {
@@ -161,7 +163,10 @@ void LightEditor::update(float deltaTime)
                 position = Eigen::Translation3f(im3d->getCamera().getNewObjectPosition());
 
                 Im3d::PushMatrix(*(const Im3d::Mat4*)position.data());
+
+                Im3d::PushSize(IM3D_LINE_SIZE * 2.0f);
                 Im3d::DrawArrow(Im3d::Vec3(0), *(const Im3d::Vec3*)selection->position.data());
+                Im3d::PopSize();
 
                 Matrix3 rotation;
                 rotation.col(0) = selection->position.cross(Vector3::UnitX());
