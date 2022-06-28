@@ -11,37 +11,38 @@
 #include <optix_stubs.h>
 
 CriticalSection OptixDenoiserDevice::criticalSection;
-bool OptixDenoiserDevice::initialized;
 OptixDeviceContext OptixDenoiserDevice::context;
 OptixDenoiser OptixDenoiserDevice::denoiser;
 
 const bool OptixDenoiserDevice::available = []() 
 {
     int count;
-    return cudaGetDeviceCount(&count) == cudaSuccess && count >= 1;
+
+    if (cudaGetDeviceCount(&count) != cudaSuccess || count < 1)
+        return false;
+
+    cudaFree(nullptr);
+
+    CUcontext cuCtx = nullptr;
+    if (optixInit() != OPTIX_SUCCESS)
+        return false;
+
+    if (optixDeviceContextCreate(cuCtx, nullptr, &context) != OPTIX_SUCCESS)
+        return false;
+
+    const OptixDenoiserOptions options = {0, 0};
+    optixDenoiserCreate(context, OPTIX_DENOISER_MODEL_KIND_HDR, &options, &denoiser);
+
+    std::atexit([] { optixDenoiserDestroy(denoiser); });
+    std::atexit([] { optixDeviceContextDestroy(context); });
+    std::atexit([] { cudaFree(nullptr); });
+
+    return true;
 }();
 
 std::unique_ptr<Bitmap> OptixDenoiserDevice::denoise(const Bitmap& bitmap, const bool denoiseAlpha)
 {
-    std::lock_guard<CriticalSection> lock(criticalSection);
-
-    if (!initialized)
-    {
-        cudaFree(nullptr);
-
-        CUcontext cuCtx = nullptr;
-        optixInit();
-        optixDeviceContextCreate(cuCtx, nullptr, &context);
-
-        const OptixDenoiserOptions options = { 0, 0 };
-        optixDenoiserCreate(context, OPTIX_DENOISER_MODEL_KIND_HDR, &options, &denoiser);
-
-        std::atexit([]() { optixDenoiserDestroy(denoiser); });
-        std::atexit([]() { optixDeviceContextDestroy(context); });
-        std::atexit([]() { cudaFree(nullptr); });
-
-        initialized = true;
-    }
+    std::lock_guard lock(criticalSection);
 
     std::unique_ptr<Bitmap> denoised = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
 

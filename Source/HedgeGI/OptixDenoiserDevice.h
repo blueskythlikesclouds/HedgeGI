@@ -8,7 +8,6 @@ typedef struct OptixDenoiser_t* OptixDenoiser;
 class OptixDenoiserDevice
 {
     static CriticalSection criticalSection;
-    static bool initialized;
     static OptixDeviceContext context;
     static OptixDenoiser denoiser;
 
