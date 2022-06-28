@@ -3,8 +3,7 @@
 #include "hl_archive.h"
 #include "../hl_blob.h"
 #include "../io/hl_bina.h"
-#include "../io/hl_stream.h"
-#include "../io/hl_path.h"
+#include "../hl_compression.h"
 
 namespace hl
 {
@@ -155,16 +154,16 @@ struct data_entry
         padding, starting immediately after this data_entry struct.
     */
     u32 dataSize;
+    /** @brief Set internally by the game. Always 0 in actual files. */
+    u32 dataPtr;
     /** @brief Always 0? */
     u32 unknown1;
-    /** @brief Always 0? */
-    u32 unknown2;
     /** @brief See hl::pacx::v2::data_flags. */
     u8 flags;
-    /** @brief Included so garbage data doesn't get writtten. */
-    u8 padding1;
-    /** @brief Included so garbage data doesn't get writtten. */
-    u16 padding2;
+    /** @brief Set internally by the game. Always 0 in actual files. */
+    u8 status;
+    /** @brief Always 0? */
+    u16 unknown2;
 
     template<bool swapOffsets = true>
     inline void endian_swap() noexcept
@@ -464,14 +463,14 @@ struct header
         return static_cast<bina::endian_flag>(endianFlag);
     }
 
-    inline const bina::v2::block_header* first_block() const noexcept
+    inline const bina::v2::raw_block_header* first_block() const noexcept
     {
-        return reinterpret_cast<const bina::v2::block_header*>(this + 1);
+        return reinterpret_cast<const bina::v2::raw_block_header*>(this + 1);
     }
 
-    inline bina::v2::block_header* first_block() noexcept
+    inline bina::v2::raw_block_header* first_block() noexcept
     {
-        return reinterpret_cast<bina::v2::block_header*>(this + 1);
+        return reinterpret_cast<bina::v2::raw_block_header*>(this + 1);
     }
 
     inline bina::v2::const_block_iterator blocks() const noexcept
@@ -484,26 +483,26 @@ struct header
         return bina::v2::block_iterator(first_block(), blockCount);
     }
 
-    HL_API const bina::v2::block_header* get_block(
-        bina::v2::block_type type) const noexcept;
+    HL_API const bina::v2::raw_block_header* get_block(
+        bina::v2::raw_block_type type) const noexcept;
 
-    inline bina::v2::block_header* get_block(
-        bina::v2::block_type type) noexcept
+    inline bina::v2::raw_block_header* get_block(
+        bina::v2::raw_block_type type) noexcept
     {
-        return const_cast<bina::v2::block_header*>(const_cast<
+        return const_cast<bina::v2::raw_block_header*>(const_cast<
             const header*>(this)->get_block(type));
     }
 
     inline const block_data_header* get_data_block() const noexcept
     {
         return reinterpret_cast<const block_data_header*>(
-            get_block(bina::v2::block_type::data));
+            get_block(bina::v2::raw_block_type::data));
     }
 
     inline block_data_header* get_data_block() noexcept
     {
         return reinterpret_cast<block_data_header*>(
-            get_block(bina::v2::block_type::data));
+            get_block(bina::v2::raw_block_type::data));
     }
 
     HL_API void fix();

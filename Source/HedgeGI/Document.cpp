@@ -5,7 +5,7 @@ Document::Document() : parent(nullptr)
 {
 }
 
-Document::Document(Document&& document)
+Document::Document(Document&& document) : parent(nullptr)
 {
     componentMap = std::move(document.componentMap);
     components = std::move(document.components);

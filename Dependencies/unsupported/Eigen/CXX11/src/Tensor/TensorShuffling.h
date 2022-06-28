@@ -118,8 +118,7 @@ struct TensorEvaluator<const TensorShufflingOp<Shuffle, ArgType>, Device>
       TensorBlock;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op,
-                                                        const Device& device)
+  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
       : m_device(device),
         m_impl(op.expression(), device)
   {
@@ -143,7 +142,8 @@ struct TensorEvaluator<const TensorShufflingOp<Shuffle, ArgType>, Device>
         m_unshuffledInputStrides[i] =
             m_unshuffledInputStrides[i - 1] * input_dims[i - 1];
         m_outputStrides[i] = m_outputStrides[i - 1] * m_dimensions[i - 1];
-        m_fastOutputStrides[i] = internal::TensorIntDivisor<Index>(m_outputStrides[i]);
+        m_fastOutputStrides[i] = internal::TensorIntDivisor<Index>(
+                  m_outputStrides[i] > 0 ? m_outputStrides[i] : Index(1));
       }
     } else {
       m_unshuffledInputStrides[NumDims - 1] = 1;
@@ -152,7 +152,8 @@ struct TensorEvaluator<const TensorShufflingOp<Shuffle, ArgType>, Device>
         m_unshuffledInputStrides[i] =
             m_unshuffledInputStrides[i + 1] * input_dims[i + 1];
         m_outputStrides[i] = m_outputStrides[i + 1] * m_dimensions[i + 1];
-        m_fastOutputStrides[i] = internal::TensorIntDivisor<Index>(m_outputStrides[i]);
+        m_fastOutputStrides[i] = internal::TensorIntDivisor<Index>(
+                  m_outputStrides[i] > 0 ? m_outputStrides[i] : Index(1));
       }
     }
 
@@ -163,20 +164,20 @@ struct TensorEvaluator<const TensorShufflingOp<Shuffle, ArgType>, Device>
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE const Dimensions& dimensions() const { return m_dimensions; }
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType /*data*/) {
+  EIGEN_STRONG_INLINE bool evalSubExprsIfNeeded(EvaluatorPointerType /*data*/) {
     m_impl.evalSubExprsIfNeeded(NULL);
     return true;
   }
 
 #ifdef EIGEN_USE_THREADS
   template <typename EvalSubExprsCallback>
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void evalSubExprsIfNeededAsync(
+  EIGEN_STRONG_INLINE void evalSubExprsIfNeededAsync(
       EvaluatorPointerType, EvalSubExprsCallback done) {
     m_impl.evalSubExprsIfNeededAsync(nullptr, [done](bool) { done(true); });
   }
 #endif  // EIGEN_USE_THREADS
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void cleanup() {
+  EIGEN_STRONG_INLINE void cleanup() {
     m_impl.cleanup();
   }
 
@@ -384,7 +385,7 @@ struct TensorEvaluator<TensorShufflingOp<Shuffle, ArgType>, Device>
   typedef internal::TensorBlockDescriptor<NumDims, Index> TensorBlockDesc;
   //===--------------------------------------------------------------------===//
 
-  EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
+  EIGEN_STRONG_INLINE TensorEvaluator(const XprType& op, const Device& device)
       : Base(op, device)
   { }
 

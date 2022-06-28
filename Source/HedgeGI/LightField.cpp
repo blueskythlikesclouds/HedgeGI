@@ -69,9 +69,9 @@ void LightField::write(hl::stream& stream, hl::off_table& offTable) const
         hl::u32 indicesOffset;
     } header;
 
-    offTable.push_back(sizeof(hl::hh::mirage::raw_header) + offsetof(LightFieldHeader, cellsOffset));
-    offTable.push_back(sizeof(hl::hh::mirage::raw_header) + offsetof(LightFieldHeader, probesOffset));
-    offTable.push_back(sizeof(hl::hh::mirage::raw_header) + offsetof(LightFieldHeader, indicesOffset));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, cellsOffset));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, probesOffset));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, indicesOffset));
 
     for (size_t i = 0; i < 3; i++)
     {
@@ -132,9 +132,9 @@ void LightField::save(const std::string& filePath) const
 
     hl::file_stream stream(toNchar(filePath.c_str()).data(), hl::file::mode::write);
 
-    hl::hh::mirage::raw_header::start_write(1, stream);
+    hl::hh::mirage::standard::raw_header::start_write(stream);
     {
         write(stream, offTable);
     }
-    hl::hh::mirage::raw_header::finish_write(0, offTable, stream);
+    hl::hh::mirage::standard::raw_header::finish_write(0, sizeof(hl::hh::mirage::standard::raw_header), 1, offTable, stream);
 }

@@ -266,7 +266,7 @@ inline void setRayDirection(const RTCRay& ray, const Vector3& direction)
 inline void savePfi(const hl::packed_file_info& pfi, hl::stream& stream)
 {
     hl::off_table offTable;
-    hl::hh::mirage::raw_header::start_write(0, stream);
-    hl::hh::pfi::v0::write(pfi, sizeof(hl::hh::mirage::raw_header), offTable, stream);
-    hl::hh::mirage::raw_header::finish_write(0, offTable, stream, "");
+    hl::hh::mirage::standard::raw_header::start_write(stream);
+    hl::hh::pfi::v0::write(pfi, sizeof(hl::hh::mirage::standard::raw_header), offTable, stream);
+    hl::hh::mirage::standard::raw_header::finish_write(0, sizeof(hl::hh::mirage::standard::raw_header), 0, offTable, stream, "");
 }

@@ -4,10 +4,10 @@
 void SHLightField::save(hl::stream& stream, const std::vector<std::unique_ptr<SHLightField>>& shLightFields)
 {
     const size_t headerPos = stream.tell();
-    hl::bina::v2::header::start_write(hl::bina::v2::ver_210, hl::bina::endian_flag::little, stream);
+    hl::bina::v2::raw_header::start_write(hl::bina::v2::ver_210, hl::bina::endian_flag::little, stream);
 
     const size_t dataBlockPos = stream.tell();
-    hl::bina::v2::block_data_header::start_write(hl::bina::endian_flag::little, stream);
+    hl::bina::v2::raw_block_data_header::start_write(hl::bina::endian_flag::little, stream);
 
     hl::str_table strTable;
     hl::off_table offTable;
@@ -45,8 +45,8 @@ void SHLightField::save(hl::stream& stream, const std::vector<std::unique_ptr<SH
         }
     }
 
-    hl::bina::v2::block_data_header::finish_write64(dataBlockPos, hl::bina::endian_flag::little, strTable, offTable, stream);
-    hl::bina::v2::header::finish_write(headerPos, 1, hl::bina::endian_flag::little, stream);
+    hl::bina::v2::raw_block_data_header::finish_write64(dataBlockPos, hl::bina::endian_flag::little, strTable, offTable, stream);
+    hl::bina::v2::raw_header::finish_write(headerPos, 1, hl::bina::endian_flag::little, stream);
 }
 
 void SHLightField::save(const std::string& filePath, const std::vector<std::unique_ptr<SHLightField>>& shLightFields)

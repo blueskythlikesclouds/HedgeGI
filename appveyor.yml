@@ -1,5 +1,5 @@
-image: Visual Studio 2019
-configuration: Default
+image: Visual Studio 2022
+configuration: Release
 
 before_build:
     - ps: Start-FileDownload "https://developer.download.nvidia.com/compute/cuda/11.4.0/network_installers/cuda_11.4.0_win10_network.exe" -FileName "CUDA.exe"

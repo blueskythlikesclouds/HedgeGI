@@ -140,6 +140,7 @@ template<> struct packet_traits<double> : default_packet_traits
     HasHalfPacket = 1,
 #if EIGEN_GNUC_AT_LEAST(5, 3) || (!EIGEN_COMP_GNUC_STRICT)
     HasLog  = 1,
+    HasExp = 1,
     HasSqrt = EIGEN_FAST_MATH,
     HasRsqrt = EIGEN_FAST_MATH,
 #endif
@@ -486,7 +487,7 @@ template<> EIGEN_STRONG_INLINE Packet16f pcmp_lt(const Packet16f& a, const Packe
 }
 
 template<> EIGEN_STRONG_INLINE Packet16f pcmp_lt_or_nan(const Packet16f& a, const Packet16f& b) {
-  __mmask16 mask = _mm512_cmp_ps_mask(a, b, _CMP_NGT_UQ);
+  __mmask16 mask = _mm512_cmp_ps_mask(a, b, _CMP_NGE_UQ);
   return _mm512_castsi512_ps(
       _mm512_mask_set1_epi32(_mm512_set1_epi32(0), mask, 0xffffffffu));
 }
@@ -517,7 +518,7 @@ EIGEN_STRONG_INLINE Packet8d pcmp_lt(const Packet8d& a, const Packet8d& b) {
 }
 template <>
 EIGEN_STRONG_INLINE Packet8d pcmp_lt_or_nan(const Packet8d& a, const Packet8d& b) {
-  __mmask8 mask = _mm512_cmp_pd_mask(a, b, _CMP_NGT_UQ);
+  __mmask8 mask = _mm512_cmp_pd_mask(a, b, _CMP_NGE_UQ);
   return _mm512_castsi512_pd(
       _mm512_mask_set1_epi64(_mm512_set1_epi64(0), mask, 0xffffffffffffffffu));
 }
@@ -929,7 +930,8 @@ template<> EIGEN_STRONG_INLINE Packet8d pldexp<Packet8d>(const Packet8d& a, cons
   Packet8i b = parithmetic_shift_right<2>(e);  // floor(e/4)
   
   // 2^b
-  Packet8i hi = _mm256_shuffle_epi32(padd(b, bias), _MM_SHUFFLE(3, 1, 2, 0));
+  const Packet8i permute_idx = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
+  Packet8i hi = _mm256_permutevar8x32_epi32(padd(b, bias), permute_idx);
   Packet8i lo = _mm256_slli_epi64(hi, 52);
   hi = _mm256_slli_epi64(_mm256_srli_epi64(hi, 32), 52);
   Packet8d c = _mm512_castsi512_pd(_mm512_inserti64x4(_mm512_castsi256_si512(lo), hi, 1));
@@ -937,7 +939,7 @@ template<> EIGEN_STRONG_INLINE Packet8d pldexp<Packet8d>(const Packet8d& a, cons
   
   // 2^(e - 3b)
   b = psub(psub(psub(e, b), b), b);  // e - 3b
-  hi = _mm256_shuffle_epi32(padd(b, bias), _MM_SHUFFLE(3, 1, 2, 0));
+  hi = _mm256_permutevar8x32_epi32(padd(b, bias), permute_idx);
   lo = _mm256_slli_epi64(hi, 52);
   hi = _mm256_slli_epi64(_mm256_srli_epi64(hi, 32), 52);
   c = _mm512_castsi512_pd(_mm512_inserti64x4(_mm512_castsi256_si512(lo), hi, 1));
@@ -1943,23 +1945,15 @@ EIGEN_STRONG_INLINE Packet16f Bf16ToF32(const Packet16bf& a) {
 EIGEN_STRONG_INLINE Packet16bf F32ToBf16(const Packet16f& a) {
   Packet16bf r;
 
-  // Flush input denormals value to zero with hardware capability.
-  _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
-#if defined(EIGEN_VECTORIZE_AVX512DQ)
-  __m512 flush = _mm512_and_ps(a, a);
-#else
-  __m512 flush = _mm512_max_ps(a, a);
-#endif // EIGEN_VECTORIZE_AVX512DQ
-  _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_OFF);
-
 #if defined(EIGEN_VECTORIZE_AVX512BF16) && EIGEN_GNUC_AT_LEAST(10, 1)
   // Since GCC 10.1 supports avx512bf16 and C style explicit cast
   // (C++ static_cast is not supported yet), do converion via intrinsic
   // and register path for performance.
-  r = (__m256i)(_mm512_cvtneps_pbh(flush));
+  r = (__m256i)(_mm512_cvtneps_pbh(a));
+
 #else
   __m512i t;
-  __m512i input = _mm512_castps_si512(flush);
+  __m512i input = _mm512_castps_si512(a);
   __m512i nan = _mm512_set1_epi32(0x7fc0);
 
   // uint32_t lsb = (input >> 16) & 1;
@@ -1972,9 +1966,9 @@ EIGEN_STRONG_INLINE Packet16bf F32ToBf16(const Packet16f& a) {
   t = _mm512_srli_epi32(t, 16);
 
   // Check NaN before converting back to bf16
-  __mmask16 mask = _mm512_cmp_ps_mask(flush, flush, _CMP_ORD_Q);
-  t = _mm512_mask_blend_epi32(mask, nan, t);
+  __mmask16 mask = _mm512_cmp_ps_mask(a, a, _CMP_ORD_Q);
 
+  t = _mm512_mask_blend_epi32(mask, nan, t);
   // output.value = static_cast<uint16_t>(input);
   r = _mm512_cvtepi32_epi16(t);
 #endif // EIGEN_VECTORIZE_AVX512BF16

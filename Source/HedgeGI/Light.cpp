@@ -3,7 +3,7 @@
 void Light::saveLightList(hl::stream& stream, const std::vector<std::unique_ptr<Light>>& lights)
 {
     hl::off_table offTable;
-    hl::hh::mirage::raw_header::start_write(0, stream);
+    hl::hh::mirage::standard::raw_header::start_write(stream);
 
     const size_t basePos = stream.tell();
 
@@ -22,7 +22,7 @@ void Light::saveLightList(hl::stream& stream, const std::vector<std::unique_ptr<
         stream.pad(4);
     }
 
-    hl::hh::mirage::raw_header::finish_write(0, offTable, stream, "");
+    hl::hh::mirage::standard::raw_header::finish_write(0, sizeof(hl::hh::mirage::standard::raw_header), 0, offTable, stream, "");
 }
 
 float Light::computeIntensity() const
@@ -39,7 +39,7 @@ float Light::computeIntensity() const
 void Light::save(hl::stream& stream) const
 {
     hl::off_table offTable;
-    hl::hh::mirage::raw_header::start_write(1, stream);
+    hl::hh::mirage::standard::raw_header::start_write(stream);
 
     hl::hh::mirage::raw_light hhLight =
     {
@@ -62,5 +62,5 @@ void Light::save(hl::stream& stream) const
     else
         stream.write(offsetof(hl::hh::mirage::raw_light, attribute), &hhLight);
 
-    hl::hh::mirage::raw_header::finish_write(0, offTable, stream, "");
+    hl::hh::mirage::standard::raw_header::finish_write(0, sizeof(hl::hh::mirage::standard::raw_header), 1, offTable, stream, "");
 }

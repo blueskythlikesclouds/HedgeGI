@@ -184,19 +184,7 @@ template<typename T> struct functor_traits
 
 template<typename T> struct packet_traits;
 
-template<typename T> struct unpacket_traits
-{
-  typedef T type;
-  typedef T half;
-  enum
-  {
-    size = 1,
-    alignment = 1,
-    vectorizable = false,
-    masked_load_available=false,
-    masked_store_available=false
-  };
-};
+template<typename T> struct unpacket_traits;
 
 template<int Size, typename PacketType,
          bool Stop = Size==Dynamic || (Size%unpacket_traits<PacketType>::size)==0 || is_same<PacketType,typename unpacket_traits<PacketType>::half>::value>
@@ -611,9 +599,9 @@ template<typename ExpressionType, typename Scalar = typename ExpressionType::Sca
 struct plain_row_type
 {
   typedef Matrix<Scalar, 1, ExpressionType::ColsAtCompileTime,
-                 ExpressionType::PlainObject::Options | RowMajor, 1, ExpressionType::MaxColsAtCompileTime> MatrixRowType;
+                 int(ExpressionType::PlainObject::Options) | int(RowMajor), 1, ExpressionType::MaxColsAtCompileTime> MatrixRowType;
   typedef Array<Scalar, 1, ExpressionType::ColsAtCompileTime,
-                 ExpressionType::PlainObject::Options | RowMajor, 1, ExpressionType::MaxColsAtCompileTime> ArrayRowType;
+                 int(ExpressionType::PlainObject::Options) | int(RowMajor), 1, ExpressionType::MaxColsAtCompileTime> ArrayRowType;
 
   typedef typename conditional<
     is_same< typename traits<ExpressionType>::XprKind, MatrixXpr >::value,

@@ -58,6 +58,13 @@ extern "C" {
 extern OptixFunctionTable g_optixFunctionTable;
 
 #ifdef _WIN32
+#if defined( _MSC_VER )
+// Visual Studio produces warnings suggesting strcpy and friends being replaced with _s
+// variants. All the string lengths and allocation sizes have been calculated and should
+// be safe, so we are disabling this warning to increase compatibility.
+#    pragma warning( push )
+#    pragma warning( disable : 4996 )
+#endif
 static void* optixLoadWindowsDllFromName( const char* optixDllName )
 {
     void* handle = NULL;
@@ -166,6 +173,9 @@ static void* optixLoadWindowsDllFromName( const char* optixDllName )
     free( deviceNames );
     return handle;
 }
+#if defined( _MSC_VER )
+#    pragma warning( pop )
+#endif
 
 static void* optixLoadWindowsDll( )
 {
@@ -381,6 +391,25 @@ inline OptixResult optixModuleCreateFromPTX( OptixDeviceContext                 
                                                           PTXsize, logString, logStringSize, module );
 }
 
+inline OptixResult optixModuleCreateFromPTXWithTasks( OptixDeviceContext                 context,
+                                                      const OptixModuleCompileOptions*   moduleCompileOptions,
+                                                      const OptixPipelineCompileOptions* pipelineCompileOptions,
+                                                      const char*                        PTX,
+                                                      size_t                             PTXsize,
+                                                      char*                              logString,
+                                                      size_t*                            logStringSize,
+                                                      OptixModule*                       module,
+                                                      OptixTask*                         firstTask )
+{
+    return g_optixFunctionTable.optixModuleCreateFromPTXWithTasks( context, moduleCompileOptions, pipelineCompileOptions, PTX,
+                                                                   PTXsize, logString, logStringSize, module, firstTask );
+}
+
+inline OptixResult optixModuleGetCompilationState( OptixModule module, OptixModuleCompileState* state )
+{
+    return g_optixFunctionTable.optixModuleGetCompilationState( module, state );
+}
+
 inline OptixResult optixModuleDestroy( OptixModule module )
 {
     return g_optixFunctionTable.optixModuleDestroy( module );
@@ -392,8 +421,13 @@ inline OptixResult optixBuiltinISModuleGet( OptixDeviceContext                 c
                                             const OptixBuiltinISOptions*       builtinISOptions,
                                             OptixModule*                       builtinModule )
 {
-    return g_optixFunctionTable.optixBuiltinISModuleGet( context, moduleCompileOptions, pipelineCompileOptions, 
+    return g_optixFunctionTable.optixBuiltinISModuleGet( context, moduleCompileOptions, pipelineCompileOptions,
                                                          builtinISOptions, builtinModule );
+}
+
+inline OptixResult optixTaskExecute( OptixTask task, OptixTask* additionalTasks, unsigned int maxNumAdditionalTasks, unsigned int* numAdditionalTasksCreated )
+{
+    return g_optixFunctionTable.optixTaskExecute( task, additionalTasks, maxNumAdditionalTasks, numAdditionalTasksCreated );
 }
 
 inline OptixResult optixProgramGroupCreate( OptixDeviceContext              context,
@@ -515,6 +549,7 @@ inline OptixResult optixConvertPointerToTraversableHandle( OptixDeviceContext   
 {
     return g_optixFunctionTable.optixConvertPointerToTraversableHandle( onDevice, pointer, traversableType, traversableHandle );
 }
+
 
 inline OptixResult optixSbtRecordPackHeader( OptixProgramGroup programGroup, void* sbtRecordHeaderHostPointer )
 {

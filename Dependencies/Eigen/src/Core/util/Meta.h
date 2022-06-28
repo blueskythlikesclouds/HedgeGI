@@ -194,12 +194,12 @@ template<> struct make_unsigned<signed __int64>   { typedef unsigned __int64 typ
 template<> struct make_unsigned<unsigned __int64> { typedef unsigned __int64 type; };
 #endif
 
-// Some platforms define int64_t as long long even for C++03. In this case we
-// are missing the definition for make_unsigned. If we just define it, we get
-// duplicated definitions for platforms defining int64_t as signed long for
-// C++03. We therefore add the specialization for C++03 long long for these
-// platforms only.
-#if EIGEN_OS_MAC
+// Some platforms define int64_t as `long long` even for C++03, where
+// `long long` is not guaranteed by the standard. In this case we are missing
+// the definition for make_unsigned. If we just define it, we run into issues
+// where `long long` doesn't exist in some compilers for C++03. We therefore add
+// the specialization for these platforms only.
+#if EIGEN_OS_MAC || EIGEN_COMP_MINGW
 template<> struct make_unsigned<unsigned long long> { typedef unsigned long long type; };
 template<> struct make_unsigned<long long>          { typedef unsigned long long type; };
 #endif
@@ -715,19 +715,24 @@ class meta_sqrt<Y, InfX, SupX, true> { public:  enum { ret = (SupX*SupX <= Y) ? 
 
 
 /** \internal Computes the least common multiple of two positive integer A and B
-  * at compile-time. It implements a naive algorithm testing all multiples of A.
-  * It thus works better if A>=B.
+  * at compile-time. 
   */
-template<int A, int B, int K=1, bool Done = ((A*K)%B)==0>
+template<int A, int B, int K=1, bool Done = ((A*K)%B)==0, bool Big=(A>=B)>
 struct meta_least_common_multiple
 {
   enum { ret = meta_least_common_multiple<A,B,K+1>::ret };
 };
+template<int A, int B, int K, bool Done>
+struct meta_least_common_multiple<A,B,K,Done,false>
+{
+  enum { ret = meta_least_common_multiple<B,A,K>::ret };
+};
 template<int A, int B, int K>
-struct meta_least_common_multiple<A,B,K,true>
+struct meta_least_common_multiple<A,B,K,true,true>
 {
   enum { ret = A*K };
 };
+
 
 /** \internal determines whether the product of two numeric types is allowed and what the return type is */
 template<typename T, typename U> struct scalar_product_traits

@@ -19,12 +19,6 @@
 namespace Eigen {
 namespace internal {
 
-template<typename Packet, int N> EIGEN_DEVICE_FUNC inline Packet
-pset(const typename unpacket_traits<Packet>::type (&a)[N] /* a */) {
-  EIGEN_STATIC_ASSERT(unpacket_traits<Packet>::size == N, THE_ARRAY_SIZE_SHOULD_EQUAL_WITH_PACKET_SIZE);
-  return pload<Packet>(a);
-}
-
 // Creates a Scalar integer type with same bit-width.
 template<typename T> struct make_integer;
 template<> struct make_integer<float>    { typedef numext::int32_t type; };
@@ -808,9 +802,8 @@ Packet psqrt_complex(const Packet& a) {
   //    l0 = (min0 == 0 ? max0 : max0 * sqrt(1 + (min0/max0)**2)),
   // where max0 = max(|x0|, |y0|), min0 = min(|x0|, |y0|), and similarly for l1.
 
-  Packet a_flip = pcplxflip(a);
   RealPacket a_abs = pabs(a.v);           // [|x0|, |y0|, |x1|, |y1|]
-  RealPacket a_abs_flip = pabs(a_flip.v); // [|y0|, |x0|, |y1|, |x1|]
+  RealPacket a_abs_flip = pcplxflip(Packet(a_abs)).v; // [|y0|, |x0|, |y1|, |x1|]
   RealPacket a_max = pmax(a_abs, a_abs_flip);
   RealPacket a_min = pmin(a_abs, a_abs_flip);
   RealPacket a_min_zero_mask = pcmp_eq(a_min, pzero(a_min));
@@ -839,7 +832,8 @@ Packet psqrt_complex(const Packet& a) {
 
   // Step 4. Compute solution for inputs with negative real part:
   //         [|eta0|, sign(y0)*rho0, |eta1|, sign(y1)*rho1]
-  const RealPacket cst_imag_sign_mask = pset1<Packet>(Scalar(RealScalar(0.0), RealScalar(-0.0))).v;
+  const RealScalar neg_zero = RealScalar(numext::bit_cast<float>(0x80000000u));
+  const RealPacket cst_imag_sign_mask = pset1<Packet>(Scalar(RealScalar(0.0), neg_zero)).v;
   RealPacket imag_signs = pand(a.v, cst_imag_sign_mask);
   Packet negative_real_result;
   // Notice that rho is positive, so taking it's absolute value is a noop.

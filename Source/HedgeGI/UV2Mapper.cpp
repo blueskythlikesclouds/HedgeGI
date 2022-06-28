@@ -36,15 +36,15 @@ void UV2Mapper::process(hl::hh::mirage::terrain_model& model)
 
             switch (element.type)
             {
-            case hl::hh::mirage::vertex_type::position:
+            case hl::hh::mirage::raw_vertex_type::position:
                 vec = &positions;
                 break;
 
-            case hl::hh::mirage::vertex_type::normal:
+            case hl::hh::mirage::raw_vertex_type::normal:
                 vec = &normals;
                 break;
 
-            case hl::hh::mirage::vertex_type::texcoord:
+            case hl::hh::mirage::raw_vertex_type::texcoord:
                 if (element.index != 0)
                     continue;
 
@@ -154,19 +154,19 @@ void UV2Mapper::process(hl::hh::mirage::terrain_model& model)
 
             for (auto& element : mesh.vertexElements)
             {
-                if (element.type != hl::hh::mirage::vertex_type::texcoord || element.index != 1)
+                if (element.type != hl::hh::mirage::raw_vertex_type::texcoord || element.index != 1)
                     continue;
 
                 void* vtx = &vertices[i * mesh.vertexSize + element.offset];
 
                 switch (element.format)
                 {
-                case (hl::u32)hl::hh::mirage::vertex_format::float2:
+                case (hl::u32)hl::hh::mirage::raw_vertex_format::float2:
                     ((float*)vtx)[0] = x;
                     ((float*)vtx)[1] = y;
                     break;
 
-                case (hl::u32)hl::hh::mirage::vertex_format::float16_2:
+                case (hl::u32)hl::hh::mirage::raw_vertex_format::float16_2:
                     ((unsigned short*)vtx)[0] = meshopt_quantizeHalf(x);
                     ((unsigned short*)vtx)[1] = meshopt_quantizeHalf(y);
                     break;

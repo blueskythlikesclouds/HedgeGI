@@ -561,7 +561,7 @@ struct unary_evaluator<CwiseUnaryOp<UnaryOp, ArgType>, IndexBased >
   typedef CwiseUnaryOp<UnaryOp, ArgType> XprType;
 
   enum {
-    CoeffReadCost = evaluator<ArgType>::CoeffReadCost + functor_traits<UnaryOp>::Cost,
+    CoeffReadCost = int(evaluator<ArgType>::CoeffReadCost) + int(functor_traits<UnaryOp>::Cost),
 
     Flags = evaluator<ArgType>::Flags
           & (HereditaryBits | LinearAccessBit | (functor_traits<UnaryOp>::PacketAccess ? PacketAccessBit : 0)),
@@ -606,13 +606,13 @@ struct unary_evaluator<CwiseUnaryOp<UnaryOp, ArgType>, IndexBased >
 protected:
 
   // this helper permits to completely eliminate the functor if it is empty
-  class Data : private UnaryOp
+  struct Data
   {
-  public:
     EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-    Data(const XprType& xpr) : UnaryOp(xpr.functor()), argImpl(xpr.nestedExpression()) {}
+    Data(const XprType& xpr) : op(xpr.functor()), argImpl(xpr.nestedExpression()) {}
     EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-    const UnaryOp& func() const { return static_cast<const UnaryOp&>(*this); }
+    const UnaryOp& func() const { return op; }
+    UnaryOp op;
     evaluator<ArgType> argImpl;
   };
 
@@ -639,7 +639,7 @@ struct ternary_evaluator<CwiseTernaryOp<TernaryOp, Arg1, Arg2, Arg3>, IndexBased
   typedef CwiseTernaryOp<TernaryOp, Arg1, Arg2, Arg3> XprType;
 
   enum {
-    CoeffReadCost = evaluator<Arg1>::CoeffReadCost + evaluator<Arg2>::CoeffReadCost + evaluator<Arg3>::CoeffReadCost + functor_traits<TernaryOp>::Cost,
+    CoeffReadCost = int(evaluator<Arg1>::CoeffReadCost) + int(evaluator<Arg2>::CoeffReadCost) + int(evaluator<Arg3>::CoeffReadCost) + int(functor_traits<TernaryOp>::Cost),
 
     Arg1Flags = evaluator<Arg1>::Flags,
     Arg2Flags = evaluator<Arg2>::Flags,
@@ -700,12 +700,13 @@ struct ternary_evaluator<CwiseTernaryOp<TernaryOp, Arg1, Arg2, Arg3>, IndexBased
 
 protected:
   // this helper permits to completely eliminate the functor if it is empty
-  struct Data : private TernaryOp
+  struct Data
   {
     EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-    Data(const XprType& xpr) : TernaryOp(xpr.functor()), arg1Impl(xpr.arg1()), arg2Impl(xpr.arg2()), arg3Impl(xpr.arg3()) {}
+    Data(const XprType& xpr) : op(xpr.functor()), arg1Impl(xpr.arg1()), arg2Impl(xpr.arg2()), arg3Impl(xpr.arg3()) {}
     EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-    const TernaryOp& func() const { return static_cast<const TernaryOp&>(*this); }
+    const TernaryOp& func() const { return op; }
+    TernaryOp op;
     evaluator<Arg1> arg1Impl;
     evaluator<Arg2> arg2Impl;
     evaluator<Arg3> arg3Impl;
@@ -735,7 +736,7 @@ struct binary_evaluator<CwiseBinaryOp<BinaryOp, Lhs, Rhs>, IndexBased, IndexBase
   typedef CwiseBinaryOp<BinaryOp, Lhs, Rhs> XprType;
 
   enum {
-    CoeffReadCost = evaluator<Lhs>::CoeffReadCost + evaluator<Rhs>::CoeffReadCost + functor_traits<BinaryOp>::Cost,
+    CoeffReadCost = int(evaluator<Lhs>::CoeffReadCost) + int(evaluator<Rhs>::CoeffReadCost) + int(functor_traits<BinaryOp>::Cost),
 
     LhsFlags = evaluator<Lhs>::Flags,
     RhsFlags = evaluator<Rhs>::Flags,
@@ -793,12 +794,13 @@ struct binary_evaluator<CwiseBinaryOp<BinaryOp, Lhs, Rhs>, IndexBased, IndexBase
 protected:
 
   // this helper permits to completely eliminate the functor if it is empty
-  struct Data : private BinaryOp
+  struct Data
   {
     EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-    Data(const XprType& xpr) : BinaryOp(xpr.functor()), lhsImpl(xpr.lhs()), rhsImpl(xpr.rhs()) {}
+    Data(const XprType& xpr) : op(xpr.functor()), lhsImpl(xpr.lhs()), rhsImpl(xpr.rhs()) {}
     EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-    const BinaryOp& func() const { return static_cast<const BinaryOp&>(*this); }
+    const BinaryOp& func() const { return op; }
+    BinaryOp op;
     evaluator<Lhs> lhsImpl;
     evaluator<Rhs> rhsImpl;
   };
@@ -815,7 +817,7 @@ struct unary_evaluator<CwiseUnaryView<UnaryOp, ArgType>, IndexBased>
   typedef CwiseUnaryView<UnaryOp, ArgType> XprType;
 
   enum {
-    CoeffReadCost = evaluator<ArgType>::CoeffReadCost + functor_traits<UnaryOp>::Cost,
+    CoeffReadCost = int(evaluator<ArgType>::CoeffReadCost) + int(functor_traits<UnaryOp>::Cost),
 
     Flags = (evaluator<ArgType>::Flags & (HereditaryBits | LinearAccessBit | DirectAccessBit)),
 
@@ -858,12 +860,13 @@ struct unary_evaluator<CwiseUnaryView<UnaryOp, ArgType>, IndexBased>
 protected:
 
   // this helper permits to completely eliminate the functor if it is empty
-  struct Data : private UnaryOp
+  struct Data
   {
     EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-    Data(const XprType& xpr) : UnaryOp(xpr.functor()), argImpl(xpr.nestedExpression()) {}
+    Data(const XprType& xpr) : op(xpr.functor()), argImpl(xpr.nestedExpression()) {}
     EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-    const UnaryOp& func() const { return static_cast<const UnaryOp&>(*this); }
+    const UnaryOp& func() const { return op; }
+    UnaryOp op;
     evaluator<ArgType> argImpl;
   };
 

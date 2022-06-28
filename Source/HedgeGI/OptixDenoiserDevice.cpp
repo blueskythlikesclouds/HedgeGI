@@ -57,7 +57,7 @@ std::unique_ptr<Bitmap> OptixDenoiserDevice::denoise(const Bitmap& bitmap, const
     cudaMalloc((void**)&scratch, returnSizes.withoutOverlapScratchSizeInBytes);
     cudaMalloc((void**)&state, returnSizes.stateSizeInBytes);
 
-    const OptixDenoiserParams params = { denoiseAlpha, intensity, 0.0f, 0 };
+    const OptixDenoiserParams params = { (OptixDenoiserAlphaMode) denoiseAlpha, intensity, 0.0f, 0 };
 
     const OptixImage2D imgTmp = { 0, bitmap.width, bitmap.height, bitmap.width * sizeof(Color4), sizeof(Color4), OPTIX_PIXEL_FORMAT_FLOAT4 };
 

@@ -63,7 +63,7 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
         if (!processArchive(archive, function))
             return;
 
-        switch (version.major)
+        switch (version._major)
         {
         case '2': 
             hl::pacx::v2::save(archive, endianFlag, hl::pacx::lw_exts, hl::pacx::lw_ext_count, nArchiveFilePath.data());

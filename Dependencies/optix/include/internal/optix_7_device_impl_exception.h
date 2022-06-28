@@ -212,7 +212,7 @@ namespace optix_impl {
         else if( exceptionCode == OPTIX_EXCEPTION_CODE_INVALID_RAY )
         {
             OptixInvalidRayExceptionDetails ray = optixGetExceptionInvalidRay();
-            printf( "(%4i,%4i,%4i) error: encountered ray with nan or inf values:\n", index.x, index.y, index.z );
+            printf( "(%4i,%4i,%4i) error: encountered an invalid ray:\n", index.x, index.y, index.z );
             printf(
                 "       origin:          [%f, %f, %f]\n"
                 "       direction:       [%f, %f, %f]\n"
@@ -270,6 +270,10 @@ namespace optix_impl {
         else if( exceptionCode == OPTIX_EXCEPTION_CODE_UNSUPPORTED_DATA_ACCESS )
         {
             printf("(%4i,%4i,%4i) error: unsupported random data access\n", index.x,index.y,index.z);
+        }
+        else if( exceptionCode == OPTIX_EXCEPTION_CODE_PAYLOAD_TYPE_MISMATCH )
+        {
+            printf("(%4i,%4i,%4i) error: payload type mismatch between program and optixTrace call\n", index.x,index.y,index.z);
         }
         else if( exceptionCode >= 0 )
         {

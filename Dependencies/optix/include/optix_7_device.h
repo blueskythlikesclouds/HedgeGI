@@ -45,7 +45,7 @@
 @{
 */
 
-/// Initiates a ray tracing query starting with the given traversable (overload without payload).
+/// Initiates a ray tracing query starting with the given traversable.
 ///
 /// \param[in] handle
 /// \param[in] rayOrigin
@@ -58,20 +58,8 @@
 /// \param[in] SBToffset      really only 8 bits
 /// \param[in] SBTstride      really only 8 bits
 /// \param[in] missSBTIndex   specifies the miss program invoked on a miss
-static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
-                                                   float3                 rayOrigin,
-                                                   float3                 rayDirection,
-                                                   float                  tmin,
-                                                   float                  tmax,
-                                                   float                  rayTime,
-                                                   OptixVisibilityMask    visibilityMask,
-                                                   unsigned int           rayFlags,
-                                                   unsigned int           SBToffset,
-                                                   unsigned int           SBTstride,
-                                                   unsigned int           missSBTIndex );
-/// Initiates a ray tracing query starting with the given traversable (overload with 1 payload registers).
-///
-/// \see #optixTrace(OptixTraversableHandle,float3,float3,float,float,float,OptixVisibilityMask,unsigned int,unsigned int,unsigned int,unsigned int)
+/// \param[out] payload       up to 32 unsigned int values that hold the payload
+template <typename... Payload>
 static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
                                                    float3                 rayOrigin,
                                                    float3                 rayDirection,
@@ -83,12 +71,26 @@ static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle
                                                    unsigned int           SBToffset,
                                                    unsigned int           SBTstride,
                                                    unsigned int           missSBTIndex,
-                                                   unsigned int&          p0 );
+                                                   Payload&...            payload );
 
-/// Initiates a ray tracing query starting with the given traversable (overload with 2 payload registers).
+/// Initiates a ray tracing query starting with the given traversable.
 ///
-/// \see #optixTrace(OptixTraversableHandle,float3,float3,float,float,float,OptixVisibilityMask,unsigned int,unsigned int,unsigned int,unsigned int)
-static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
+/// \param[in] type
+/// \param[in] handle
+/// \param[in] rayOrigin
+/// \param[in] rayDirection
+/// \param[in] tmin
+/// \param[in] tmax
+/// \param[in] rayTime
+/// \param[in] visibilityMask really only 8 bits
+/// \param[in] rayFlags       really only 8 bits, combination of OptixRayFlags
+/// \param[in] SBToffset      really only 8 bits
+/// \param[in] SBTstride      really only 8 bits
+/// \param[in] missSBTIndex   specifies the miss program invoked on a miss
+/// \param[out] payload       up to 32 unsigned int values that hold the payload
+template <typename... Payload>
+static __forceinline__ __device__ void optixTrace( OptixPayloadTypeID     type,
+                                                   OptixTraversableHandle handle,
                                                    float3                 rayOrigin,
                                                    float3                 rayDirection,
                                                    float                  tmin,
@@ -99,132 +101,7 @@ static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle
                                                    unsigned int           SBToffset,
                                                    unsigned int           SBTstride,
                                                    unsigned int           missSBTIndex,
-                                                   unsigned int&          p0,
-                                                   unsigned int&          p1 );
-
-/// Initiates a ray tracing query starting with the given traversable (overload with 3 payload registers).
-///
-/// \see #optixTrace(OptixTraversableHandle,float3,float3,float,float,float,OptixVisibilityMask,unsigned int,unsigned int,unsigned int,unsigned int)
-static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
-                                                   float3                 rayOrigin,
-                                                   float3                 rayDirection,
-                                                   float                  tmin,
-                                                   float                  tmax,
-                                                   float                  rayTime,
-                                                   OptixVisibilityMask    visibilityMask,
-                                                   unsigned int           rayFlags,
-                                                   unsigned int           SBToffset,
-                                                   unsigned int           SBTstride,
-                                                   unsigned int           missSBTIndex,
-                                                   unsigned int&          p0,
-                                                   unsigned int&          p1,
-                                                   unsigned int&          p2 );
-
-/// Initiates a ray tracing query starting with the given traversable (overload with 4 payload registers).
-///
-/// \see #optixTrace(OptixTraversableHandle,float3,float3,float,float,float,OptixVisibilityMask,unsigned int,unsigned int,unsigned int,unsigned int)
-static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
-                                                   float3                 rayOrigin,
-                                                   float3                 rayDirection,
-                                                   float                  tmin,
-                                                   float                  tmax,
-                                                   float                  rayTime,
-                                                   OptixVisibilityMask    visibilityMask,
-                                                   unsigned int           rayFlags,
-                                                   unsigned int           SBToffset,
-                                                   unsigned int           SBTstride,
-                                                   unsigned int           missSBTIndex,
-                                                   unsigned int&          p0,
-                                                   unsigned int&          p1,
-                                                   unsigned int&          p2,
-                                                   unsigned int&          p3 );
-
-/// Initiates a ray tracing query starting with the given traversable (overload with 5 payload registers).
-///
-/// \see #optixTrace(OptixTraversableHandle,float3,float3,float,float,float,OptixVisibilityMask,unsigned int,unsigned int,unsigned int,unsigned int)
-static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
-                                                   float3                 rayOrigin,
-                                                   float3                 rayDirection,
-                                                   float                  tmin,
-                                                   float                  tmax,
-                                                   float                  rayTime,
-                                                   OptixVisibilityMask    visibilityMask,
-                                                   unsigned int           rayFlags,
-                                                   unsigned int           SBToffset,
-                                                   unsigned int           SBTstride,
-                                                   unsigned int           missSBTIndex,
-                                                   unsigned int&          p0,
-                                                   unsigned int&          p1,
-                                                   unsigned int&          p2,
-                                                   unsigned int&          p3,
-                                                   unsigned int&          p4 );
-
-/// Initiates a ray tracing query starting with the given traversable (overload with 6 payload registers).
-///
-/// \see #optixTrace(OptixTraversableHandle,float3,float3,float,float,float,OptixVisibilityMask,unsigned int,unsigned int,unsigned int,unsigned int)
-static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
-                                                   float3                 rayOrigin,
-                                                   float3                 rayDirection,
-                                                   float                  tmin,
-                                                   float                  tmax,
-                                                   float                  rayTime,
-                                                   OptixVisibilityMask    visibilityMask,
-                                                   unsigned int           rayFlags,
-                                                   unsigned int           SBToffset,
-                                                   unsigned int           SBTstride,
-                                                   unsigned int           missSBTIndex,
-                                                   unsigned int&          p0,
-                                                   unsigned int&          p1,
-                                                   unsigned int&          p2,
-                                                   unsigned int&          p3,
-                                                   unsigned int&          p4,
-                                                   unsigned int&          p5 );
-
-/// Initiates a ray tracing query starting with the given traversable (overload with 7 payload registers).
-///
-/// \see #optixTrace(OptixTraversableHandle,float3,float3,float,float,float,OptixVisibilityMask,unsigned int,unsigned int,unsigned int,unsigned int)
-static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
-                                                   float3                 rayOrigin,
-                                                   float3                 rayDirection,
-                                                   float                  tmin,
-                                                   float                  tmax,
-                                                   float                  rayTime,
-                                                   OptixVisibilityMask    visibilityMask,
-                                                   unsigned int           rayFlags,
-                                                   unsigned int           SBToffset,
-                                                   unsigned int           SBTstride,
-                                                   unsigned int           missSBTIndex,
-                                                   unsigned int&          p0,
-                                                   unsigned int&          p1,
-                                                   unsigned int&          p2,
-                                                   unsigned int&          p3,
-                                                   unsigned int&          p4,
-                                                   unsigned int&          p5,
-                                                   unsigned int&          p6 );
-
-/// Initiates a ray tracing query starting with the given traversable (overload with 8 payload registers).
-///
-/// \see #optixTrace(OptixTraversableHandle,float3,float3,float,float,float,OptixVisibilityMask,unsigned int,unsigned int,unsigned int,unsigned int)
-static __forceinline__ __device__ void optixTrace( OptixTraversableHandle handle,
-                                                   float3                 rayOrigin,
-                                                   float3                 rayDirection,
-                                                   float                  tmin,
-                                                   float                  tmax,
-                                                   float                  rayTime,
-                                                   OptixVisibilityMask    visibilityMask,
-                                                   unsigned int           rayFlags,
-                                                   unsigned int           SBToffset,
-                                                   unsigned int           SBTstride,
-                                                   unsigned int           missSBTIndex,
-                                                   unsigned int&          p0,
-                                                   unsigned int&          p1,
-                                                   unsigned int&          p2,
-                                                   unsigned int&          p3,
-                                                   unsigned int&          p4,
-                                                   unsigned int&          p5,
-                                                   unsigned int&          p6,
-                                                   unsigned int&          p7 );
-
+                                                   Payload&...            payload );
 
 /// Writes the 32-bit payload value at slot 0.
 static __forceinline__ __device__ void optixSetPayload_0( unsigned int p );
@@ -243,6 +120,54 @@ static __forceinline__ __device__ void optixSetPayload_6( unsigned int p );
 /// Writes the 32-bit payload value at slot 7.
 static __forceinline__ __device__ void optixSetPayload_7( unsigned int p );
 
+/// Writes the 32-bit payload value at slot 8.
+static __forceinline__ __device__ void optixSetPayload_8( unsigned int p );
+/// Writes the 32-bit payload value at slot 9.
+static __forceinline__ __device__ void optixSetPayload_9( unsigned int p );
+/// Writes the 32-bit payload value at slot 10.
+static __forceinline__ __device__ void optixSetPayload_10( unsigned int p );
+/// Writes the 32-bit payload value at slot 11.
+static __forceinline__ __device__ void optixSetPayload_11( unsigned int p );
+/// Writes the 32-bit payload value at slot 12.
+static __forceinline__ __device__ void optixSetPayload_12( unsigned int p );
+/// Writes the 32-bit payload value at slot 13.
+static __forceinline__ __device__ void optixSetPayload_13( unsigned int p );
+/// Writes the 32-bit payload value at slot 14.
+static __forceinline__ __device__ void optixSetPayload_14( unsigned int p );
+/// Writes the 32-bit payload value at slot 15.
+static __forceinline__ __device__ void optixSetPayload_15( unsigned int p );
+/// Writes the 32-bit payload value at slot 16.
+static __forceinline__ __device__ void optixSetPayload_16( unsigned int p );
+/// Writes the 32-bit payload value at slot 17.
+static __forceinline__ __device__ void optixSetPayload_17( unsigned int p );
+/// Writes the 32-bit payload value at slot 18.
+static __forceinline__ __device__ void optixSetPayload_18( unsigned int p );
+/// Writes the 32-bit payload value at slot 19.
+static __forceinline__ __device__ void optixSetPayload_19( unsigned int p );
+/// Writes the 32-bit payload value at slot 20.
+static __forceinline__ __device__ void optixSetPayload_20( unsigned int p );
+/// Writes the 32-bit payload value at slot 21.
+static __forceinline__ __device__ void optixSetPayload_21( unsigned int p );
+/// Writes the 32-bit payload value at slot 22.
+static __forceinline__ __device__ void optixSetPayload_22( unsigned int p );
+/// Writes the 32-bit payload value at slot 23.
+static __forceinline__ __device__ void optixSetPayload_23( unsigned int p );
+/// Writes the 32-bit payload value at slot 24.
+static __forceinline__ __device__ void optixSetPayload_24( unsigned int p );
+/// Writes the 32-bit payload value at slot 25.
+static __forceinline__ __device__ void optixSetPayload_25( unsigned int p );
+/// Writes the 32-bit payload value at slot 26.
+static __forceinline__ __device__ void optixSetPayload_26( unsigned int p );
+/// Writes the 32-bit payload value at slot 27.
+static __forceinline__ __device__ void optixSetPayload_27( unsigned int p );
+/// Writes the 32-bit payload value at slot 28.
+static __forceinline__ __device__ void optixSetPayload_28( unsigned int p );
+/// Writes the 32-bit payload value at slot 29.
+static __forceinline__ __device__ void optixSetPayload_29( unsigned int p );
+/// Writes the 32-bit payload value at slot 30.
+static __forceinline__ __device__ void optixSetPayload_30( unsigned int p );
+/// Writes the 32-bit payload value at slot 31.
+static __forceinline__ __device__ void optixSetPayload_31( unsigned int p );
 
 /// Reads the 32-bit payload value at slot 0.
 static __forceinline__ __device__ unsigned int optixGetPayload_0();
@@ -261,6 +186,62 @@ static __forceinline__ __device__ unsigned int optixGetPayload_6();
 /// Reads the 32-bit payload value at slot 7.
 static __forceinline__ __device__ unsigned int optixGetPayload_7();
 
+/// Reads the 32-bit payload value at slot 8.
+static __forceinline__ __device__ unsigned int optixGetPayload_8();
+/// Reads the 32-bit payload value at slot 9.
+static __forceinline__ __device__ unsigned int optixGetPayload_9();
+/// Reads the 32-bit payload value at slot 10.
+static __forceinline__ __device__ unsigned int optixGetPayload_10();
+/// Reads the 32-bit payload value at slot 11.
+static __forceinline__ __device__ unsigned int optixGetPayload_11();
+/// Reads the 32-bit payload value at slot 12.
+static __forceinline__ __device__ unsigned int optixGetPayload_12();
+/// Reads the 32-bit payload value at slot 13.
+static __forceinline__ __device__ unsigned int optixGetPayload_13();
+/// Reads the 32-bit payload value at slot 14.
+static __forceinline__ __device__ unsigned int optixGetPayload_14();
+/// Reads the 32-bit payload value at slot 15.
+static __forceinline__ __device__ unsigned int optixGetPayload_15();
+/// Reads the 32-bit payload value at slot 16.
+static __forceinline__ __device__ unsigned int optixGetPayload_16();
+/// Reads the 32-bit payload value at slot 17.
+static __forceinline__ __device__ unsigned int optixGetPayload_17();
+/// Reads the 32-bit payload value at slot 18.
+static __forceinline__ __device__ unsigned int optixGetPayload_18();
+/// Reads the 32-bit payload value at slot 19.
+static __forceinline__ __device__ unsigned int optixGetPayload_19();
+/// Reads the 32-bit payload value at slot 20.
+static __forceinline__ __device__ unsigned int optixGetPayload_20();
+/// Reads the 32-bit payload value at slot 21.
+static __forceinline__ __device__ unsigned int optixGetPayload_21();
+/// Reads the 32-bit payload value at slot 22.
+static __forceinline__ __device__ unsigned int optixGetPayload_22();
+/// Reads the 32-bit payload value at slot 23.
+static __forceinline__ __device__ unsigned int optixGetPayload_23();
+/// Reads the 32-bit payload value at slot 24.
+static __forceinline__ __device__ unsigned int optixGetPayload_24();
+/// Reads the 32-bit payload value at slot 25.
+static __forceinline__ __device__ unsigned int optixGetPayload_25();
+/// Reads the 32-bit payload value at slot 26.
+static __forceinline__ __device__ unsigned int optixGetPayload_26();
+/// Reads the 32-bit payload value at slot 27.
+static __forceinline__ __device__ unsigned int optixGetPayload_27();
+/// Reads the 32-bit payload value at slot 28.
+static __forceinline__ __device__ unsigned int optixGetPayload_28();
+/// Reads the 32-bit payload value at slot 29.
+static __forceinline__ __device__ unsigned int optixGetPayload_29();
+/// Reads the 32-bit payload value at slot 30.
+static __forceinline__ __device__ unsigned int optixGetPayload_30();
+/// Reads the 32-bit payload value at slot 31.
+static __forceinline__ __device__ unsigned int optixGetPayload_31();
+
+/// Specify the supported payload types for a program.
+///
+/// The supported types are specified as a bitwise combination of payload types. (See OptixPayloadTypeID)
+/// May only be called once per program.
+/// Must be called at the top of the program.
+/// Only available in IS, AH, CH, MS
+static __forceinline__ __device__ void optixSetPayloadTypes( unsigned int typeMask );
 
 /// Returns an undefined value.
 static __forceinline__ __device__ unsigned int optixUndefinedValue();
@@ -354,6 +335,23 @@ static __forceinline__ __device__ void optixGetQuadraticBSplineVertexData( Optix
 /// If motion is disabled via OptixPipelineCompileOptions::usesMotionBlur, or the GAS does not contain motion, the
 /// time parameter is ignored.
 static __forceinline__ __device__ void optixGetCubicBSplineVertexData( OptixTraversableHandle gas, unsigned int primIdx, unsigned int sbtGASIndex, float time, float4 data[4] );
+
+/// Return the object space curve control vertex data of a CatmullRom spline curve in a Geometry
+/// Acceleration Structure (GAS) at a given motion time.
+/// To access vertex data, the GAS must be built using the flag OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS.
+///
+/// data[i] = {x,y,z,w} with {x,y,z} the position and w the radius of control vertex i.
+/// If motion is disabled via OptixPipelineCompileOptions::usesMotionBlur, or the GAS does not contain motion, the
+/// time parameter is ignored.
+static __forceinline__ __device__ void optixGetCatmullRomVertexData( OptixTraversableHandle gas, unsigned int primIdx, unsigned int sbtGASIndex, float time, float4 data[4] );
+
+/// Return the object space sphere data, center point and radius, in a Geometry Acceleration Structure (GAS) at a given motion time.
+/// To access sphere data, the GAS must be built using the flag OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS.
+///
+/// data[0] = {x,y,z,w} with {x,y,z} the position of the sphere center and w the radius.
+/// If motion is disabled via OptixPipelineCompileOptions::usesMotionBlur, or the GAS does not contain motion, the
+/// time parameter is ignored.
+static __forceinline__ __device__ void optixGetSphereData( OptixTraversableHandle gas, unsigned int primIdx, unsigned int sbtGASIndex, float time, float4 data[1] );
 
 /// Returns the traversable handle for the Geometry Acceleration Structure (GAS) containing
 /// the current hit. May be called from IS, AH and CH.

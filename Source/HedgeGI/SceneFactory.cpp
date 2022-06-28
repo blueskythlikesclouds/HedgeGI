@@ -191,7 +191,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     {
         auto element = &mesh->vertexElements[0];
 
-        while (element->format != (hl::u32)hl::hh::mirage::vertex_format::last_entry)
+        while (element->format != (hl::u32)hl::hh::mirage::raw_vertex_format::last_entry)
         {
             Vertex& vertex = newMesh->vertices[i];
 
@@ -200,27 +200,27 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
 
             switch (element->type)
             {
-            case hl::hh::mirage::vertex_type::position:
+            case hl::hh::mirage::raw_vertex_type::position:
                 destination = vertex.position.data();
                 size = vertex.position.size();
                 break;
 
-            case hl::hh::mirage::vertex_type::normal:
+            case hl::hh::mirage::raw_vertex_type::normal:
                 destination = vertex.normal.data();
                 size = vertex.normal.size();
                 break;
 
-            case hl::hh::mirage::vertex_type::tangent:
+            case hl::hh::mirage::raw_vertex_type::tangent:
                 destination = vertex.tangent.data();
                 size = vertex.tangent.size();
                 break;
 
-            case hl::hh::mirage::vertex_type::binormal:
+            case hl::hh::mirage::raw_vertex_type::binormal:
                 destination = vertex.binormal.data();
                 size = vertex.binormal.size();
                 break;
 
-            case  hl::hh::mirage::vertex_type::texcoord:
+            case  hl::hh::mirage::raw_vertex_type::texcoord:
                 if (element->index == 0)
                 {
                     destination = vertex.uv.data();
@@ -235,7 +235,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
 
                 break;
 
-            case hl::hh::mirage::vertex_type::color:
+            case hl::hh::mirage::raw_vertex_type::color:
                 destination = vertex.color.data();
                 size = vertex.color.size();
                 break;
@@ -604,7 +604,7 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
 
             model->fix();
 
-            model->flags = false;
+            model->rev2_flags = false;
             models.push_back(model);
         }
     }
@@ -628,7 +628,7 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
                 if (strcmp(model->name.get(), instance->modelName.get()) != 0)
                     continue;
 
-                model->flags = true;
+                model->rev2_flags = true;
 
                 scene.instances.push_back(createInstance(instance, model, scene));
                 break;
@@ -639,7 +639,7 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
     // Load models that aren't bound to any instances
     for (auto& model : models)
     {
-        if (model->flags)
+        if (model->rev2_flags)
             continue;
 
         scene.instances.push_back(createInstance(nullptr, model, scene));

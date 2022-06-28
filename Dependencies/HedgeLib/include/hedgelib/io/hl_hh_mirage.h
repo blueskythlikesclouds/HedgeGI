@@ -33,6 +33,7 @@ enum class header_type
     sample_chunk_v2
 };
 
+class writer;
 
 class const_off_table_handle
 {
@@ -86,6 +87,8 @@ struct off_table_handle : public const_off_table_handle
         const_off_table_handle(offTable, offCount) {}
 };
 
+namespace standard
+{
 struct raw_header
 {
     u32 fileSize;
@@ -118,21 +121,47 @@ struct raw_header
 
     HL_API void fix();
 
-    HL_API static void start_write(u32 version, stream& stream);
+    HL_API static void start_write(stream& stream);
 
     HL_API static void finish_write(std::size_t headerPos,
-        off_table& offTable, stream& stream,
-        const char* fileName = nullptr);
+        std::size_t dataPos, u32 version, off_table& offTable,
+        stream& stream, const char* fileName = nullptr);
 
     inline static void finish_write(std::size_t headerPos,
-        off_table& offTable, stream& stream,
-        const std::string& fileName)
+        std::size_t dataPos, u32 version, off_table& offTable,
+        stream& stream, const std::string& fileName)
     {
-        finish_write(headerPos, offTable, stream, fileName.c_str());
+        finish_write(headerPos, dataPos, version,
+            offTable, stream, fileName.c_str());
     }
 };
 
 HL_STATIC_ASSERT_SIZE(raw_header, 0x18);
+
+inline void fix(void* rawData)
+{
+    raw_header* hhHeader = static_cast<raw_header*>(rawData);
+    hhHeader->fix();
+}
+
+template<typename T = void>
+const T* get_data(const void* rawData, u32* version = nullptr)
+{
+    // Get version number if requested.
+    const raw_header* hhHeader = static_cast<const raw_header*>(rawData);
+    if (version) *version = hhHeader->version;
+
+    // Get data pointer and return it.
+    return static_cast<const T*>(hhHeader->data.get());
+}
+
+template<typename T = void>
+T* get_data(void* rawData, u32* version = nullptr)
+{
+    return const_cast<T*>(get_data<T>(const_cast<
+        const void*>(rawData), version));
+}
+} // standard
 
 namespace sample_chunk
 {
@@ -268,15 +297,31 @@ struct raw_node
         return get_child(name.c_str(), recursive);
     }
 
-    HL_API static void start_write(const char* name, stream& stream, u32 value = 1);
+    HL_API static void start_write(const char* name, u32 value, stream& stream);
 
-    inline static void start_write(const std::string& name, stream& stream, u32 value = 1)
+    inline static void start_write(const std::string& name, u32 value, stream& stream)
     {
-        start_write(name.c_str(), stream, value);
+        start_write(name.c_str(), value, stream);
+    }
+
+    inline static void start_write(const char* name, stream& stream)
+    {
+        start_write(name, 1, stream);
+    }
+
+    inline static void start_write(const std::string& name, stream& stream)
+    {
+        start_write(name.c_str(), 1, stream);
     }
 
     HL_API static void finish_write(std::size_t nodePos,
-        node_flags flags, stream& stream);
+        std::size_t nodeEndPos, node_flags flags, stream& stream);
+
+    inline static void finish_write(std::size_t nodePos,
+        node_flags flags, stream& stream)
+    {
+        finish_write(nodePos, stream.tell(), flags, stream);
+    }
 };
 
 HL_STATIC_ASSERT_SIZE(raw_node, 16);
@@ -347,7 +392,7 @@ struct raw_header
     HL_API static void start_write(stream& stream);
 
     HL_API static void finish_write(std::size_t headerPos,
-        std::size_t dataPos, off_table& offTable, stream& stream);
+        std::size_t basePos, off_table& offTable, stream& stream);
 };
 
 HL_STATIC_ASSERT_SIZE(raw_header, 16);
@@ -413,7 +458,7 @@ T* get_data(void* rawData, u32* version = nullptr)
         const void*>(rawData), version));
 }
 
-HL_API void make_node_name(const char* name, char* dst);
+HL_API void make_node_name(const char* name, char* dst, bool appendNull = true);
 } // sample_chunk
 
 inline bool has_sample_chunk_header_fixed(const void* rawData)
@@ -437,22 +482,9 @@ HL_API void fix(void* rawData);
 template<typename T = void>
 const T* get_data(const void* rawData, u32* version = nullptr)
 {
-    /* Sample chunk header */
-    if (has_sample_chunk_header_fixed(rawData))
-    {
-        return sample_chunk::get_data<T>(rawData, version);
-    }
-
-    /* Standard header */
-    else
-    {
-        // Get version number if requested.
-        const raw_header* hhHeader = static_cast<const raw_header*>(rawData);
-        if (version) *version = hhHeader->version;
-
-        // Get data pointer and return it.
-        return static_cast<const T*>(hhHeader->data.get());
-    }
+    return has_sample_chunk_header_fixed(rawData) ?
+        sample_chunk::get_data<T>(rawData, version) :
+        standard::get_data<T>(rawData, version);
 }
 
 template<typename T = void>
@@ -463,11 +495,114 @@ T* get_data(void* rawData, u32* version = nullptr)
 }
 
 HL_API void offsets_fix(off_table_handle offsets, void* base);
-HL_API void offsets_write_no_sort(std::size_t dataPos,
+HL_API void offsets_write_no_sort(std::size_t basePos,
     const off_table& offTable, stream& stream);
 
-HL_API void offsets_write(std::size_t dataPos,
+HL_API void offsets_write(std::size_t basePos,
     off_table& offTable, stream& stream);
+
+class writer : public writer_base
+{
+    struct sample_chunk_node
+    {
+        std::size_t pos;
+        std::size_t parentIndex;
+        std::size_t lastChildIndex = 0;
+        u32 flagsAndSize = static_cast<u32>(
+            sample_chunk::node_flags::is_root |
+            sample_chunk::node_flags::is_last_child |
+            sample_chunk::node_flags::is_leaf);
+
+        inline bool is_unfinished() const noexcept
+        {
+            // HACK: Use is_root flag to indicate that the node is unfinished.
+            return (flagsAndSize & static_cast<u32>(sample_chunk::node_flags::is_root));
+        }
+
+        inline void mark_finished() noexcept
+        {
+            // HACK: Use is_root flag to indicate that the node is unfinished.
+            flagsAndSize &= ~static_cast<u32>(sample_chunk::node_flags::is_root);
+        }
+
+        sample_chunk_node(std::size_t pos, std::size_t parentIndex) noexcept :
+            pos(pos),
+            parentIndex(parentIndex) {}
+    };
+
+    std::vector<sample_chunk_node> m_nodes;
+    hl::off_table m_offTable;
+    std::size_t m_headerPos;
+    std::size_t m_basePos;
+    std::size_t m_curUnfinishedNodeIndex = SIZE_MAX;
+    header_type m_headerType = header_type::standard;
+    u32 m_dataVersion = 0U;
+
+public:
+    inline const hl::off_table& off_table() const noexcept
+    {
+        return m_offTable;
+    }
+
+    inline hl::off_table& off_table() noexcept
+    {
+        return m_offTable;
+    }
+
+    inline std::size_t header_pos() const noexcept
+    {
+        return m_headerPos;
+    }
+
+    inline std::size_t base_pos() const noexcept
+    {
+        return m_basePos;
+    }
+
+    HL_API void fix_offset(std::size_t pos);
+
+    HL_API void start(header_type headerType = header_type::standard);
+
+    HL_API void start_node(const char* name, u32 value = 1);
+
+    inline void start_node(const std::string& name, u32 value = 1)
+    {
+        start_node(name.c_str(), value);
+    }
+
+    HL_API void finish_node();
+
+    inline void write_node(const char* name, u32 value = 1)
+    {
+        start_node(name, value);
+        finish_node();
+    }
+
+    inline void write_node(const std::string& name, u32 value = 1)
+    {
+        start_node(name, value);
+        finish_node();
+    }
+
+    inline void write_node(const sample_chunk::property& prop)
+    {
+        start_node(prop.get_name(), prop.value);
+        finish_node();
+    }
+
+    HL_API void start_data(u32 version);
+
+    HL_API void finish_data();
+
+    HL_API void finish(const char* fileName = nullptr);
+
+    inline void finish(const std::string& fileName)
+    {
+        finish(fileName.c_str());
+    }
+
+    HL_API writer(hl::stream& stream);
+};
 } // mirage
 } // hh
 } // hl
