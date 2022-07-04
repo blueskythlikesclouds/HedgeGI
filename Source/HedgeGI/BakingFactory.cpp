@@ -14,20 +14,20 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 {
     const bool skyModelInViewport = tracingFromEye && depth == 0;
 
-    if (!skyModelInViewport && bakeParams.environmentColorMode == EnvironmentColorMode::Color)
+    if (!skyModelInViewport && bakeParams.environment.mode == EnvironmentMode::Color)
     {
-        Color3 color = bakeParams.environmentColor;
+        Color3 color = bakeParams.environment.color;
         if (targetEngine == TargetEngine::HE2)
-            color *= bakeParams.environmentColorIntensity;
+            color *= bakeParams.environment.colorIntensity;
 
         return color;
     }
 
-    if (!skyModelInViewport && bakeParams.environmentColorMode == EnvironmentColorMode::TwoColor)
+    if (!skyModelInViewport && bakeParams.environment.mode == EnvironmentMode::TwoColor)
     {
-        Color3 color = lerp(bakeParams.secondaryEnvironmentColor, bakeParams.environmentColor, direction.y() * 0.5f + 0.5f);
+        Color3 color = lerp(bakeParams.environment.secondaryColor, bakeParams.environment.color, direction.y() * 0.5f + 0.5f);
         if (targetEngine == TargetEngine::HE2)
-            color *= bakeParams.environmentColorIntensity;
+            color *= bakeParams.environment.colorIntensity;
 
         return color;
     }
@@ -110,9 +110,9 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
     }
 
     if (!skyModelInViewport)
-        skyColor *= bakeParams.skyIntensity;
+        skyColor *= bakeParams.environment.skyIntensity;
 
-    skyColor *= bakeParams.skyIntensityScale;
+    skyColor *= bakeParams.environment.skyIntensityScale;
 
     return skyColor.cwiseMax(0);
 }
@@ -139,7 +139,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
     int i;
 
-    for (i = 0; i < (int32_t)bakeParams.lightBounceCount; i++)
+    for (i = 0; i < (int32_t)bakeParams.light.bounceCount; i++)
     {
         const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
 
@@ -147,7 +147,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         // Do russian roulette at highest difficulty fuhuhuhuhuhu
         float probability = throughput.maxCoeff();
-        if (i > (int32_t)bakeParams.russianRouletteMaxDepth)
+        if (i > (int32_t)bakeParams.light.maxRussianRouletteDepth)
         {
             if (random.next() > probability)
                 break;
@@ -340,7 +340,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         }
 
         if (shouldApplyBakeParam)
-            emission *= bakeParams.emissionStrength;
+            emission *= bakeParams.material.emissionIntensity;
 
         hitPosition += hitPosition.cwiseAbs().cwiseProduct(hitNormal.cwiseSign()) * 0.0000002f;
 
@@ -373,11 +373,11 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         if (material == nullptr || material->type == MaterialType::Common || material->type == MaterialType::Blend)
         {
-            if (shouldApplyBakeParam && (!nearlyEqual(bakeParams.diffuseStrength, 1.0f) || !nearlyEqual(bakeParams.diffuseSaturation, 1.0f)))
+            if (shouldApplyBakeParam && (!nearlyEqual(bakeParams.material.diffuseIntensity, 1.0f) || !nearlyEqual(bakeParams.material.diffuseSaturation, 1.0f)))
             {
                 Color3 hsv = rgb2Hsv(diffuse.head<3>());
-                hsv.y() = saturate(hsv.y() * bakeParams.diffuseSaturation);
-                hsv.z() = saturate(hsv.z() * bakeParams.diffuseStrength);
+                hsv.y() = saturate(hsv.y() * bakeParams.material.diffuseSaturation);
+                hsv.z() = saturate(hsv.z() * bakeParams.material.diffuseIntensity);
                 diffuse = hsv2Rgb(hsv);
             }
 
@@ -417,7 +417,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                     if (tracingFromEye)
                     {
-                        const float radius = light->type == LightType::Directional ? bakeParams.shadowSearchRadius : 1.0f / light->range.w();
+                        const float radius = light->type == LightType::Directional ? bakeParams.shadow.radius : 1.0f / light->range.w();
 
                         Vector3 shadowSample(
                             (random.next() * 2 - 1) * radius,
@@ -438,7 +438,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     context.filter = intersectContextFilter<targetEngine, tracingFromEye>;
 
                     RTCRay ray {};
-                    setRayOrigin(ray, hitPosition, bakeParams.shadowBias);
+                    setRayOrigin(ray, hitPosition, bakeParams.shadow.bias);
                     setRayDirection(ray, shadowDirection);
 
                     ray.tfar = light->type == LightType::Point ? (light->position - hitPosition).norm() : INFINITY;
@@ -482,7 +482,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
                     directLighting *= nDotL * light->color;
                     if (shouldApplyBakeParam)
-                        directLighting *= bakeParams.lightStrength;
+                        directLighting *= bakeParams.material.lightIntensity;
 
                     directLighting *= attenuation;
 
@@ -495,7 +495,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         else if (material->type == MaterialType::IgnoreLight)
         {
             if (shouldApplyBakeParam)
-                diffuse *= bakeParams.emissionStrength;
+                diffuse *= bakeParams.material.emissionIntensity;
 
             radiance += throughput * (diffuse + emission);
             break;

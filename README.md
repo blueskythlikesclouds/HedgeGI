@@ -21,7 +21,7 @@ HedgeGI is a tool that allows you to bake global illumination and light field da
     * If you don't want to set this environment variable, you can change the paths manually in project settings:
         * C/C++ -> General -> Additional Include Directories
         * Linker -> General -> Additional Library Directories
-* Open the solution in the latest version of Visual Studio 2019 (or later).
+* Open the solution in the latest version of Visual Studio 2022.
 * Build the solution.
 
 # Screenshot

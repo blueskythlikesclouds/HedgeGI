@@ -96,13 +96,13 @@ void BakingFactoryWindow::update(const float deltaTime)
         {
             if (params->mode == BakingFactoryMode::LightField && params->bakeParams.targetEngine == TargetEngine::HE1)
             {
-                property("Minimum Cell Radius", ImGuiDataType_Float, &params->bakeParams.lightFieldMinCellRadius);
-                property("AABB Size Multiplier", ImGuiDataType_Float, &params->bakeParams.lightFieldAabbSizeMultiplier);
+                property("Minimum Cell Radius", ImGuiDataType_Float, &params->bakeParams.lightField.minCellRadius);
+                property("AABB Size Multiplier", ImGuiDataType_Float, &params->bakeParams.lightField.aabbSizeMultiplier);
             }
             else if (params->mode == BakingFactoryMode::GI)
             {
-                property("Denoise Shadow Map", params->bakeParams.denoiseShadowMap);
-                property("Optimize Seams", params->bakeParams.optimizeSeams);
+                property("Denoise Shadow Map", params->bakeParams.postProcess.denoiseShadowMap);
+                property("Optimize Seams", params->bakeParams.postProcess.optimizeSeams);
                 property("Skip Existing Files", params->skipExistingFiles);
 
                 // Denoiser types need special handling since they might not be available
@@ -128,14 +128,14 @@ void BakingFactoryWindow::update(const float deltaTime)
                         for (size_t i = 0; i < _countof(names); i++)
                         {
                             if (flags[i] && ImGui::Selectable(names[i]))
-                                params->bakeParams.denoiserType = (DenoiserType)i;
+                                params->bakeParams.postProcess.denoiserType = (DenoiserType)i;
                         }
                         ImGui::EndCombo();
                     }
                 }
 
-                if (property("Resolution Override", ImGuiDataType_S16, &params->bakeParams.resolutionOverride) && params->bakeParams.resolutionOverride >= 0)
-                    params->bakeParams.resolutionOverride = (int16_t)nextPowerOfTwo(params->bakeParams.resolutionOverride);
+                if (property("Resolution Override", ImGuiDataType_S16, &params->bakeParams.resolution.override) && params->bakeParams.resolution.override >= 0)
+                    params->bakeParams.resolution.override = (int16_t)nextPowerOfTwo(params->bakeParams.resolution.override);
 
                 if (property("Resolution Supersample Scale", ImGuiDataType_U64, &params->resolutionSuperSampleScale))
                     params->resolutionSuperSampleScale = nextPowerOfTwo(std::max<size_t>(1, params->resolutionSuperSampleScale));

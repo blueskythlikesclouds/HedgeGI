@@ -45,81 +45,81 @@ void SettingWindow::update(float deltaTime)
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Environment Color") && beginProperties("##Environment Color"))
+    if (ImGui::CollapsingHeader("Environment") && beginProperties("##Environment"))
     {
         property("Mode",
             {
-                { "Color", EnvironmentColorMode::Color },
-                { "Top/Bottom Color", EnvironmentColorMode::TwoColor },
-                { "Sky", EnvironmentColorMode::Sky },
-            }, params->bakeParams.environmentColorMode);
+                { "Color", EnvironmentMode::Color },
+                { "Top/Bottom Color", EnvironmentMode::TwoColor },
+                { "Sky", EnvironmentMode::Sky },
+            }, params->bakeParams.environment.mode);
 
-        if (params->bakeParams.environmentColorMode == EnvironmentColorMode::Color)
+        if (params->bakeParams.environment.mode == EnvironmentMode::Color)
         {
             if (params->bakeParams.targetEngine == TargetEngine::HE2)
             {
-                if (Color3 environmentColor = params->bakeParams.environmentColor.pow(1.0f / 2.2f); property("Color", environmentColor))
-                    params->bakeParams.environmentColor = environmentColor.pow(2.2f);
+                if (Color3 environmentColor = params->bakeParams.environment.color.pow(1.0f / 2.2f); property("Color", environmentColor))
+                    params->bakeParams.environment.color = environmentColor.pow(2.2f);
 
-                property("Color Intensity", ImGuiDataType_Float, &params->bakeParams.environmentColorIntensity);
+                property("Color Intensity", ImGuiDataType_Float, &params->bakeParams.environment.colorIntensity);
             }
 
             else
             {
-                property("Color", params->bakeParams.environmentColor);
+                property("Color", params->bakeParams.environment.color);
             }
         }
 
-        else if (params->bakeParams.environmentColorMode == EnvironmentColorMode::Sky)
+        else if (params->bakeParams.environment.mode == EnvironmentMode::Sky)
         {
-            property("Sky Intensity", ImGuiDataType_Float, &params->bakeParams.skyIntensity);
+            property("Sky Intensity", ImGuiDataType_Float, &params->bakeParams.environment.skyIntensity);
         }
 
-        else if (params->bakeParams.environmentColorMode == EnvironmentColorMode::TwoColor)
+        else if (params->bakeParams.environment.mode == EnvironmentMode::TwoColor)
         {
             if (params->bakeParams.targetEngine == TargetEngine::HE2)
             {
-                if (Color3 environmentColor = params->bakeParams.environmentColor.pow(1.0f / 2.2f); property("Top Color", environmentColor))
-                    params->bakeParams.environmentColor = environmentColor.pow(2.2f);
+                if (Color3 environmentColor = params->bakeParams.environment.color.pow(1.0f / 2.2f); property("Top Color", environmentColor))
+                    params->bakeParams.environment.color = environmentColor.pow(2.2f);
 
-                if (Color3 secondaryEnvironmentColor = params->bakeParams.secondaryEnvironmentColor.pow(1.0f / 2.2f); property("Bottom Color", secondaryEnvironmentColor))
-                    params->bakeParams.secondaryEnvironmentColor = secondaryEnvironmentColor.pow(2.2f);
+                if (Color3 secondaryEnvironmentColor = params->bakeParams.environment.secondaryColor.pow(1.0f / 2.2f); property("Bottom Color", secondaryEnvironmentColor))
+                    params->bakeParams.environment.secondaryColor = secondaryEnvironmentColor.pow(2.2f);
 
-                property("Color Intensity", ImGuiDataType_Float, &params->bakeParams.environmentColorIntensity);
+                property("Color Intensity", ImGuiDataType_Float, &params->bakeParams.environment.colorIntensity);
             }
 
             else
             {
-                property("Top Color", params->bakeParams.environmentColor);
-                property("Bottom Color", params->bakeParams.secondaryEnvironmentColor);
+                property("Top Color", params->bakeParams.environment.color);
+                property("Bottom Color", params->bakeParams.environment.secondaryColor);
             }
         }
 
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Light Sampling") && beginProperties("##Light Sampling"))
+    if (ImGui::CollapsingHeader("Light") && beginProperties("##Light"))
     {
-        property("Light Bounce Count", ImGuiDataType_U32, &params->bakeParams.lightBounceCount);
-        property("Light Sample Count", ImGuiDataType_U32, &params->bakeParams.lightSampleCount);
-        property("Russian Roulette Max Depth", ImGuiDataType_U32, &params->bakeParams.russianRouletteMaxDepth);
+        property("Bounce Count", ImGuiDataType_U32, &params->bakeParams.light.bounceCount);
+        property("Sample Count", ImGuiDataType_U32, &params->bakeParams.light.sampleCount);
+        property("Max Russian Roulette Depth", ImGuiDataType_U32, &params->bakeParams.light.maxRussianRouletteDepth);
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Shadow Sampling") && beginProperties("##Shadow Sampling"))
+    if (ImGui::CollapsingHeader("Shadow") && beginProperties("##Shadow"))
     {
-        property("Shadow Sample Count", ImGuiDataType_U32, &params->bakeParams.shadowSampleCount);
-        property("Shadow Search Radius", ImGuiDataType_Float, &params->bakeParams.shadowSearchRadius);
-        property("Shadow Bias", ImGuiDataType_Float, &params->bakeParams.shadowBias);
+        property("Sample Count", ImGuiDataType_U32, &params->bakeParams.shadow.sampleCount);
+        property("Search Radius", ImGuiDataType_Float, &params->bakeParams.shadow.radius);
+        property("Bias", ImGuiDataType_Float, &params->bakeParams.shadow.bias);
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Strength Modifiers") && beginProperties("##Strength Modifiers"))
+    if (ImGui::CollapsingHeader("Material") && beginProperties("##Material"))
     {
-        property("Diffuse Strength", ImGuiDataType_Float, &params->bakeParams.diffuseStrength);
-        property("Diffuse Saturation", ImGuiDataType_Float, &params->bakeParams.diffuseSaturation);
-        property("Light Strength", ImGuiDataType_Float, &params->bakeParams.lightStrength);
-        property("Emission Strength", ImGuiDataType_Float, &params->bakeParams.emissionStrength);
+        property("Diffuse Intensity", ImGuiDataType_Float, &params->bakeParams.material.diffuseIntensity);
+        property("Diffuse Saturation", ImGuiDataType_Float, &params->bakeParams.material.diffuseSaturation);
+        property("Light Intensity", ImGuiDataType_Float, &params->bakeParams.material.lightIntensity);
+        property("Emission Intensity", ImGuiDataType_Float, &params->bakeParams.material.emissionIntensity);
         endProperties();
     }
 

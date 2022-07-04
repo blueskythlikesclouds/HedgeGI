@@ -110,7 +110,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
     rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
 
-    if (radius < bakeParams.lightFieldMinCellRadius || userData.meshes.size() <= 1)
+    if (radius < bakeParams.lightField.minCellRadius || userData.meshes.size() <= 1)
     {
         lightField.cells[cellIndex].type = LightFieldCellType::Probe;
         lightField.cells[cellIndex].index = (uint32_t)lightField.indices.size();
@@ -161,8 +161,8 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
 
     lightField->aabb = raytracingContext.scene->aabb;
     const Vector3 center = lightField->aabb.center();
-    lightField->aabb.min() = (lightField->aabb.min() - center) * bakeParams.lightFieldAabbSizeMultiplier + center;
-    lightField->aabb.max() = (lightField->aabb.max() - center) * bakeParams.lightFieldAabbSizeMultiplier + center;
+    lightField->aabb.min() = (lightField->aabb.min() - center) * bakeParams.lightField.aabbSizeMultiplier + center;
+    lightField->aabb.max() = (lightField->aabb.max() - center) * bakeParams.lightField.aabbSizeMultiplier + center;
 
     createBakePointsRecursively(raytracingContext, *lightField, 0, lightField->aabb, bakePoints, corners, bakeParams);
 

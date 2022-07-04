@@ -148,17 +148,17 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
 
     size_t shadowSum = 0;
 
-    const size_t shadowSampleCount = (TBakePoint::FLAGS & BAKE_POINT_FLAGS_SOFT_SHADOW) != 0 ? bakeParams.shadowSampleCount : 1;
+    const size_t sampleCount = (TBakePoint::FLAGS & BAKE_POINT_FLAGS_SOFT_SHADOW) != 0 ? bakeParams.shadow.sampleCount : 1;
 
     const float phi = 2 * PI * random.next();
 
-    for (size_t i = 0; i < shadowSampleCount; i++)
+    for (size_t i = 0; i < sampleCount; i++)
     {
         Vector3 rayDirection;
 
         if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SOFT_SHADOW) != 0)
         {
-            const Vector2 vogelDiskSample = sampleVogelDisk(i, bakeParams.shadowSampleCount, phi);
+            const Vector2 vogelDiskSample = sampleVogelDisk(i, bakeParams.shadow.sampleCount, phi);
 
             rayDirection = tangentToWorld(Vector3(
                 vogelDiskSample[0] * radius,
@@ -175,7 +175,7 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
             intersectContextFilter<TargetEngine::HE1, true>;
 
         RTCRay ray {};
-        setRayOrigin(ray, position, bakeParams.shadowBias);
+        setRayOrigin(ray, position, bakeParams.shadow.bias);
         setRayDirection(ray, -rayDirection);
 
         ray.tfar = distance;
@@ -186,7 +186,7 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
             ++shadowSum;
     }
 
-    return 1.0f - (float)shadowSum / shadowSampleCount;
+    return 1.0f - (float)shadowSum / sampleCount;
 }
 
 template <typename TBakePoint>
@@ -209,9 +209,9 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
 
         size_t backFacing = 0;
 
-        for (uint32_t i = 0; i < bakeParams.lightSampleCount; i++)
+        for (uint32_t i = 0; i < bakeParams.light.sampleCount; i++)
         {
-            const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.lightSampleCount, random.next(), random.next()).normalized();
+            const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.light.sampleCount, random.next(), random.next()).normalized();
             const Vector3 worldSpaceDirection = tangentToWorld(tangentSpaceDirection, bakePoint.tangent, bakePoint.binormal, bakePoint.normal).normalized();
             const TraceResult result = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams, random);
 
@@ -223,14 +223,14 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         // This will fix the shadow leaks when dilated.
         if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_DISCARD_BACKFACE) != 0)
         {
-            if ((float)backFacing / (float)bakeParams.lightSampleCount >= 0.5f)
+            if ((float)backFacing / (float)bakeParams.light.sampleCount >= 0.5f)
             {
                 bakePoint.discard();
                 return;
             }
         }
 
-        bakePoint.end(bakeParams.lightSampleCount);
+        bakePoint.end(bakeParams.light.sampleCount);
 
         if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_LOCAL_LIGHT) != 0 && bakeParams.targetEngine == TargetEngine::HE1)
         {
@@ -266,7 +266,7 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
         if (sunLight)
         {
             bakePoint.shadow = sampleShadow<TBakePoint>(raytracingContext, 
-                bakePoint.position, sunLight->position, sunLightTangent, sunLightBinormal, INFINITY, bakeParams.shadowSearchRadius, bakeParams, random);
+                bakePoint.position, sunLight->position, sunLightTangent, sunLightBinormal, INFINITY, bakeParams.shadow.radius, bakeParams, random);
         }
     });
 }

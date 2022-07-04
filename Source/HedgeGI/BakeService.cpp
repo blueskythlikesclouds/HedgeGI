@@ -125,7 +125,7 @@ void BakeService::bakeGI()
             return;
         }
 
-        const uint16_t resolution = (uint16_t)((params->bakeParams.resolutionOverride > 0 ? params->bakeParams.resolutionOverride :
+        const uint16_t resolution = (uint16_t)((params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override :
             params->propertyBag.get(instance->name + ".resolution", 256)) * params->resolutionSuperSampleScale);
     
         if (isSg)
@@ -156,13 +156,13 @@ void BakeService::bakeGI()
             {
                 pair.lightMap = BitmapHelper::denoise(*pair.lightMap, params->bakeParams.getDenoiserType());
     
-                if (params->bakeParams.denoiseShadowMap)
+                if (params->bakeParams.postProcess.denoiseShadowMap)
                     pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap, params->bakeParams.getDenoiserType());
             }
 
             TRY_CANCEL()
     
-            if (params->bakeParams.optimizeSeams)
+            if (params->bakeParams.postProcess.optimizeSeams)
             {
                 const SeamOptimizer seamOptimizer(*instance);
                 pair.lightMap = seamOptimizer.optimize(*pair.lightMap);
@@ -207,12 +207,12 @@ void BakeService::bakeGI()
 
             // Denoise
             if (params->bakeParams.getDenoiserType() != DenoiserType::None)
-                combined = BitmapHelper::denoise(*combined, params->bakeParams.getDenoiserType(), params->bakeParams.denoiseShadowMap);
+                combined = BitmapHelper::denoise(*combined, params->bakeParams.getDenoiserType(), params->bakeParams.postProcess.denoiseShadowMap);
 
             TRY_CANCEL()
 
             // Optimize seams
-            if (params->bakeParams.optimizeSeams)
+            if (params->bakeParams.postProcess.optimizeSeams)
                 combined = BitmapHelper::optimizeSeams(*combined, *instance);
 
             TRY_CANCEL()
