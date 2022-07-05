@@ -3,74 +3,95 @@
 #include "D3D11Device.h"
 #include "Math.h"
 
-void Bitmap::transformToLightMap(Color4* color)
+void Bitmap::transformToLightMap(Color4& color)
 {
-    color->w() = 1.0f;
+    color.w() = 1.0f;
 }
 
-void Bitmap::transformToShadowMap(Color4* color)
+void Bitmap::transformToShadowMap(Color4& color)
 {
-    color->head<3>() = color->w();
-    color->w() = 1.0f;
+    color.head<3>() = color.w();
+    color.w() = 1.0f;
 }
 
-void Bitmap::transformToLinearSpace(Color4* color)
+void Bitmap::transformToLinearSpace(Color4& color)
 {
-    color->head<3>() = color->head<3>().pow(2.2f);
+    color.head<3>() = color.head<3>().pow(2.2f);
 }
 
-Bitmap::Bitmap() = default;
-
-Bitmap::Bitmap(const uint32_t width, const uint32_t height, const uint32_t arraySize, const BitmapType type)
-    : type(type), width(width), height(height), arraySize(arraySize), data(std::make_unique<Color4[]>(width * height * arraySize))
+size_t FORCEINLINE Bitmap::getIndex(const size_t x, const size_t y, const size_t arrayIndex) const
 {
-    for (size_t i = 0; i < width * height * arraySize; i++)
-        data[i] = Vector4::Zero();
+    return width * height * arrayIndex + width * y + x;
 }
 
-float* Bitmap::getColors(const size_t index) const
+size_t FORCEINLINE Bitmap::getIndex(const Vector2& texCoord, const size_t arrayIndex) const
 {
-    return data[width * height * index].data();
+    return getIndex((int64_t)(texCoord.x() * (float)width) % width, (int64_t)(texCoord.y() * (float)height) % height, arrayIndex);
 }
 
-size_t Bitmap::getColorIndex(const size_t x, const size_t y, const size_t arrayIndex) const
+void* Bitmap::getColorPtr(const size_t index) const
 {
-    const size_t dataSize = width * height;
-    return dataSize * arrayIndex + width * y + x;
+    return (char*)data + index * (size_t) format;
 }
 
-void Bitmap::getPixelCoords(const Vector2& uv, uint32_t& x, uint32_t& y) const
+Color4 Bitmap::getColor(const size_t index) const
 {
-    x = (int32_t)(width * uv.x()) % width;
-    y = (int32_t)(height * uv.y()) % height;
+    void* color = getColorPtr(index);
+
+    if (format == BitmapFormat::U8)
+    {
+        Color4 result;
+
+        DirectX::XMStoreFloat4((DirectX::XMFLOAT4*) &result,
+            DirectX::PackedVector::XMLoadUByteN4((const DirectX::PackedVector::XMUBYTEN4*)color));
+
+        return result;
+    }
+    else
+        return *(Color4*)color;
 }
 
-template<bool useLinearFiltering>
-Color4 Bitmap::pickColor(const Vector2& uv, const uint32_t arrayIndex) const
+float Bitmap::getAlpha(const size_t index) const
+{
+    void* color = getColorPtr(index);
+
+    if (format == BitmapFormat::U8)
+        return (float) ((Color4i*)color)->w() / 255.0f;
+    else
+        return ((Color4*)color)->w();
+}
+
+Color4 Bitmap::getColor(const size_t x, const size_t y, const size_t arrayIndex) const
+{
+    return getColor(getIndex(x, y, arrayIndex));
+}
+
+float Bitmap::getAlpha(const size_t x, const size_t y, const size_t arrayIndex) const
+{
+    return getAlpha(getIndex(x, y, arrayIndex));
+}
+
+template <bool useLinearFiltering>
+Color4 FORCEINLINE Bitmap::getColor(const Vector2& texCoord, const size_t arrayIndex) const
 {
     if (!useLinearFiltering)
-    {
-        uint32_t x, y;
-        getPixelCoords(uv, x, y);
-        
-        return data[width * height * arrayIndex + y * width + x];
-    }
+        return getColor(getIndex(texCoord, arrayIndex));
 
-    const float x = width * uv.x();
-    const float y = height * uv.y();
+    const float x = (float) width * texCoord.x();
+    const float y = (float) height * texCoord.y();
 
-    const int32_t cX = (int32_t)x;
-    const int32_t cY = (int32_t)y;
+    const int64_t cX = (int64_t) x;
+    const int64_t cY = (int64_t) y;
 
-    const int32_t x0 = cX % width;
-    const int32_t x1 = (cX + 1) % width;
-    const int32_t y0 = cY % height;
-    const int32_t y1 = (cY + 1) % height;
+    const int64_t x0 = cX % width;
+    const int64_t x1 = (cX + 1) % width;
+    const int64_t y0 = cY % height;
+    const int64_t y1 = (cY + 1) % height;
 
-    const Color4& x0y0 = data[y0 * width + x0];
-    const Color4& x1y0 = data[y0 * width + x1];
-    const Color4& x0y1 = data[y1 * width + x0];
-    const Color4& x1y1 = data[y1 * width + x1];
+    const Color4 x0y0 = getColor(getIndex(x0, y0, arrayIndex));
+    const Color4 x1y0 = getColor(getIndex(x1, y0, arrayIndex));
+    const Color4 x0y1 = getColor(getIndex(x0, y1, arrayIndex));
+    const Color4 x1y1 = getColor(getIndex(x1, y1, arrayIndex));
 
     float factorX = x - (float)cX;
     if (factorX < 0) factorX += 1;
@@ -81,35 +102,30 @@ Color4 Bitmap::pickColor(const Vector2& uv, const uint32_t arrayIndex) const
     return lerp(lerp(x0y0, x1y0, factorX), lerp(x0y1, x1y1, factorX), factorY);
 }
 
-template Color4 Bitmap::pickColor<false>(const Vector2& uv, uint32_t arrayIndex) const;
-template Color4 Bitmap::pickColor<true>(const Vector2& uv, uint32_t arrayIndex) const;
+template Color4 Bitmap::getColor<false>(const Vector2& texCoord, size_t arrayIndex) const;
+template Color4 Bitmap::getColor<true>(const Vector2& texCoord, size_t arrayIndex) const;
 
-template<bool useLinearFiltering>
-float Bitmap::pickAlpha(const Vector2& uv, const uint32_t arrayIndex) const
+template <bool useLinearFiltering>
+float FORCEINLINE Bitmap::getAlpha(const Vector2& texCoord, const size_t arrayIndex) const
 {
     if (!useLinearFiltering)
-    {
-        uint32_t x, y;
-        getPixelCoords(uv, x, y);
-        
-        return data[width * height * arrayIndex + y * width + x].w();
-    }
+        return getAlpha(getIndex(texCoord, arrayIndex));
 
-    const float x = width * uv.x();
-    const float y = height * uv.y();
+    const float x = (float)width * texCoord.x();
+    const float y = (float)height * texCoord.y();
 
-    const int32_t cX = (int32_t)x;
-    const int32_t cY = (int32_t)y;
+    const int64_t cX = (int64_t) x;
+    const int64_t cY = (int64_t) y; 
 
-    const int32_t x0 = cX % width;
-    const int32_t x1 = (cX + 1) % width;
-    const int32_t y0 = cY % height;
-    const int32_t y1 = (cY + 1) % height;
+    const int64_t x0 = cX % width;
+    const int64_t x1 = (cX + 1) % width;
+    const int64_t y0 = cY % height;
+    const int64_t y1 = (cY + 1) % height;
 
-    const float x0y0 = data[y0 * width + x0].w();
-    const float x1y0 = data[y0 * width + x1].w();
-    const float x0y1 = data[y1 * width + x0].w();
-    const float x1y1 = data[y1 * width + x1].w();
+    const float x0y0 = getAlpha(getIndex(x0, y0, arrayIndex));
+    const float x1y0 = getAlpha(getIndex(x1, y0, arrayIndex));
+    const float x0y1 = getAlpha(getIndex(x0, y1, arrayIndex));
+    const float x1y1 = getAlpha(getIndex(x1, y1, arrayIndex));
 
     float factorX = x - (float)cX;
     if (factorX < 0) factorX += 1;
@@ -120,38 +136,48 @@ float Bitmap::pickAlpha(const Vector2& uv, const uint32_t arrayIndex) const
     return lerp(lerp(x0y0, x1y0, factorX), lerp(x0y1, x1y1, factorX), factorY);
 }
 
-template float Bitmap::pickAlpha<false>(const Vector2& uv, uint32_t arrayIndex) const;
-template float Bitmap::pickAlpha<true>(const Vector2& uv, uint32_t arrayIndex) const;
+template float Bitmap::getAlpha<false>(const Vector2& texCoord, size_t arrayIndex) const;
+template float Bitmap::getAlpha<true>(const Vector2& texCoord, size_t arrayIndex) const;
 
-Color4 Bitmap::pickColor(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
+void Bitmap::setColor(const Color4& color, const size_t index) const
 {
-    return data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))];
+    if (format == BitmapFormat::U8)
+        *(Color4i*)getColorPtr(index) = (color * 255.0f).cast<uint8_t>();
+
+    else
+        *(Color4*)getColorPtr(index) = color;
 }
 
-float Bitmap::pickAlpha(const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
+void Bitmap::setAlpha(const float alpha, const size_t index) const
 {
-    return data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))].w();
+    if (format == BitmapFormat::U8)
+        ((Color4i*)getColorPtr(index))->w() = (uint8_t)(alpha * 255.0f);
+
+    else
+        ((Color4*)getColorPtr(index))->w() = alpha;
 }
 
-void Bitmap::putColor(const Color4& color, const Vector2& uv, const uint32_t arrayIndex) const
+void Bitmap::setColor(const Color4& color, const size_t x, const size_t y, const size_t arrayIndex) const
 {
-    uint32_t x, y;
-    getPixelCoords(uv, x, y);
-
-    data[width * height * arrayIndex + y * width + x] = color;
+    setColor(color, getIndex(x, y, arrayIndex));
 }
 
-void Bitmap::putColor(const Color4& color, const uint32_t x, const uint32_t y, const uint32_t arrayIndex) const
+void Bitmap::setAlpha(const float alpha, const size_t x, const size_t y, const size_t arrayIndex) const
 {
-    data[width * height * arrayIndex + std::max(0u, std::min(height - 1, y)) * width + std::max(0u, std::min(width - 1, x))] = color;
+    setAlpha(alpha, getIndex(x, y, arrayIndex));
 }
 
-void Bitmap::clear() const
+void Bitmap::setColor(const Color4& color, const Vector2& texCoord, const size_t arrayIndex) const
 {
-    memset(data.get(), 0, sizeof(Color4) * width * height * arraySize);
+    setColor(color, getIndex(texCoord, arrayIndex));
 }
 
-void Bitmap::save(const std::string& filePath, Transformer* const transformer, const size_t downScaleFactor) const
+void Bitmap::setAlpha(const float alpha, const Vector2& texCoord, const size_t arrayIndex) const
+{
+    setAlpha(alpha, getIndex(texCoord, arrayIndex));
+}
+
+void Bitmap::save(const std::string& filePath, BitmapTransformer* const transformer, const size_t downScaleFactor) const
 {
     DirectX::ScratchImage scratchImage;
     {
@@ -167,18 +193,19 @@ void Bitmap::save(const std::string& filePath, Transformer* const transformer, c
     SaveToWICFile(scratchImage.GetImages(), scratchImage.GetImageCount(), DirectX::WIC_FLAGS_NONE, GetWICCodec(DirectX::WIC_CODEC_PNG), wideCharFilePath);
 }
 
-void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transformer* const transformer, const size_t downScaleFactor) const
+void Bitmap::save(const std::string& filePath, const DXGI_FORMAT dxgiFormat, BitmapTransformer* const transformer, const size_t downScaleFactor) const
 {
     DirectX::ScratchImage scratchImage;
 
-    if (format == DXGI_FORMAT_R32G32B32A32_FLOAT)
+    if ((format == BitmapFormat::F32 && dxgiFormat == DXGI_FORMAT_R32G32B32A32_FLOAT) ||
+        (format == BitmapFormat::U8 && dxgiFormat == DXGI_FORMAT_R8G8B8A8_UNORM))
         scratchImage = toScratchImage(transformer, downScaleFactor);
 
     else
     {
         DirectX::ScratchImage images = toScratchImage(transformer, downScaleFactor);
 
-        if (DirectX::IsCompressed(format))
+        if (DirectX::IsCompressed(dxgiFormat))
         {
             {
                 DirectX::ScratchImage tmpImage;
@@ -194,24 +221,24 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transfo
                 std::swap(images, tmpImage);
             }
 
-            if (format >= DXGI_FORMAT_BC6H_TYPELESS && format <= DXGI_FORMAT_BC7_UNORM_SRGB)
+            if (dxgiFormat >= DXGI_FORMAT_BC6H_TYPELESS && dxgiFormat <= DXGI_FORMAT_BC7_UNORM_SRGB)
             {
                 std::unique_lock<CriticalSection> lock = D3D11Device::lock();
 
                 Compress(D3D11Device::get(), images.GetImages(), images.GetImageCount(), images.GetMetadata(),
-                    format, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
+                    dxgiFormat, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
             }
 
             else
             {
                 Compress(images.GetImages(), images.GetImageCount(), images.GetMetadata(),
-                    format, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
+                    dxgiFormat, DirectX::TEX_COMPRESS_PARALLEL, DirectX::TEX_THRESHOLD_DEFAULT, scratchImage);
             }
         }
         else
         {
             Convert(images.GetImages(), images.GetImageCount(), images.GetMetadata(), 
-                format, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT,scratchImage);
+                dxgiFormat, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT,scratchImage);
         }
     }
 
@@ -221,22 +248,35 @@ void Bitmap::save(const std::string& filePath, const DXGI_FORMAT format, Transfo
     SaveToDDSFile(scratchImage.GetImages(), scratchImage.GetImageCount(), scratchImage.GetMetadata(), DirectX::DDS_FLAGS_NONE, wideCharFilePath);
 }
 
-DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer, const size_t downScaleFactor) const
+DirectX::ScratchImage Bitmap::toScratchImage(BitmapTransformer* const transformer, const size_t downScaleFactor) const
 {
+    DXGI_FORMAT dxgiFormat = DXGI_FORMAT_UNKNOWN;
+
+    switch (format)
+    {
+    case BitmapFormat::F32:
+        dxgiFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        break;
+
+    case BitmapFormat::U8:
+        dxgiFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        break;
+    }
+
     DirectX::ScratchImage scratchImage;
 
     switch(type)
     {
     case BITMAP_TYPE_2D:
-        scratchImage.Initialize2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+        scratchImage.Initialize2D(dxgiFormat, width, height, arraySize, 1);
         break;
 
     case BITMAP_TYPE_3D:
-        scratchImage.Initialize3D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize, 1);
+        scratchImage.Initialize3D(dxgiFormat, width, height, arraySize, 1);
         break;
 
     case BITMAP_TYPE_CUBE:
-        scratchImage.InitializeCube(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, arraySize / 6, 1);
+        scratchImage.InitializeCube(dxgiFormat, width, height, arraySize / 6, 1);
         break;
     }
 
@@ -244,14 +284,14 @@ DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer, con
     {
         Color4* const pixels = (Color4*)scratchImage.GetImages()[i].pixels;
 
-        memcpy(pixels, &data[i * width * height], sizeof(Color4) * width * height);
+        memcpy(pixels, &((Color4*)data)[i * width * height], sizeof(Color4) * width * height);
 
         if (transformer != nullptr)
         {
             for (size_t x = 0; x < width; x++)
             {
                 for (size_t y = 0; y < height; y++)
-                    transformer(&pixels[getColorIndex(x, y, i)]);
+                    transformer(pixels[getIndex(x, y, i)]);
             }
         }
     }
@@ -268,8 +308,29 @@ DirectX::ScratchImage Bitmap::toScratchImage(Transformer* const transformer, con
     return scratchImage;
 }
 
-void Bitmap::transform(Transformer* transformer) const
+#define MEMORY_SIZE (width * height * arraySize * (size_t)format)
+
+Bitmap::Bitmap() = default;
+
+Bitmap::Bitmap(const size_t width, const size_t height, const size_t arraySize, const BitmapType type, const BitmapFormat format)
+    : data(operator new(MEMORY_SIZE)), width(width), height(height), arraySize(arraySize), type(type), format(format)
 {
-    for (size_t i = 0; i < width * height * arraySize; i++)
-        transformer(&data[i]);
+    memset(data, 0, MEMORY_SIZE);
+}
+
+Bitmap::Bitmap(const Bitmap& bitmap, const bool copyData)
+    : width(bitmap.width), height(bitmap.height), arraySize(bitmap.arraySize), type(bitmap.type), format(bitmap.format)
+{
+    data = operator new(MEMORY_SIZE);
+
+    if (copyData)
+        memcpy(data, bitmap.data, MEMORY_SIZE);
+    else
+        memset(data, 0, MEMORY_SIZE);
+}
+
+Bitmap::~Bitmap()
+{
+    if (data)
+        operator delete(data);
 }

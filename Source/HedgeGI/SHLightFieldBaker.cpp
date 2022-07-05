@@ -122,22 +122,27 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const Raytrac
 
     const float radius = (shlf.scale.array() / shlf.resolution.cast<float>()).maxCoeff() / 10.0f * sqrtf(2.0f) / 2.0f;
 
-    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](SHLightFieldPoint& bakePoint)
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, bakePoints.size()), [&](const tbb::blocked_range<size_t>& range)
     {
-        // Snap to the closest triangle
-        RTCPointQueryContext context {};
-        rtcInitPointQueryContext(&context);
+        for (size_t r = range.begin(); r < range.end(); r++)
+        {
+            auto& bakePoint = bakePoints[r];
 
-        RTCPointQuery query {};
-        query.x = bakePoint.position.x();
-        query.y = bakePoint.position.y();
-        query.z = bakePoint.position.z();
-        query.radius = radius;
+            // Snap to the closest triangle
+            RTCPointQueryContext context{};
+            rtcInitPointQueryContext(&context);
 
-        PointQueryFuncUserData userData = { raytracingContext.scene, bakePoint.position, bakePoint.position, INFINITY };
-        rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
+            RTCPointQuery query{};
+            query.x = bakePoint.position.x();
+            query.y = bakePoint.position.y();
+            query.z = bakePoint.position.z();
+            query.radius = radius;
 
-        bakePoint.position = userData.newPosition;
+            PointQueryFuncUserData userData = { raytracingContext.scene, bakePoint.position, bakePoint.position, INFINITY };
+            rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
+
+            bakePoint.position = userData.newPosition;
+        }
     });
 
     return bakePoints;
@@ -155,7 +160,7 @@ std::unique_ptr<Bitmap> SHLightFieldBaker::paint(const std::vector<SHLightFieldP
             color.head<3>() = bakePoint.colors[i].cwiseMax(0.0f).cwiseMin(65504.0f);
             color.w() = i == 0 ? saturate(bakePoint.shadow) : 1.0f;
 
-            bitmap->putColor(color, i * shlf.resolution.x() + bakePoint.x, bakePoint.y, bakePoint.z);
+            bitmap->setColor(color, i * shlf.resolution.x() + bakePoint.x, bakePoint.y, bakePoint.z);
         }
     }
 

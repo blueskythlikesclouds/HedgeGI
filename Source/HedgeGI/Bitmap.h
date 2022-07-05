@@ -2,55 +2,69 @@
 
 class FileStream;
 
-enum BitmapType : uint32_t
+enum BitmapType : size_t
 {
     BITMAP_TYPE_2D,
     BITMAP_TYPE_3D,
     BITMAP_TYPE_CUBE
 };
 
+enum class BitmapFormat : size_t
+{
+    F32 = sizeof(Color4),
+    U8 = sizeof(Color4i)
+};
+
+typedef void BitmapTransformer(Color4& color);
+
 class Bitmap
 {
 public:
+    void* data;
+    size_t width{};
+    size_t height{};
+    size_t arraySize{};
     BitmapType type{};
+    BitmapFormat format{};
     std::string name;
-    uint32_t width{};
-    uint32_t height{};
-    uint32_t arraySize{};
-    std::unique_ptr<Color4[]> data;
 
-    typedef void Transformer(Color4* color);
+    static void transformToLightMap(Color4& color);
+    static void transformToShadowMap(Color4& color);
+    static void transformToLinearSpace(Color4& color);
 
-    static void transformToLightMap(Color4* color);
-    static void transformToShadowMap(Color4* color);
-    static void transformToLinearSpace(Color4* color);
+    size_t getIndex(size_t x, size_t y, size_t arrayIndex = 0) const;
+    size_t getIndex(const Vector2& texCoord, size_t arrayIndex = 0) const;
+
+    void* getColorPtr(size_t index) const;
+
+    Color4 getColor(size_t index) const;
+    float getAlpha(size_t index) const;
+
+    Color4 getColor(size_t x, size_t y, size_t arrayIndex = 0) const;
+    float getAlpha(size_t x, size_t y, size_t arrayIndex = 0) const;
+
+    template<bool useLinearFiltering = false>
+    Color4 getColor(const Vector2& texCoord, size_t arrayIndex = 0) const;
+
+    template<bool useLinearFiltering = false>
+    float getAlpha(const Vector2& texCoord, size_t arrayIndex = 0) const;
+
+    void setColor(const Color4& color, size_t index) const;
+    void setAlpha(float alpha, size_t index) const;
+
+    void setColor(const Color4& color, size_t x, size_t y, size_t arrayIndex = 0) const;
+    void setAlpha(float alpha, size_t x, size_t y, size_t arrayIndex = 0) const;
+
+    void setColor(const Color4& color, const Vector2& texCoord, size_t arrayIndex = 0) const;
+    void setAlpha(float alpha, const Vector2& texCoord, size_t arrayIndex = 0) const;
+
+    void save(const std::string& filePath, BitmapTransformer* transformer = nullptr, size_t downScaleFactor = 1) const;
+    void save(const std::string& filePath, DXGI_FORMAT dxgiFormat, BitmapTransformer* transformer = nullptr, size_t downScaleFactor = 1) const;
+
+    DirectX::ScratchImage toScratchImage(BitmapTransformer* transformer = nullptr, size_t downScaleFactor = 1) const;
 
     Bitmap();
-    Bitmap(uint32_t width, uint32_t height, uint32_t arraySize = 1, BitmapType type = BITMAP_TYPE_2D);
-
-    float* getColors(size_t index) const;
-    size_t getColorIndex(size_t x, size_t y, size_t arrayIndex = 0) const;
-
-    void getPixelCoords(const Vector2& uv, uint32_t& x, uint32_t& y) const;
-
-    template<bool useLinearFiltering = false>
-    Color4 pickColor(const Vector2& uv, uint32_t arrayIndex = 0) const;
-
-    template<bool useLinearFiltering = false>
-    float pickAlpha(const Vector2& uv, uint32_t arrayIndex = 0) const;
-
-    Color4 pickColor(uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
-    float pickAlpha(uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
-
-    void putColor(const Color4& color, const Vector2& uv, uint32_t arrayIndex = 0) const;
-    void putColor(const Color4& color, uint32_t x, uint32_t y, uint32_t arrayIndex = 0) const;
-
-    void clear() const;
-
-    void save(const std::string& filePath, Transformer* transformer = nullptr, size_t downScaleFactor = 1) const;
-    void save(const std::string& filePath, DXGI_FORMAT format, Transformer* transformer = nullptr, size_t downScaleFactor = 1) const;
-
-    DirectX::ScratchImage toScratchImage(Transformer* transformer = nullptr, size_t downScaleFactor = 1) const;
-
-    void transform(Transformer* transformer) const;
+    Bitmap(size_t width, size_t height, size_t arraySize = 1, BitmapType type = BITMAP_TYPE_2D, BitmapFormat format = BitmapFormat::F32);
+    Bitmap(const Bitmap& bitmap, bool copyData);
+    ~Bitmap();
 };

@@ -78,167 +78,164 @@ void BakeService::bakeGI()
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
 
-    std::for_each(std::execution::par_unseq, stage->getScene()->instances.begin(), stage->getScene()->instances.end(), [&](const std::unique_ptr<const Instance>& instance)
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, stage->getScene()->instances.size()), [&](const tbb::blocked_range<size_t>& range)
     {
-        TRY_CANCEL()
-
-        bool skip = instance->name.find("_NoGI") != std::string::npos || instance->name.find("_noGI") != std::string::npos;
-    
-        const bool isSg = !skip && params->bakeParams.targetEngine == TargetEngine::HE2 && params->propertyBag.get(instance->name + ".isSg", true);
-    
-        std::string lightMapFileName;
-        std::string shadowMapFileName;
-    
-        if (!skip)
+        for (size_t r = range.begin(); r < range.end(); r++)
         {
-            if (params->bakeParams.targetEngine == TargetEngine::HE2)
+            const auto& instance = stage->getScene()->instances[r];
+
+            TRY_CANCEL()
+
+            bool skip = instance->name.find("_NoGI") != std::string::npos || instance->name.find("_noGI") != std::string::npos;
+
+            const bool isSg = !skip && params->bakeParams.targetEngine == TargetEngine::HE2 && params->propertyBag.get(instance->name + ".isSg", true);
+
+            std::string lightMapFileName;
+            std::string shadowMapFileName;
+
+            if (!skip)
             {
-                lightMapFileName = isSg ? instance->name + "_sg.dds" : instance->name + ".dds";
-                shadowMapFileName = instance->name + "_occlusion.dds";
+                if (params->bakeParams.targetEngine == TargetEngine::HE2)
+                {
+                    lightMapFileName = isSg ? instance->name + "_sg.dds" : instance->name + ".dds";
+                    shadowMapFileName = instance->name + "_occlusion.dds";
+                }
+                else if (stage->getGameType() == GameType::LostWorld)
+                {
+                    lightMapFileName = instance->name + ".dds";
+                }
+                else
+                {
+                    lightMapFileName = instance->name + "_lightmap.png";
+                    shadowMapFileName = instance->name + "_shadowmap.png";
+                }
             }
-            else if (stage->getGameType() == GameType::LostWorld)
+
+            lightMapFileName = params->outputDirectoryPath + "/" + lightMapFileName;
+            skip |= params->skipExistingFiles && std::filesystem::exists(lightMapFileName);
+
+            if (!shadowMapFileName.empty())
             {
-                lightMapFileName = instance->name + ".dds";
+                shadowMapFileName = params->outputDirectoryPath + "/" + shadowMapFileName;
+                skip |= params->skipExistingFiles && std::filesystem::exists(shadowMapFileName);
+            }
+
+            if (skip)
+            {
+                Logger::logFormatted(LogType::Normal, "Skipped %s", instance->name.c_str());
+
+                ++progress;
+                lastBakedInstance = instance.get();
+                continue;
+            }
+
+            const uint16_t resolution = (uint16_t)((params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override :
+                params->propertyBag.get(instance->name + ".resolution", 256)) * params->resolutionSuperSampleScale);
+
+            if (isSg)
+            {
+                TRY_CANCEL()
+
+                GIPair pair = SGGIBaker::bake(stage->getScene()->getRaytracingContext(), *instance, resolution, params->bakeParams);
+
+                TRY_CANCEL()
+                
+                ++progress;
+                lastBakedInstance = instance.get();
+
+                TRY_CANCEL()
+
+                // Dilate
+                pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
+                pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
+
+                TRY_CANCEL()
+
+                 // Denoise
+                 if (params->bakeParams.getDenoiserType() != DenoiserType::None)
+                 {
+                     pair.lightMap = BitmapHelper::denoise(*pair.lightMap, params->bakeParams.getDenoiserType());
+
+                     if (params->bakeParams.postProcess.denoiseShadowMap)
+                         pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap, params->bakeParams.getDenoiserType());
+                 }
+
+                TRY_CANCEL()
+
+                if (params->bakeParams.postProcess.optimizeSeams)
+                {
+                    const SeamOptimizer seamOptimizer(*instance);
+                    pair.lightMap = seamOptimizer.optimize(*pair.lightMap);
+                    pair.shadowMap = seamOptimizer.optimize(*pair.shadowMap);
+                }
+
+                TRY_CANCEL()
+
+                pair.lightMap->save(lightMapFileName,
+                    stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, nullptr, params->resolutionSuperSampleScale);
+
+                pair.shadowMap->save(shadowMapFileName,
+                    stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, nullptr, params->resolutionSuperSampleScale);
             }
             else
             {
-                lightMapFileName = instance->name + "_lightmap.png";
-                shadowMapFileName = instance->name + "_shadowmap.png";
-            }
-        }
-    
-        lightMapFileName = params->outputDirectoryPath + "/" + lightMapFileName;
-        skip |= params->skipExistingFiles && std::filesystem::exists(lightMapFileName);
-    
-        if (!shadowMapFileName.empty())
-        {
-            shadowMapFileName = params->outputDirectoryPath + "/" + shadowMapFileName;
-            skip |= params->skipExistingFiles && std::filesystem::exists(shadowMapFileName);
-        }
-    
-        if (skip)
-        {
-            Logger::logFormatted(LogType::Normal, "Skipped %s", instance->name.c_str());
+                TRY_CANCEL()
 
-            ++progress;
-            lastBakedInstance = instance.get();
-            return;
-        }
-
-        const uint16_t resolution = (uint16_t)((params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override :
-            params->propertyBag.get(instance->name + ".resolution", 256)) * params->resolutionSuperSampleScale);
-    
-        if (isSg)
-        {
-            GIPair pair;
-            {
-                const std::lock_guard<CriticalSection> lock = BakingFactory::lock();
-                {
-                    ++progress;
-                    lastBakedInstance = instance.get();
-                }
+                GIPair pair = GIBaker::bake(stage->getScene()->getRaytracingContext(), *instance, resolution, params->bakeParams);
 
                 TRY_CANCEL()
 
-                pair = SGGIBaker::bake(stage->getScene()->getRaytracingContext(), *instance, resolution, params->bakeParams);
-            }
-
-            TRY_CANCEL()
-    
-            // Dilate
-            pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
-            pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
-
-            TRY_CANCEL()
-
-            // Denoise
-            if (params->bakeParams.getDenoiserType() != DenoiserType::None)
-            {
-                pair.lightMap = BitmapHelper::denoise(*pair.lightMap, params->bakeParams.getDenoiserType());
-    
-                if (params->bakeParams.postProcess.denoiseShadowMap)
-                    pair.shadowMap = BitmapHelper::denoise(*pair.shadowMap, params->bakeParams.getDenoiserType());
-            }
-
-            TRY_CANCEL()
-    
-            if (params->bakeParams.postProcess.optimizeSeams)
-            {
-                const SeamOptimizer seamOptimizer(*instance);
-                pair.lightMap = seamOptimizer.optimize(*pair.lightMap);
-                pair.shadowMap = seamOptimizer.optimize(*pair.shadowMap);
-            }
-
-            TRY_CANCEL()
-    
-            pair.lightMap->save(lightMapFileName, 
-                stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, nullptr, params->resolutionSuperSampleScale);
-
-            pair.shadowMap->save(shadowMapFileName, 
-                stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, nullptr, params->resolutionSuperSampleScale);
-        }
-        else
-        {
-            GIPair pair;
-            {
-                const std::lock_guard<CriticalSection> lock = BakingFactory::lock();
-                {
-                    ++progress;
-                    lastBakedInstance = instance.get();
-                }
+                ++progress;
+                lastBakedInstance = instance.get();
 
                 TRY_CANCEL()
 
-                pair = GIBaker::bake(stage->getScene()->getRaytracingContext(), *instance, resolution, params->bakeParams);
-            }
+                // Dilate
+                pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
+                pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
 
-            TRY_CANCEL()
-    
-            // Dilate
-            pair.lightMap = BitmapHelper::dilate(*pair.lightMap);
-            pair.shadowMap = BitmapHelper::dilate(*pair.shadowMap);
+                TRY_CANCEL()
 
-            TRY_CANCEL()
+                // Combine
+                auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
 
-            // Combine
-            auto combined = BitmapHelper::combine(*pair.lightMap, *pair.shadowMap);
+                TRY_CANCEL()
 
-            TRY_CANCEL()
+                // Denoise
+                if (params->bakeParams.getDenoiserType() != DenoiserType::None)
+                    combined = BitmapHelper::denoise(*combined, params->bakeParams.getDenoiserType(), params->bakeParams.postProcess.denoiseShadowMap);
 
-            // Denoise
-            if (params->bakeParams.getDenoiserType() != DenoiserType::None)
-                combined = BitmapHelper::denoise(*combined, params->bakeParams.getDenoiserType(), params->bakeParams.postProcess.denoiseShadowMap);
+                TRY_CANCEL()
 
-            TRY_CANCEL()
+                // Optimize seams
+                if (params->bakeParams.postProcess.optimizeSeams)
+                    combined = BitmapHelper::optimizeSeams(*combined, *instance);
 
-            // Optimize seams
-            if (params->bakeParams.postProcess.optimizeSeams)
-                combined = BitmapHelper::optimizeSeams(*combined, *instance);
+                TRY_CANCEL()
 
-            TRY_CANCEL()
+                // Make ready for encoding
+                if (params->bakeParams.targetEngine == TargetEngine::HE1)
+                    combined = BitmapHelper::makeEncodeReady(*combined, ENCODE_READY_FLAGS_SQRT);
 
-            // Make ready for encoding
-            if (params->bakeParams.targetEngine == TargetEngine::HE1)
-                combined = BitmapHelper::makeEncodeReady(*combined, ENCODE_READY_FLAGS_SQRT);
+                TRY_CANCEL()
 
-            TRY_CANCEL()
+                if (stage->getGameType() == GameType::Generations && params->bakeParams.targetEngine == TargetEngine::HE1)
+                {
+                    combined->save(lightMapFileName, Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
+                    combined->save(shadowMapFileName, Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
+                }
+                else if (stage->getGameType() == GameType::LostWorld)
+                {
+                    combined->save(lightMapFileName, DXGI_FORMAT_BC3_UNORM, nullptr, params->resolutionSuperSampleScale);
+                }
+                else if (params->bakeParams.targetEngine == TargetEngine::HE2)
+                {
+                    combined->save(lightMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT,
+                        Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
 
-            if (stage->getGameType() == GameType::Generations && params->bakeParams.targetEngine == TargetEngine::HE1)
-            {
-                combined->save(lightMapFileName, Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
-                combined->save(shadowMapFileName, Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
-            }
-            else if (stage->getGameType() == GameType::LostWorld)
-            {
-                combined->save(lightMapFileName, DXGI_FORMAT_BC3_UNORM, nullptr, params->resolutionSuperSampleScale);
-            }
-            else if (params->bakeParams.targetEngine == TargetEngine::HE2)
-            {
-                combined->save(lightMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT, 
-                    Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
-
-                combined->save(shadowMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT, 
-                    Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
+                    combined->save(shadowMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT,
+                        Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
+                }
             }
         }
     });
@@ -254,23 +251,30 @@ void BakeService::bakeLightField()
 
     if (params->bakeParams.targetEngine == TargetEngine::HE2)
     {
-        std::for_each(std::execution::par_unseq, stage->getScene()->shLightFields.begin(), stage->getScene()->shLightFields.end(), [&](const std::unique_ptr<SHLightField>& shlf)
-        {            
-            ++progress;
-            lastBakedShlf = shlf.get();
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, stage->getScene()->shLightFields.size()), [&](const tbb::blocked_range<size_t>& range)
+        {
+            for (size_t r = range.begin(); r < range.end(); r++)
+            {
+                const auto& shlf = stage->getScene()->shLightFields[r];
 
-            TRY_CANCEL()
+                TRY_CANCEL()
 
-            auto bitmap = SHLightFieldBaker::bake(stage->getScene()->getRaytracingContext(), *shlf, params->bakeParams);
+                auto bitmap = SHLightFieldBaker::bake(stage->getScene()->getRaytracingContext(), *shlf, params->bakeParams);
 
-            TRY_CANCEL()
+                TRY_CANCEL()
 
-            if (params->bakeParams.getDenoiserType() != DenoiserType::None)
-                bitmap = BitmapHelper::denoise(*bitmap, params->bakeParams.getDenoiserType());
+                ++progress;
+                lastBakedShlf = shlf.get();
 
-            TRY_CANCEL()
+                TRY_CANCEL()
 
-            bitmap->save(params->outputDirectoryPath + "/" + shlf->name + ".dds", DXGI_FORMAT_R16G16B16A16_FLOAT);
+                if (params->bakeParams.getDenoiserType() != DenoiserType::None)
+                    bitmap = BitmapHelper::denoise(*bitmap, params->bakeParams.getDenoiserType());
+
+                TRY_CANCEL()
+
+                bitmap->save(params->outputDirectoryPath + "/" + shlf->name + ".dds", DXGI_FORMAT_R16G16B16A16_FLOAT);
+            }
         });
 
         ++progress;

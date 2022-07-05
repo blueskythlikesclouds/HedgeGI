@@ -1,7 +1,11 @@
 #pragma once
 
-// DirectXTex
+// DirectX
 #include <DirectXTex.h>
+#include <DirectXPackedVector.h>
+
+// tbb
+#include <oneapi/tbb.h>
 
 // Embree
 #include <rtcore.h>
@@ -114,6 +118,3 @@ public:
 		LeaveCriticalSection(&criticalSection);
 	}
 };
-
-#undef min
-#undef max

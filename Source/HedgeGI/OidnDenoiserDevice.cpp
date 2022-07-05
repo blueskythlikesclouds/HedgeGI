@@ -26,13 +26,13 @@ std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool d
         }
     }
 
-    std::unique_ptr<Bitmap> denoised = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
+    std::unique_ptr<Bitmap> denoised = std::make_unique<Bitmap>(bitmap, false);
 
     for (size_t i = 0; i < bitmap.arraySize; i++)
     {
         OIDNFilter filter = oidnNewFilter(device, "RTLightmap");
-        oidnSetSharedFilterImage(filter, "color", bitmap.getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
-        oidnSetSharedFilterImage(filter, "output", denoised->getColors(i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
+        oidnSetSharedFilterImage(filter, "color", bitmap.getColorPtr(bitmap.width * bitmap.height * i), OIDN_FORMAT_FLOAT3, bitmap.width, bitmap.height, 0, sizeof(Color4), 0);
+        oidnSetSharedFilterImage(filter, "output", denoised->getColorPtr(denoised->width * denoised->height * i), OIDN_FORMAT_FLOAT3, denoised->width, denoised->height, 0, sizeof(Color4), 0);
         oidnSetFilter1b(filter, "hdr", true);
         oidnCommitFilter(filter);
         oidnExecuteFilter(filter);
@@ -46,7 +46,7 @@ std::unique_ptr<Bitmap> OidnDenoiserDevice::denoise(const Bitmap& bitmap, bool d
 
     // TODO: Denoise alpha
     for (size_t i = 0; i < bitmap.width * bitmap.height * bitmap.arraySize; i++)
-        denoised->data[i].w() = bitmap.data[i].w();
+        denoised->setAlpha(bitmap.getAlpha(i), i);
 
     return denoised;
 }

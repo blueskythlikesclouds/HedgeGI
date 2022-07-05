@@ -279,14 +279,14 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                 if (lightMapMetadata.width != lightMapWidth || lightMapMetadata.height != lightMapHeight)
                 {
                     std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-                    DirectX::Resize(lightMapImage->GetImages(), lightMapImage->GetImageCount(), lightMapImage->GetMetadata(), lightMapWidth, lightMapHeight, DirectX::TEX_FILTER_BOX, *tmpImage);
+                    DirectX::Resize(lightMapImage->GetImages(), lightMapImage->GetImageCount(), lightMapImage->GetMetadata(), lightMapWidth, lightMapHeight, DirectX::TEX_FILTER_DEFAULT, *tmpImage);
                     lightMapImage.swap(tmpImage);
                 }
 
                 if (shadowMapMetadata.width != shadowMapWidth || shadowMapMetadata.height != shadowMapHeight)
                 {
                     std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-                    DirectX::Resize(shadowMapImage->GetImages(), shadowMapImage->GetImageCount(), shadowMapImage->GetMetadata(), shadowMapWidth, shadowMapHeight, DirectX::TEX_FILTER_BOX, *tmpImage);
+                    DirectX::Resize(shadowMapImage->GetImages(), shadowMapImage->GetImageCount(), shadowMapImage->GetMetadata(), shadowMapWidth, shadowMapHeight, DirectX::TEX_FILTER_DEFAULT, *tmpImage);
                     shadowMapImage.swap(tmpImage);
                 }
 
@@ -346,14 +346,14 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                     if (lightMapMetadata.width != width || lightMapMetadata.height != height)
                     {
                         std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-                        DirectX::Resize(*lightMapImage->GetImage(0, 0, 0), width, height, DirectX::TEX_FILTER_BOX, *tmpImage);
+                        DirectX::Resize(*lightMapImage->GetImage(0, 0, 0), width, height, DirectX::TEX_FILTER_DEFAULT, *tmpImage);
                         lightMapImage.swap(tmpImage);
                     }
 
                     if (shadowMapMetadata.width != width || shadowMapMetadata.height != height)
                     {
                         std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
-                        DirectX::Resize(*shadowMapImage->GetImage(0, 0, 0), width, height, DirectX::TEX_FILTER_BOX, *tmpImage);
+                        DirectX::Resize(*shadowMapImage->GetImage(0, 0, 0), width, height, DirectX::TEX_FILTER_DEFAULT, *tmpImage);
                         shadowMapImage.swap(tmpImage);
                     }
 
@@ -639,41 +639,44 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
 
     CriticalSection criticalSection;
 
-    std::for_each(std::execution::par_unseq, &groupInfo->groups[0], &groupInfo->groups[groupInfo->groups.count], [&](auto& group)
+    tbb::parallel_for(tbb::blocked_range<hl::u32>(0, groupInfo->groups.count), [&](const tbb::blocked_range<hl::u32>& range)
     {
-        const size_t index = std::distance(&groupInfo->groups[0], &group);
-
-        char name[16];
-        sprintf(name, "gia-%d.ar", (int)index);
-
-        hl::mem_stream stream;
-
-        hl::u32 memorySize = 0;
+        for (hl::u32 index = range.begin(); index < range.end(); index++)
         {
-            const hl::archive archive = createArchive(inputDirectoryPath, targetEngine, group.get(), groupInfo);
+            auto& group = groupInfo->groups[index];
 
-            for (auto& entry : archive)
-                memorySize += (hl::u32)entry.size();
+            char name[16];
+            sprintf(name, "gia-%d.ar", (int)index);
 
-            CabinetCompression::save(archive, stream, name);
-        }
+            hl::mem_stream stream;
 
-        Logger::logFormatted(LogType::Normal, "Saved %s", name);
+            hl::u32 memorySize = 0;
+            {
+                const hl::archive archive = createArchive(inputDirectoryPath, targetEngine, group.get(), groupInfo);
 
-        // HACK: We update the memory size in the original file by getting the offset of the value from the fixed data.
-        // The modifications are going to be reflected to the resaved resources archive.
-        hl::endian_swap(memorySize);
-        const size_t memorySizeOffset = (size_t)((hl::u8*)&group->memorySize - groupInfoData.get());
-        *(hl::u32*)(groupInfoOriginalData + memorySizeOffset) = memorySize;
+                for (auto& entry : archive)
+                    memorySize += (hl::u32)entry.size();
 
-        hl::archive_entry entry = hl::archive_entry::make_regular_file(toNchar(name).data(), stream.get_size(), stream.get_data_ptr());
+                CabinetCompression::save(archive, stream, name);
+            }
 
-        std::lock_guard lock(criticalSection);
-        {
-            if (group->level == 2)
-                stageArchive.push_back(std::move(entry));
-            else
-                stageAddArchive.push_back(std::move(entry));
+            Logger::logFormatted(LogType::Normal, "Saved %s", name);
+
+            // HACK: We update the memory size in the original file by getting the offset of the value from the fixed data.
+            // The modifications are going to be reflected to the resaved resources archive.
+            hl::endian_swap(memorySize);
+            const size_t memorySizeOffset = (size_t)((hl::u8*)&group->memorySize - groupInfoData.get());
+            *(hl::u32*)(groupInfoOriginalData + memorySizeOffset) = memorySize;
+
+            hl::archive_entry entry = hl::archive_entry::make_regular_file(toNchar(name).data(), stream.get_size(), stream.get_data_ptr());
+
+            std::lock_guard lock(criticalSection);
+            {
+                if (group->level == 2)
+                    stageArchive.push_back(std::move(entry));
+                else
+                    stageAddArchive.push_back(std::move(entry));
+            }
         }
     });
 

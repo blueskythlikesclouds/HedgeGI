@@ -25,19 +25,40 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     if (!scratchImage->GetImages())
         return nullptr;
 
+    DXGI_FORMAT format;
+
+    switch (metadata.format)
+    {
+    case DXGI_FORMAT_R32G32B32A32_FLOAT:
+    case DXGI_FORMAT_R32G32B32_FLOAT:
+    case DXGI_FORMAT_R16G16B16A16_FLOAT:
+    case DXGI_FORMAT_R32G32_FLOAT:
+    case DXGI_FORMAT_R11G11B10_FLOAT:
+    case DXGI_FORMAT_R16G16_FLOAT:
+    case DXGI_FORMAT_R32_FLOAT:
+    case DXGI_FORMAT_BC6H_UF16:
+    case DXGI_FORMAT_BC6H_SF16:
+        format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        break;
+
+    default:
+        format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        break;
+    }
+
     // Try getting the second mip (we don't need much quality from textures)
     const size_t mipLevel = scratchImage->IsAlphaAllOpaque() ? std::min<size_t>(2, metadata.mipLevels - 1) : 0;
 
     if (DirectX::IsCompressed(metadata.format))
     {
         std::unique_ptr<DirectX::ScratchImage> newScratchImage = std::make_unique<DirectX::ScratchImage>();
-        Decompress(*scratchImage->GetImage(mipLevel, 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, *newScratchImage);
+        Decompress(*scratchImage->GetImage(mipLevel, 0, 0), format, *newScratchImage);
         scratchImage.swap(newScratchImage);
     }
-    else if (metadata.format != DXGI_FORMAT_R32G32B32A32_FLOAT)
+    else if (metadata.format != format)
     {
         std::unique_ptr<DirectX::ScratchImage> newScratchImage = std::make_unique<DirectX::ScratchImage>();
-        Convert(*scratchImage->GetImage(mipLevel, 0, 0), DXGI_FORMAT_R32G32B32A32_FLOAT, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, *newScratchImage);
+        Convert(*scratchImage->GetImage(mipLevel, 0, 0), format, DirectX::TEX_FILTER_DEFAULT, DirectX::TEX_THRESHOLD_DEFAULT, *newScratchImage);
         scratchImage.swap(newScratchImage);
     }
 
@@ -53,13 +74,18 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
         metadata.dimension == DirectX::TEX_DIMENSION_TEXTURE3D ? BITMAP_TYPE_3D :
         BITMAP_TYPE_2D;
 
-    bitmap->width = (uint32_t)metadata.width;
-    bitmap->height = (uint32_t)metadata.height;
-    bitmap->arraySize = bitmap->type == BITMAP_TYPE_3D ? (uint32_t)metadata.depth : (uint32_t)metadata.arraySize;
-    bitmap->data = std::make_unique<Color4[]>(bitmap->width * bitmap->height * bitmap->arraySize);
+    bitmap->format =
+        format == DXGI_FORMAT_R32G32B32A32_FLOAT ? 
+            BitmapFormat::F32 :
+            BitmapFormat::U8;
+
+    bitmap->width = metadata.width;
+    bitmap->height = metadata.height;
+    bitmap->arraySize = bitmap->type == BITMAP_TYPE_3D ? metadata.depth : metadata.arraySize;
+    bitmap->data = operator new(bitmap->width * bitmap->height * bitmap->arraySize * (size_t)bitmap->format);
 
     for (size_t i = 0; i < bitmap->arraySize; i++)
-        memcpy(&bitmap->data[bitmap->width * bitmap->height * i], scratchImage->GetImage(0, i, 0)->pixels, bitmap->width * bitmap->height * sizeof(Vector4));
+        memcpy(bitmap->getColorPtr(bitmap->width * bitmap->height * i), scratchImage->GetImage(0, i, 0)->pixels, bitmap->width * bitmap->height * (size_t)bitmap->format);
 
     return bitmap;
 }

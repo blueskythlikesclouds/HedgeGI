@@ -15,8 +15,6 @@ class Camera;
 
 class BakingFactory
 {
-    static CriticalSection criticalSection;
-
 public:
     struct TraceResult
     {
@@ -49,11 +47,6 @@ public:
         size_t width, size_t height, const Camera& camera, const BakeParams& bakeParams, size_t progress = 0, bool antiAliasing = true);
 
     static bool rayCast(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, TargetEngine targetEngine, Vector3& hitPosition);
-
-    static std::lock_guard<CriticalSection> lock()
-    {
-        return std::lock_guard(criticalSection);
-    }
 };
 
 struct IntersectContext : RTCIntersectContext
@@ -109,11 +102,11 @@ void intersectContextFilter(const RTCFilterFunctionNArguments* args)
 
         if (material->textures.diffuse != nullptr)
         {
-            float diffuseAlpha = material->textures.diffuse->pickAlpha<useLinearFiltering>(hitUV);
+            float diffuseAlpha = material->textures.diffuse->getAlpha<useLinearFiltering>(hitUV);
 
             if (material->type == MaterialType::Blend && material->textures.diffuseBlend != nullptr)
             {
-                const float diffuseBlendAlpha = material->textures.diffuseBlend->pickAlpha<useLinearFiltering>(hitUV);
+                const float diffuseBlendAlpha = material->textures.diffuseBlend->getAlpha<useLinearFiltering>(hitUV);
                 diffuseAlpha = lerp(diffuseAlpha, diffuseBlendAlpha, blend);
             }
 
@@ -126,10 +119,10 @@ void intersectContextFilter(const RTCFilterFunctionNArguments* args)
         alpha *= hitAlpha * material->parameters.diffuse.w();
 
         if (material->textures.diffuse != nullptr)
-            alpha *= material->textures.diffuse->pickAlpha<useLinearFiltering>(hitUV);
+            alpha *= material->textures.diffuse->getAlpha<useLinearFiltering>(hitUV);
 
         if (material->textures.alpha != nullptr)
-            alpha *= material->textures.alpha->pickAlpha<useLinearFiltering>(hitUV);
+            alpha *= material->textures.alpha->getAlpha<useLinearFiltering>(hitUV);
     }
 
     if ((mesh.type == MeshType::Punch && alpha < 0.5f) ||
@@ -198,75 +191,80 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
     if (sunLight != nullptr)
         computeTangent(sunLight->position, sunLightTangent, sunLightBinormal);
 
-    std::for_each(std::execution::par_unseq, bakePoints.begin(), bakePoints.end(), [&](TBakePoint& bakePoint)
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, bakePoints.size()), [&](const tbb::blocked_range<size_t>& range)
     {
-        if (!bakePoint.valid())
-            return;
-
-        Random& random = Random::get();
-
-        bakePoint.begin();
-
-        size_t backFacing = 0;
-
-        for (uint32_t i = 0; i < bakeParams.light.sampleCount; i++)
+        for (size_t r = range.begin(); r < range.end(); r++)
         {
-            const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.light.sampleCount, random.next(), random.next()).normalized();
-            const Vector3 worldSpaceDirection = tangentToWorld(tangentSpaceDirection, bakePoint.tangent, bakePoint.binormal, bakePoint.normal).normalized();
-            const TraceResult result = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams, random);
+            TBakePoint& bakePoint = bakePoints[r];
 
-            backFacing += result.backFacing;
-            bakePoint.addSample(result.color, worldSpaceDirection);
-        }
+            if (!bakePoint.valid())
+                continue;
 
-        // If most rays point to backfaces, discard the pixel.
-        // This will fix the shadow leaks when dilated.
-        if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_DISCARD_BACKFACE) != 0)
-        {
-            if ((float)backFacing / (float)bakeParams.light.sampleCount >= 0.5f)
+            Random& random = Random::get();
+
+            bakePoint.begin();
+
+            size_t backFacing = 0;
+
+            for (uint32_t i = 0; i < bakeParams.light.sampleCount; i++)
             {
-                bakePoint.discard();
-                return;
+                const Vector3 tangentSpaceDirection = TBakePoint::sampleDirection(i, bakeParams.light.sampleCount, random.next(), random.next()).normalized();
+                const Vector3 worldSpaceDirection = tangentToWorld(tangentSpaceDirection, bakePoint.tangent, bakePoint.binormal, bakePoint.normal).normalized();
+                const TraceResult result = pathTrace(raytracingContext, bakePoint.position, worldSpaceDirection, bakeParams, random);
+
+                backFacing += result.backFacing;
+                bakePoint.addSample(result.color, worldSpaceDirection);
             }
-        }
 
-        bakePoint.end(bakeParams.light.sampleCount);
-
-        if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_LOCAL_LIGHT) != 0 && bakeParams.targetEngine == TargetEngine::HE1)
-        {
-            std::array<const Light*, 32> lights;
-            size_t lightCount = 0;
-
-            raytracingContext.lightBVH->traverse(bakePoint.position, lights, lightCount);
-
-            for (size_t i = 0; i < lightCount; i++)
+            // If most rays point to backfaces, discard the pixel.
+            // This will fix the shadow leaks when dilated.
+            if constexpr ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_DISCARD_BACKFACE) != 0)
             {
-                const Light* light = lights[i];
-                if (light->type != LightType::Point) continue;
-
-                Vector3 lightDirection;
-                float attenuation;
-                float distance;
-
-                computeDirectionAndAttenuationHE1(bakePoint.position, light->position, light->range, lightDirection, attenuation, &distance);
-
-                attenuation *= saturate(bakePoint.normal.dot(-lightDirection));
-                if (attenuation == 0.0f) continue;
-
-                Vector3 lightTangent, lightBinormal;
-                computeTangent(lightDirection, lightTangent, lightBinormal);
-
-                attenuation *= sampleShadow<TBakePoint>(raytracingContext,
-                    bakePoint.position, lightDirection, lightTangent, lightBinormal, distance, 1.0f / light->range.w(), bakeParams, random);
-
-                bakePoint.addSample(light->color * attenuation, lightDirection);
+                if ((float)backFacing / (float)bakeParams.light.sampleCount >= 0.5f)
+                {
+                    bakePoint.discard();
+                    continue;
+                }
             }
-        }
 
-        if (sunLight)
-        {
-            bakePoint.shadow = sampleShadow<TBakePoint>(raytracingContext, 
-                bakePoint.position, sunLight->position, sunLightTangent, sunLightBinormal, INFINITY, bakeParams.shadow.radius, bakeParams, random);
+            bakePoint.end(bakeParams.light.sampleCount);
+
+            if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_LOCAL_LIGHT) != 0 && bakeParams.targetEngine == TargetEngine::HE1)
+            {
+                std::array<const Light*, 32> lights;
+                size_t lightCount = 0;
+
+                raytracingContext.lightBVH->traverse(bakePoint.position, lights, lightCount);
+
+                for (size_t i = 0; i < lightCount; i++)
+                {
+                    const Light* light = lights[i];
+                    if (light->type != LightType::Point) continue;
+
+                    Vector3 lightDirection;
+                    float attenuation;
+                    float distance;
+
+                    computeDirectionAndAttenuationHE1(bakePoint.position, light->position, light->range, lightDirection, attenuation, &distance);
+
+                    attenuation *= saturate(bakePoint.normal.dot(-lightDirection));
+                    if (attenuation == 0.0f) continue;
+
+                    Vector3 lightTangent, lightBinormal;
+                    computeTangent(lightDirection, lightTangent, lightBinormal);
+
+                    attenuation *= sampleShadow<TBakePoint>(raytracingContext,
+                        bakePoint.position, lightDirection, lightTangent, lightBinormal, distance, 1.0f / light->range.w(), bakeParams, random);
+
+                    bakePoint.addSample(light->color * attenuation, lightDirection);
+                }
+            }
+
+            if (sunLight)
+            {
+                bakePoint.shadow = sampleShadow<TBakePoint>(raytracingContext,
+                    bakePoint.position, sunLight->position, sunLightTangent, sunLightBinormal, INFINITY, bakeParams.shadow.radius, bakeParams, random);
+            }
         }
     });
 }

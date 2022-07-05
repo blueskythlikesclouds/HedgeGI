@@ -18,8 +18,7 @@ std::unique_ptr<Bitmap> BitmapHelper::denoise(const Bitmap& bitmap, const Denois
 
 std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
 {
-    std::unique_ptr<Bitmap> dilated = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
-    memcpy(dilated->data.get(), bitmap.data.get(), bitmap.width * bitmap.height * bitmap.arraySize * sizeof(Color4));
+    std::unique_ptr<Bitmap> dilated = std::make_unique<Bitmap>(bitmap, true);
 
     if (bitmap.width == bitmap.height)
     {
@@ -40,7 +39,7 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
                         {
                             for (uint32_t j = 0; j < blockSize; j++)
                             {
-                                const Color4& color = dilated->pickColor(x * blockSize + i, y * blockSize + j, arrayIndex);
+                                const Color4 color = dilated->getColor(x * blockSize + i, y * blockSize + j, arrayIndex);
                                 if (color.maxCoeff() <= 0.0f)
                                     continue;
 
@@ -58,8 +57,8 @@ std::unique_ptr<Bitmap> BitmapHelper::dilate(const Bitmap& bitmap)
                         {
                             for (uint32_t j = 0; j < blockSize; j++)
                             {
-                                const Color4& color = dilated->pickColor(x * blockSize + i, y * blockSize + j, arrayIndex);
-                                dilated->putColor(color.maxCoeff() > 0.0f ? color : resultColor, x * blockSize + i, y * blockSize + j, arrayIndex);
+                                const Color4& color = dilated->getColor(x * blockSize + i, y * blockSize + j, arrayIndex);
+                                dilated->setColor(color.maxCoeff() > 0.0f ? color : resultColor, x * blockSize + i, y * blockSize + j, arrayIndex);
                             }
                         }
                     }
@@ -81,7 +80,7 @@ std::unique_ptr<Bitmap> BitmapHelper::optimizeSeams(const Bitmap& bitmap, const 
 
 std::unique_ptr<Bitmap> BitmapHelper::makeEncodeReady(const Bitmap& bitmap, const EncodeReadyFlags encodeReadyFlags)
 {
-    std::unique_ptr<Bitmap> encoded = std::make_unique<Bitmap>(bitmap.width, bitmap.height, bitmap.arraySize, bitmap.type);
+    std::unique_ptr<Bitmap> encoded = std::make_unique<Bitmap>(bitmap, false);
 
     for (size_t i = 0; i < bitmap.arraySize; i++)
     {
@@ -89,15 +88,15 @@ std::unique_ptr<Bitmap> BitmapHelper::makeEncodeReady(const Bitmap& bitmap, cons
         {
             for (size_t y = 0; y < bitmap.height; y++)
             {
-                const size_t index = bitmap.getColorIndex(x, y, i);
+                const size_t index = bitmap.getIndex(x, y, i);
 
-                Color4 color = bitmap.data[index];
+                Color4 color = bitmap.getColor(index);
                 color.head<3>() = ldrReady(color.head<3>());
 
                 if (encodeReadyFlags & ENCODE_READY_FLAGS_SRGB) color.head<3>() = color.head<3>().pow(1.0f / 2.2f);
                 if (encodeReadyFlags & ENCODE_READY_FLAGS_SQRT) color.head<3>() = color.head<3>().sqrt();
 
-                encoded->data[index] = color;
+                encoded->setColor(color, index);
             }
         }
     }
@@ -109,7 +108,7 @@ std::unique_ptr<Bitmap> BitmapHelper::combine(const Bitmap& lightMap, const Bitm
 {
     assert(lightMap.width == shadowMap.width && lightMap.height == shadowMap.height);
 
-    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(lightMap.width, lightMap.height, lightMap.arraySize, lightMap.type);
+    std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(lightMap, false);
 
     for (size_t i = 0; i < bitmap->arraySize; i++)
     {
@@ -117,12 +116,12 @@ std::unique_ptr<Bitmap> BitmapHelper::combine(const Bitmap& lightMap, const Bitm
         {
             for (size_t y = 0; y < bitmap->height; y++)
             {
-                const size_t index = bitmap->getColorIndex(x, y, i);
+                const size_t index = bitmap->getIndex(x, y, i);
 
-                Color4 color = lightMap.data[index];
-                color.w() = shadowMap.data[index].head<3>().sum() / 3.0f;
+                Color4 color = lightMap.getColor(index);
+                color.w() = shadowMap.getColor(index).head<3>().sum() / 3.0f;
 
-                bitmap->data[index] = color;
+                bitmap->setColor(color, index);
             }
         }
     }

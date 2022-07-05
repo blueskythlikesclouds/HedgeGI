@@ -51,7 +51,7 @@ void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& ba
         if (!bakePoint.valid())
             continue;
 
-        for (uint32_t i = 0; i < std::min(bitmap.arraySize, TBakePoint::BASIS_COUNT); i++)
+        for (size_t i = 0; i < std::min(bitmap.arraySize, TBakePoint::BASIS_COUNT); i++)
         {
             Color4 color{};
 
@@ -70,8 +70,8 @@ void BitmapHelper::paint(const Bitmap& bitmap, const std::vector<TBakePoint>& ba
                 color[3] = 1.0f;
             }
 
-            const size_t index = bitmap.getColorIndex(bakePoint.x, bakePoint.y, i);
-            bitmap.data[index] = (bitmap.data[index] * counts[index] + color) / ++counts[index];
+            const size_t index = bitmap.getIndex(bakePoint.x, bakePoint.y, i);
+            bitmap.setColor((bitmap.getColor(index) * counts[index] + color) / ++counts[index], index);
         }
     }
 }

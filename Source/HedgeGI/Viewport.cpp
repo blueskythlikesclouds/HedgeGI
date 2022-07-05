@@ -53,9 +53,9 @@ void Viewport::validate()
         const size_t bitmapWidth = bitmap != nullptr ? std::max<size_t>(bitmap->width, bakeWidth) : bakeWidth;
         const size_t bitmapHeight = bitmap != nullptr ? std::max<size_t>(bitmap->height, bakeHeight) : bakeHeight;
 
-        bitmap = std::make_unique<Bitmap>((uint32_t)bitmapWidth, (uint32_t)bitmapHeight);
-        hdrFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_RGBA32F, bitmap->width, bitmap->height, GL_RGBA, GL_FLOAT);
-        ldrFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_RGBA8, bitmap->width, bitmap->height, GL_RGBA, GL_UNSIGNED_BYTE);
+        bitmap = std::make_unique<Bitmap>(bitmapWidth, bitmapHeight);
+        hdrFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_RGBA32F, (GLsizei)bitmap->width, (GLsizei)bitmap->height, GL_RGBA, GL_FLOAT);
+        ldrFramebufferTex = std::make_unique<FramebufferTexture>(GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GL_RGBA8, (GLsizei)bitmap->width, (GLsizei)bitmap->height, GL_RGBA, GL_UNSIGNED_BYTE);
         progress = 0;
     }
 
@@ -72,7 +72,14 @@ void Viewport::validate()
     if (rgbTable != sceneRgbTable.get())
     {
         rgbTable = sceneRgbTable.get();
-        rgbTableTex = rgbTable ? std::make_unique<Texture>(GL_TEXTURE_2D, GL_RGBA32F, rgbTable->width, rgbTable->height, GL_RGBA, GL_FLOAT, rgbTable->data.get()) : nullptr;
+        rgbTableTex = rgbTable ? std::make_unique<Texture>(
+            GL_TEXTURE_2D,
+            rgbTable->format == BitmapFormat::U8 ? GL_RGBA8 : GL_RGBA32F, 
+            (GLsizei)rgbTable->width, 
+            (GLsizei)rgbTable->height,
+            GL_RGBA, 
+            rgbTable->format == BitmapFormat::U8 ? GL_UNSIGNED_BYTE : GL_FLOAT, 
+            rgbTable->data) : nullptr;
     }
 
     params->dirty = false;
@@ -81,7 +88,7 @@ void Viewport::validate()
 
 void Viewport::copy()
 {
-    hdrFramebufferTex->texture.subImage(0, (GLint)(bitmap->height - bakeArgs.bakeHeight), (GLsizei)bakeArgs.bakeWidth, (GLsizei)bakeArgs.bakeHeight, GL_RGBA, GL_FLOAT, bitmap->data.get());
+    hdrFramebufferTex->texture.subImage(0, (GLint)(bitmap->height - bakeArgs.bakeHeight), (GLsizei)bakeArgs.bakeWidth, (GLsizei)bakeArgs.bakeHeight, GL_RGBA, GL_FLOAT, bitmap->data);
 
     const SceneEffect& sceneEffect = get<Stage>()->getScene()->effect;
 

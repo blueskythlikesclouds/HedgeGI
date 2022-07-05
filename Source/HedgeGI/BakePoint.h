@@ -17,10 +17,10 @@ enum BakePointFlags : size_t
     BAKE_POINT_FLAGS_ALL = ~0
 };
 
-template<uint32_t BasisCount, size_t Flags>
+template<size_t BasisCount, size_t Flags>
 struct BakePoint
 {
-    static constexpr uint32_t BASIS_COUNT = BasisCount;
+    static constexpr size_t BASIS_COUNT = BasisCount;
     static constexpr size_t FLAGS = Flags;
 
     Vector3 position;
@@ -44,26 +44,26 @@ struct BakePoint
     void end(uint32_t sampleCount);
 };
 
-template <uint32_t BasisCount, size_t Flags>
+template <size_t BasisCount, size_t Flags>
 Vector3 BakePoint<BasisCount, Flags>::sampleDirection(const size_t index, const size_t sampleCount, const float u1, const float u2)
 {
     return sampleCosineWeightedHemisphere(u1, u2);
 }
 
-template <uint32_t BasisCount, size_t Flags>
+template <size_t BasisCount, size_t Flags>
 bool BakePoint<BasisCount, Flags>::valid() const
 {
     return x != (uint16_t)-1 && y != (uint16_t)-1;
 }
 
-template <uint32_t BasisCount, size_t Flags>
+template <size_t BasisCount, size_t Flags>
 void BakePoint<BasisCount, Flags>::discard()
 {
     x = (uint16_t)-1;
     y = (uint16_t)-1;
 }
 
-template <uint32_t BasisCount, size_t Flags>
+template <size_t BasisCount, size_t Flags>
 void BakePoint<BasisCount, Flags>::begin()
 {
     for (uint32_t i = 0; i < BasisCount; i++)
@@ -72,7 +72,7 @@ void BakePoint<BasisCount, Flags>::begin()
     shadow = 0.0f;
 }
 
-template <uint32_t BasisCount, size_t Flags>
+template <size_t BasisCount, size_t Flags>
 void BakePoint<BasisCount, Flags>::end(const uint32_t sampleCount)
 {
     for (uint32_t i = 0; i < BasisCount; i++)
