@@ -139,19 +139,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
     for (i = 0; i < (int32_t)bakeParams.light.bounceCount; i++)
     {
-        const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
-
-        const Vector3 rayNormal(query.ray.dir_x, query.ray.dir_y, query.ray.dir_z);
-
-        // Do russian roulette at highest difficulty fuhuhuhuhuhu
-        float probability = throughput.maxCoeff();
-        if (i > (int32_t)bakeParams.light.maxRussianRouletteDepth)
-        {
-            if (random.next() > probability)
-                break;
-
-            throughput /= probability;
-        }
+        const Vector3& rayNormal = *(const Vector3*)&query.ray.dir_x; // Can safely do this as W is going to be 0
 
         context.init();
         context.filter = intersectContextFilter<targetEngine, tracingFromEye>;
@@ -337,6 +325,8 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
             }
         }
 
+        const bool shouldApplyBakeParam = !tracingFromEye || i > 0;
+
         if (shouldApplyBakeParam)
             emission *= bakeParams.material.emissionIntensity;
 
@@ -371,7 +361,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         if (material == nullptr || material->type == MaterialType::Common || material->type == MaterialType::Blend)
         {
-            if (shouldApplyBakeParam && (!nearlyEqual(bakeParams.material.diffuseIntensity, 1.0f) || !nearlyEqual(bakeParams.material.diffuseSaturation, 1.0f)))
+            if (shouldApplyBakeParam && (bakeParams.material.diffuseIntensity != 1.0f || bakeParams.material.diffuseSaturation != 1.0f))
             {
                 Color3 hsv = rgb2Hsv(diffuse.head<3>());
                 hsv.y() = saturate(hsv.y() * bakeParams.material.diffuseSaturation);
@@ -505,7 +495,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
         if (targetEngine == TargetEngine::HE2)
         {
             const bool isMetallic = metalness == 1.0f;
-            probability = isMetallic ? 0.0f : roughness * 0.5f + 0.5f;
+            const float probability = isMetallic ? 0.0f : roughness * 0.5f + 0.5f;
 
             // Randomly select specular BRDF
             const float u1 = random.next();
@@ -551,6 +541,16 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                 hitTangent, hitBinormal, hitNormal).normalized();
 
             throughput *= diffuse;
+        }
+
+        // Do russian roulette at highest difficulty fuhuhuhuhuhu
+        const float probability = throughput.maxCoeff();
+        if (i >= (int32_t)bakeParams.light.maxRussianRouletteDepth)
+        {
+            if (random.next() > probability)
+                break;
+
+            throughput /= probability;
         }
 
         setRayOrigin(query.ray, hitPosition, 0.001f);
