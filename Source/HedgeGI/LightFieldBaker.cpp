@@ -84,10 +84,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
     std::vector<LightFieldPoint>& bakePoints, phmap::parallel_flat_hash_map<Vector3, std::vector<uint32_t>, EigenHash<Vector3>>& corners, const BakeParams& bakeParams)
 {
     const Vector3 center = aabb.center();
-
-    float radius = 0.0f;
-    for (size_t i = 0; i < 8; i++)
-        radius = std::max(radius, (center - aabb.corner((AABB::CornerType)i)).norm());
+    const float radius = (aabb.max() - aabb.min()).norm() / 2.0f;
 
     RTCPointQueryContext context {};
     rtcInitPointQueryContext(&context);

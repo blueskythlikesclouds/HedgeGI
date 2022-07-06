@@ -230,52 +230,31 @@ inline Vector3 microfacetGGX(float roughness, float u1, float u2,
     return tangent * (sinThetaH * cos(phiH)) + binormal * (sinThetaH * sin(phiH)) + normal * cosThetaH;
 }
 
-// https://github.com/DarioSamo/libgens-sonicglvl/blob/master/src/LibGens/MathGens.cpp
-
 inline Vector3 getAabbCorner(const AABB& aabb, const size_t index)
 {
-    switch (index)
+    return
     {
-    case 0: return Vector3(aabb.min().x(), aabb.min().y(), aabb.min().z());
-    case 1: return Vector3(aabb.min().x(), aabb.min().y(), aabb.max().z());
-    case 2: return Vector3(aabb.min().x(), aabb.max().y(), aabb.min().z());
-    case 3: return Vector3(aabb.min().x(), aabb.max().y(), aabb.max().z());
-    case 4: return Vector3(aabb.max().x(), aabb.min().y(), aabb.min().z());
-    case 5: return Vector3(aabb.max().x(), aabb.min().y(), aabb.max().z());
-    case 6: return Vector3(aabb.max().x(), aabb.max().y(), aabb.min().z());
-    case 7: return Vector3(aabb.max().x(), aabb.max().y(), aabb.max().z());
-
-    default:
-        return Vector3();
-    }
+        (index & 4) == 0 ? aabb.min().x() : aabb.max().x(),
+        (index & 2) == 0 ? aabb.min().y() : aabb.max().y(),
+        (index & 1) == 0 ? aabb.min().z() : aabb.max().z()
+    };
 }
 
 inline AABB getAabbHalf(const AABB& aabb, const size_t axis, const size_t side)
 {
     AABB result = aabb;
 
-    switch (axis)
-    {
-    case 0:
-        if (side == 0) result.max().x() = result.center().x();
-        else if (side == 1) result.min().x() = result.center().x();
-        break;
-    case 1:
-        if (side == 0) result.max().y() = result.center().y();
-        else if (side == 1) result.min().y() = result.center().y();
-        break;
-    case 2:
-        if (side == 0) result.max().z() = result.center().z();
-        else if (side == 1) result.min().z() = result.center().z();
-        break;
-    default:
-        result.min() = Vector3();
-        result.max() = Vector3();
-        break;
-    }
+    const float center = (result.min()[axis] + result.max()[axis]) * 0.5f;
+
+    if (side)
+        result.min()[axis] = center;
+    else
+        result.max()[axis] = center;
 
     return result;
 }
+
+// https://github.com/DarioSamo/libgens-sonicglvl/blob/master/src/LibGens/MathGens.cpp
 
 inline size_t relativeCorner(const Vector3& left, const Vector3& right)
 {
@@ -499,12 +478,7 @@ inline size_t nextPowerOfTwo(size_t value)
 
 inline float getRadius(const AABB& aabb)
 {
-    float radius = 0.0f;
-
-    for (size_t j = 0; j < 8; j++)
-        radius = std::max<float>(radius, (aabb.center() - aabb.corner((AABB::CornerType)j)).norm());
-
-    return radius;
+    return (aabb.max() - aabb.min()).norm() / 2.0f;
 }
 
 inline float computeAttenuationHE1(const float distance, const Vector4& range)
