@@ -191,10 +191,11 @@ inline Vector2 sampleVogelDisk(const size_t index, const size_t sampleCount, con
     return { radius * std::cos(theta), radius * std::sin(theta) };
 }
 
-inline Color3 fresnelSchlick(Color3 F0, float cosTheta)
+template<typename T>
+inline T fresnelSchlick(const T& F0, const float cosTheta)
 {
     float p = (-5.55473f * cosTheta - 6.98316f) * cosTheta;
-    return F0 + (Color3::Ones() - F0) * exp2(p);
+    return F0 + (T::Ones() - F0) * exp2(p);
 }
 
 inline float ndfGGX(float cosLh, float roughness)
@@ -560,14 +561,12 @@ namespace Eigen
 
 extern alignas(64) std::array<float, 256> srgbToLinearLUT;
 
-inline Color3 srgbToLinear(const Color3& value)
+template<typename T>
+inline void srgbToLinear(T& value)
 {
-    return
-    {
-        srgbToLinearLUT[static_cast<uint8_t>(value.x() * 255.0f)],
-        srgbToLinearLUT[static_cast<uint8_t>(value.y() * 255.0f)],
-        srgbToLinearLUT[static_cast<uint8_t>(value.z() * 255.0f)],
-    };
+    value.x() = srgbToLinearLUT[static_cast<uint8_t>(value.x() * 255.0f)];
+    value.y() = srgbToLinearLUT[static_cast<uint8_t>(value.y() * 255.0f)];
+    value.z() = srgbToLinearLUT[static_cast<uint8_t>(value.z() * 255.0f)];
 }
 
 inline Vector3 tangentToWorld(const Vector3& value, const Vector3& tangent, const Vector3& binormal, const Vector3& normal)
