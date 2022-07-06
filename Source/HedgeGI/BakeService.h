@@ -7,6 +7,8 @@ class SHLightField;
 
 class BakeService final : public Component
 {
+    tbb::flow::graph g;
+
     std::atomic<size_t> progress{};
     std::atomic<const Instance*> lastBakedInstance{};
     std::atomic<const SHLightField*> lastBakedShlf{};
