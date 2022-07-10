@@ -9,9 +9,10 @@ const char* UIComponent::makeName(const char* name)
     return tmp;
 }
 
-bool UIComponent::beginProperties(const char* name)
+bool UIComponent::beginProperties(const char* name, ImGuiTableFlags flags)
 {
-    return ImGui::BeginTable(name, 2);
+    return ImGui::BeginTable(name, 2, flags, 
+        { ImGui::GetWindowWidth() - ImGui::GetCursorPosX() - 5.0f, 0 });
 }
 
 void UIComponent::beginProperty(const char* label, const float width)
@@ -47,6 +48,18 @@ bool UIComponent::property(const char* label, char* data, size_t dataSize, const
 {
     beginProperty(label, width);
     return ImGui::InputText(makeName(label), data, dataSize);
+}
+
+bool UIComponent::property(const char* label, std::string& data)
+{
+    char buf[1024];
+    strcpy(buf, data.c_str());
+
+    if (!property(label, buf, sizeof buf))
+        return false;
+
+    data = buf;
+    return true;
 }
 
 bool UIComponent::property(const char* label, Eigen::Array3i& data)

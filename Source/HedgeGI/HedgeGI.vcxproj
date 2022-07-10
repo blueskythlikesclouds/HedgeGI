@@ -331,6 +331,7 @@
     <ClCompile Include="BakeService.cpp" />
     <ClCompile Include="BakeParams.cpp" />
     <ClCompile Include="ImageUtil.cpp" />
+    <ClCompile Include="MaterialWindow.cpp" />
     <ClCompile Include="StateBakeStage.cpp" />
     <ClCompile Include="BakingFactoryWindow.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -345,6 +346,7 @@
     <ClCompile Include="SceneWindow.cpp" />
     <ClCompile Include="SettingWindow.cpp" />
     <ClCompile Include="StageParams.cpp" />
+    <ClCompile Include="StateEditMaterial.cpp" />
     <ClCompile Include="UIComponent.cpp" />
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="BitmapHelper.cpp" />
@@ -420,6 +422,7 @@
     <ClInclude Include="BakeParams.h" />
     <ClInclude Include="Frustum.h" />
     <ClInclude Include="ImageUtil.h" />
+    <ClInclude Include="MaterialWindow.h" />
     <ClInclude Include="StateBakeStage.h" />
     <ClInclude Include="BakingFactoryWindow.h" />
     <ClInclude Include="Camera.h" />
@@ -434,6 +437,7 @@
     <ClInclude Include="SceneWindow.h" />
     <ClInclude Include="SettingWindow.h" />
     <ClInclude Include="StageParams.h" />
+    <ClInclude Include="StateEditMaterial.h" />
     <ClInclude Include="UIComponent.h" />
     <ClInclude Include="StateIdle.h" />
     <ClInclude Include="Buffer.h" />

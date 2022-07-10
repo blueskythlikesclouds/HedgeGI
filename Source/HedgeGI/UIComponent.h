@@ -4,16 +4,18 @@
 
 class UIComponent : public Component
 {
+protected:
     static char tmp[256];
     static const char* makeName(const char* name);
 
 public:
-    static bool beginProperties(const char* name);
+    static bool beginProperties(const char* name, ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame);
     static void beginProperty(const char* label, float width = -1);
     static bool property(const char* label, enum ImGuiDataType_ dataType, void* data);
     static bool property(const char* label, bool& data);
     static bool property(const char* label, Color3& data);
     static bool property(const char* label, char* data, size_t dataSize, float width = -1);
+    static bool property(const char* label, std::string& data);
     static bool property(const char* label, Eigen::Array3i& data);
 
     template <typename T>
