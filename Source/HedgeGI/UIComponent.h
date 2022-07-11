@@ -2,6 +2,15 @@
 
 #include "Component.h"
 
+struct Label
+{
+    const char* name;
+    const char* desc;
+
+    Label(const char* name) : name(name), desc(nullptr) {}
+    Label(const char* name, const char* desc) : name(name), desc(desc) {}
+};
+
 class UIComponent : public Component
 {
 protected:
@@ -10,16 +19,16 @@ protected:
 
 public:
     static bool beginProperties(const char* name, ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame);
-    static void beginProperty(const char* label, float width = -1);
-    static bool property(const char* label, enum ImGuiDataType_ dataType, void* data);
-    static bool property(const char* label, bool& data);
-    static bool property(const char* label, Color3& data);
-    static bool property(const char* label, char* data, size_t dataSize, float width = -1);
-    static bool property(const char* label, std::string& data);
-    static bool property(const char* label, Eigen::Array3i& data);
+    static void beginProperty(const char* name, float width = -1);
+    static bool property(const Label& label, enum ImGuiDataType_ dataType, void* data);
+    static bool property(const Label& label, bool& data);
+    static bool property(const Label& label, Color3& data);
+    static bool property(const Label& label, char* data, size_t dataSize, float width = -1);
+    static bool property(const Label& label, std::string& data);
+    static bool property(const Label& label, Eigen::Array3i& data);
 
     template <typename T>
-    bool property(const char* label, const std::initializer_list<std::pair<const char*, T>>& values, T& data)
+    bool property(const char* label, const std::initializer_list<std::pair<const Label, T>>& values, T& data)
     {
         beginProperty(label);
 
@@ -29,7 +38,7 @@ public:
             if (value.second != data)
                 continue;
 
-            preview = value.first;
+            preview = value.first.name;
             break;
         }
 
@@ -40,7 +49,11 @@ public:
 
         for (auto& value : values)
         {
-            if (!ImGui::Selectable(value.first))
+            const bool result = ImGui::Selectable(value.first.name);
+
+            tooltip(value.first.desc);
+
+            if (!result)
                 continue;
 
             data = value.second;
@@ -51,8 +64,9 @@ public:
         return any;
     }
 
-    static bool dragProperty(const char* label, float& data, float speed = 0.1f, float min = 0, float max = 0);
-    static bool dragProperty(const char* label, Vector3& data, float speed = 0.1f, float min = 0, float max = 0);
-
+    static bool dragProperty(const Label& label, float& data, float speed = 0.1f, float min = 0, float max = 0);
+    static bool dragProperty(const Label& label, Vector3& data, float speed = 0.1f, float min = 0, float max = 0);
     static void endProperties();
+
+    static void tooltip(const char* desc, bool editing = false);
 };

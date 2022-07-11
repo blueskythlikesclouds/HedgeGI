@@ -15,42 +15,50 @@ bool UIComponent::beginProperties(const char* name, ImGuiTableFlags flags)
         { ImGui::GetWindowWidth() - ImGui::GetCursorPosX() - 5.0f, 0 });
 }
 
-void UIComponent::beginProperty(const char* label, const float width)
+void UIComponent::beginProperty(const char* name, const float width)
 {
     ImGui::TableNextColumn();
     const ImVec2 cursorPos = ImGui::GetCursorPos();
     ImGui::SetCursorPos({ cursorPos.x + 4, cursorPos.y + 4 });
-    ImGui::TextUnformatted(label);
+    ImGui::TextUnformatted(name);
 
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(width);
 }
 
-bool UIComponent::property(const char* label, const enum ImGuiDataType_ dataType, void* data)
+bool UIComponent::property(const Label& label, const enum ImGuiDataType_ dataType, void* data)
 {
-    beginProperty(label);
-    return ImGui::InputScalar(makeName(label), dataType, data);
+    beginProperty(label.name);
+    const bool result = ImGui::InputScalar(makeName(label.name), dataType, data);
+    tooltip(label.desc, result);
+    return result;
 }
 
-bool UIComponent::property(const char* label, bool& data)
+bool UIComponent::property(const Label& label, bool& data)
 {
-    beginProperty(label);
-    return ImGui::Checkbox(makeName(label), &data);
+    beginProperty(label.name);
+    const bool result = ImGui::Checkbox(makeName(label.name), &data);
+    tooltip(label.desc, result);
+    return result;
 }
 
-bool UIComponent::property(const char* label, Color3& data)
+bool UIComponent::property(const Label& label, Color3& data)
 {
-    beginProperty(label);
-    return ImGui::ColorEdit3(makeName(label), data.data());
+    beginProperty(label.name);
+    const bool result = ImGui::ColorEdit3(makeName(label.name), data.data());
+    tooltip(label.desc, result);
+    return result;
 }
 
-bool UIComponent::property(const char* label, char* data, size_t dataSize, const float width)
+bool UIComponent::property(const Label& label, char* data, size_t dataSize, const float width)
 {
-    beginProperty(label, width);
-    return ImGui::InputText(makeName(label), data, dataSize);
+    beginProperty(label.name, width);
+    const bool result = ImGui::InputText(makeName(label.name), data, dataSize);
+    tooltip(label.desc, result);
+    return result;
 }
 
-bool UIComponent::property(const char* label, std::string& data)
+bool UIComponent::property(const Label& label, std::string& data)
 {
     char buf[1024];
     strcpy(buf, data.c_str());
@@ -62,25 +70,49 @@ bool UIComponent::property(const char* label, std::string& data)
     return true;
 }
 
-bool UIComponent::property(const char* label, Eigen::Array3i& data)
+bool UIComponent::property(const Label& label, Eigen::Array3i& data)
 {
-    beginProperty(label);
-    return ImGui::InputInt3(label, data.data());
+    beginProperty(label.name);
+    const bool result = ImGui::InputInt3(label.name, data.data());
+    tooltip(label.desc, result);
+    return result;
 }
 
-bool UIComponent::dragProperty(const char* label, float& data, float speed, float min, float max)
+bool UIComponent::dragProperty(const Label& label, float& data, float speed, float min, float max)
 {
-    beginProperty(label);
-    return ImGui::DragFloat(makeName(label), &data, speed, min, max);
+    beginProperty(label.name);
+    const bool result = ImGui::DragFloat(makeName(label.name), &data, speed, min, max);
+    tooltip(label.desc, result);
+    return result;
 }
 
-bool UIComponent::dragProperty(const char* label, Vector3& data, float speed, float min, float max)
+bool UIComponent::dragProperty(const Label& label, Vector3& data, float speed, float min, float max)
 {
-    beginProperty(label);
-    return ImGui::DragFloat3(label, data.data(), speed, min, max);
+    beginProperty(label.name);
+    const bool result = ImGui::DragFloat3(label.name, data.data(), speed, min, max);
+    tooltip(label.desc, result);
+    return result;
 }
 
 void UIComponent::endProperties()
 {
     ImGui::EndTable();
+}
+
+void UIComponent::tooltip(const char* desc, const bool editing)
+{
+    if (!desc || !ImGui::IsItemHovered() || GImGui->HoveredIdTimer <= 0.5f)
+        return;
+
+    if (editing)
+    {
+        GImGui->HoveredIdTimer = 0.0f;
+        return;
+    }
+
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 32.0f);
+    ImGui::TextUnformatted(desc);
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
 }

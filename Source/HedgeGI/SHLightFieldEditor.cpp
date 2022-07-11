@@ -8,6 +8,30 @@
 #include "SHLightField.h"
 #include "Math.h"
 
+const char* const SHLF_SEARCH_DESC = "Type in a light name to search for.";
+const char* const SHLF_ADD_DESC = "Adds a new light field probe.";
+const char* const SHLF_CLONE_DESC = "Clones the selected light field probe.";
+const char* const SHLF_REMOVE_DESC = "Removes the selected light field probe.";
+
+const Label SHLF_NAME_LABEL = { "Name",
+    "Name of the light field probe." };
+
+const Label SHLF_POSITION_LABEL = { "Position",
+    "Position of the light field probe.\n\n"
+    "Press T in the viewport to move it around using a gizmo." };
+
+const Label SHLF_ROTATION_LABEL = { "Rotation",
+    "Rotation of the light field probe in degrees.\n\n"
+    "Press R in the viewport to rotate it using a gizmo." };
+
+const Label SHLF_SCALE_LABEL = { "Scale",
+    "Scaling of the light field probe.\n\n"
+    "Press S in the viewport to scale it using a gizmo." };
+
+const Label SHLF_RES_LABEL = { "Resolution",
+    "Density of the light field probe.\n\n"
+    "Higher values are going to have higher quality at the cost of worse bake times and disk/memory space requirements." };
+
 void SHLightFieldEditor::update(float deltaTime)
 {
     const auto stage = get<Stage>();
@@ -18,6 +42,8 @@ void SHLightFieldEditor::update(float deltaTime)
 
     ImGui::SetNextItemWidth(-1);
     const bool doSearch = ImGui::InputText("##SearchSHLFs", search, sizeof(search)) || strlen(search) > 0;
+
+    tooltip(SHLF_SEARCH_DESC);
 
     ImGui::SetNextItemWidth(-1);
     if (ImGui::BeginListBox("##SHLFs"))
@@ -50,6 +76,8 @@ void SHLightFieldEditor::update(float deltaTime)
         stage->getScene()->shLightFields.push_back(std::move(shlf));
     }
 
+    tooltip(SHLF_ADD_DESC);
+
     ImGui::SameLine();
 
     if (ImGui::Button("Clone"))
@@ -66,6 +94,8 @@ void SHLightFieldEditor::update(float deltaTime)
             stage->getScene()->shLightFields.push_back(std::move(shlf));
         }
     }
+
+    tooltip(SHLF_CLONE_DESC);
 
     ImGui::SameLine();
 
@@ -85,6 +115,8 @@ void SHLightFieldEditor::update(float deltaTime)
             selection = nullptr;
         }
     }
+
+    tooltip(SHLF_REMOVE_DESC);
 
     if (selection == nullptr)
         return;
@@ -140,7 +172,7 @@ void SHLightFieldEditor::update(float deltaTime)
     char name[0x400];
     strcpy(name, selection->name.c_str());
 
-    if (property("Name", name, sizeof(name)))
+    if (property(SHLF_NAME_LABEL, name, sizeof(name)))
         selection->name = name;
 
     Vector3 position = selection->position / 10.0f;
@@ -158,18 +190,18 @@ void SHLightFieldEditor::update(float deltaTime)
 
     Im3d::PopLayerId();
 
-    if (dragProperty("Position", position))
+    if (dragProperty(SHLF_POSITION_LABEL, position))
         selection->position = position * 10.0f;
 
     Vector3 rotAngles = selection->rotation / PI * 180.0f;
 
-    if (dragProperty("Rotation", rotAngles))
+    if (dragProperty(SHLF_ROTATION_LABEL, rotAngles))
         selection->rotation = rotAngles / 180.0f * PI;
 
-    if (dragProperty("Scale", scale))
+    if (dragProperty(SHLF_SCALE_LABEL, scale))
         selection->scale = scale * 10.0f;
 
-    property("Resolution", selection->resolution);
+    property(SHLF_RES_LABEL, selection->resolution);
 
     endProperties();
 }

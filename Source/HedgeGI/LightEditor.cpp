@@ -13,6 +13,40 @@
 #include "StateManager.h"
 #include "ViewportWindow.h"
 
+const char* const LIGHT_SEARCH_DESC = "Type in a light name to search for.";
+const char* const LIGHT_ADD_DESC = "Adds a new omni light.";
+const char* const LIGHT_CLONE_DESC = "Clones the selected light.";
+const char* const LIGHT_REMOVE_DESC = "Removes the selected light.";
+
+const Label LIGHT_NAME_LABEL = { "Name",
+    "Name of the light." };
+
+const Label LIGHT_POSITION_LABEL = { "Position",
+    "Position of the light." };
+
+const Label LIGHT_DIRECTION_LABEL = { "Direction",
+    "Direction of the light.\n\n"
+    "Do not edit this manually. Use the gizmo in the viewport." };
+
+const Label LIGHT_COLOR_LABEL = { "Color",
+    "Color of the light." };
+
+const Label LIGHT_COLOR_INTENSITY_LABEL = { "Color Intensity",
+    "Intensity of the light.\n\n"
+    "For HE1, do not have very high intensity values as light maps are unable to store such values properly.\n\n"
+    "For HE2, you are going to need very intense lights to get good results." };
+
+const Label LIGHT_INNER_RADIUS_LABEL = { "Inner Radius",
+    "Controls the sharpness of the falloff." };
+
+const Label LIGHT_OUTER_RADIUS_LABEL = { "Outer Radius",
+    "Radius of the light." };
+
+const Label LIGHT_RADIUS_LABEL = { "Radius",
+    "Radius of the light." };
+
+const char* const LIGHT_SAVE_CHANGES_DESC = "Packs every changed light into stage files.";
+
 void LightEditor::drawBillboardsAndUpdateSelection()
 {
     const auto viewportWindow = get<ViewportWindow>();
@@ -75,6 +109,8 @@ void LightEditor::update(float deltaTime)
     ImGui::SetNextItemWidth(-1);
     const bool doSearch = ImGui::InputText("##SearchLights", search, sizeof(search)) || strlen(search) > 0;
 
+    tooltip(LIGHT_SEARCH_DESC);
+
     ImGui::SetNextItemWidth(-1);
     if (ImGui::BeginListBox("##Lights"))
     {
@@ -107,6 +143,8 @@ void LightEditor::update(float deltaTime)
         params->dirtyBVH = true;
     }
 
+    tooltip(LIGHT_ADD_DESC);
+
     ImGui::SameLine();
 
     if (ImGui::Button("Clone"))
@@ -124,6 +162,8 @@ void LightEditor::update(float deltaTime)
             params->dirtyBVH = true;
         }
     }
+
+    tooltip(LIGHT_CLONE_DESC);
 
     ImGui::SameLine();
 
@@ -145,6 +185,8 @@ void LightEditor::update(float deltaTime)
             selection = nullptr;
         }
     }
+
+    tooltip(LIGHT_REMOVE_DESC);
 
     if (selection != nullptr)
     {
@@ -189,14 +231,14 @@ void LightEditor::update(float deltaTime)
             char name[0x400];
             strcpy(name, selection->name.c_str());
 
-            if (property("Name", name, sizeof(name)))
+            if (property(LIGHT_NAME_LABEL, name, sizeof(name)))
                 selection->name = name;
 
             if (selection->type == LightType::Point)
-                params->dirtyBVH |= dragProperty("Position", selection->position);
+                params->dirtyBVH |= dragProperty(LIGHT_POSITION_LABEL, selection->position);
 
             else if (selection->type == LightType::Directional)
-                params->dirty |= dragProperty("Direction", selection->position);
+                params->dirty |= dragProperty(LIGHT_DIRECTION_LABEL, selection->position);
 
             // Store color/intensity in the property bag, however we should reset the values
             // if the light values were modified in the stage files by the user
@@ -225,8 +267,8 @@ void LightEditor::update(float deltaTime)
             if (params->bakeParams.targetEngine == TargetEngine::HE2)
                 color = color.pow(1.0f / 2.2f);
 
-            params->dirty |= property("Color", color);
-            params->dirty |= dragProperty("Color Intensity", intensity, 0.01f, 0, INFINITY);
+            params->dirty |= property(LIGHT_COLOR_LABEL, color);
+            params->dirty |= dragProperty(LIGHT_COLOR_INTENSITY_LABEL, intensity, 0.01f, 0, INFINITY);
 
             if (params->bakeParams.targetEngine == TargetEngine::HE2)
                 color = color.pow(2.2f);
@@ -242,12 +284,12 @@ void LightEditor::update(float deltaTime)
             {
                 if (params->bakeParams.targetEngine == TargetEngine::HE1)
                 {
-                    params->dirtyBVH |= dragProperty("Inner Radius", selection->range.z(), 0.1f, 0.0f, selection->range.w());
-                    params->dirtyBVH |= dragProperty("Outer Radius", selection->range.w(), 0.1f, selection->range.z(), INFINITY);
+                    params->dirtyBVH |= dragProperty(LIGHT_INNER_RADIUS_LABEL, selection->range.z(), 0.1f, 0.0f, selection->range.w());
+                    params->dirtyBVH |= dragProperty(LIGHT_OUTER_RADIUS_LABEL, selection->range.w(), 0.1f, selection->range.z(), INFINITY);
                 }
                 else if (params->bakeParams.targetEngine == TargetEngine::HE2)
                 {
-                    if (dragProperty("Radius", selection->range.w()))
+                    if (dragProperty(LIGHT_RADIUS_LABEL, selection->range.w()))
                     {
                         selection->range.z() = selection->range.w();
                         selection->range.y() = selection->range.w() / 2.0f;
@@ -262,6 +304,8 @@ void LightEditor::update(float deltaTime)
 
         if (ImGui::Button("Save Changes"))
             get<StateManager>()->packResources(PackResourceMode::Light);
+
+        tooltip(LIGHT_SAVE_CHANGES_DESC);
     }
 
     params->dirty |= params->dirtyBVH;
