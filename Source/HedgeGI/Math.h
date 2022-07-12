@@ -17,11 +17,12 @@ struct EigenHash
     }
 };
 
-inline Vector2 getBarycentricCoords(const Vector3& point, const Vector3& a, const Vector3& b, const Vector3& c)
+template<typename T>
+inline Vector2 getBarycentricCoords(const T& point, const T& a, const T& b, const T& c)
 {
-    const Vector3 v0 = c - a;
-    const Vector3 v1 = b - a;
-    const Vector3 v2 = point - a;
+    const T v0 = c - a;
+    const T v1 = b - a;
+    const T v2 = point - a;
 
     const float dot00 = v0.dot(v0);
     const float dot01 = v0.dot(v1);

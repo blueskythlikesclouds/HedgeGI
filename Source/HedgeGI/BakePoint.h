@@ -109,11 +109,9 @@ static const Vector2 BAKE_POINT_OFFSETS[] =
     {0, 0}
 };
 
-inline bool validateVPos(const Vector2& vPos, Vector2& vPosTmp)
+inline bool validateVPos(const Vector2& vPos)
 {
-    const bool result = vPos != vPosTmp && vPos.x() >= 0 && vPos.x() <= 1 && vPos.y() >= 0 && vPos.y() <= 1;
-    vPosTmp = vPos;
-    return result;
+    return vPos.x() >= 0.0f && vPos.x() <= 1.0f && vPos.y() >= 0.0f && vPos.y() <= 1.0f;
 }
 
 template <typename TBakePoint>
@@ -124,45 +122,46 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
     std::vector<TBakePoint> bakePoints;
     bakePoints.resize(size * size);
 
-    bool invalid = true;
-    Vector2 vPos(0, 0);
+    size_t triCount = 0;
+    size_t validTriCount = 0;
 
-    for (auto& offset : BAKE_POINT_OFFSETS)
+    for (auto& mesh : instance.meshes)
     {
-        for (auto& mesh : instance.meshes)
+        triCount += mesh->triangleCount;
+        
+        for (uint32_t i = 0; i < mesh->triangleCount; i++)
         {
-            for (uint32_t i = 0; i < mesh->triangleCount; i++)
+            const Triangle& triangle = mesh->triangles[i];
+            const Vertex& a = mesh->vertices[triangle.a];
+            const Vertex& b = mesh->vertices[triangle.b];
+            const Vertex& c = mesh->vertices[triangle.c];
+
+            // Check if the triangle is valid (but keep processing it to avoid false negatives)
+            validTriCount += validateVPos(a.vPos) && validateVPos(b.vPos) && validateVPos(c.vPos) &&
+                !nearlyEqual(a.vPos, b.vPos) && !nearlyEqual(b.vPos, c.vPos) && !nearlyEqual(c.vPos, a.vPos) ? 1u : 0u;
+
+            for (auto& offset : BAKE_POINT_OFFSETS)
             {
-                const Triangle& triangle = mesh->triangles[i];
-                const Vertex& a = mesh->vertices[triangle.a];
-                const Vertex& b = mesh->vertices[triangle.b];
-                const Vertex& c = mesh->vertices[triangle.c];
+                const Vector2 offsetScaled = offset * factor;
 
-                // Check whether the UV2 is proper
-                if (invalid) invalid = !validateVPos(a.vPos, vPos);
-                if (invalid) invalid = !validateVPos(b.vPos, vPos);
-                if (invalid) invalid = !validateVPos(c.vPos, vPos);
+                const Vector2 aVPos = a.vPos + offsetScaled;
+                const Vector2 bVPos = b.vPos + offsetScaled;
+                const Vector2 cVPos = c.vPos + offsetScaled;
 
-                Vector3 aVPos(a.vPos[0] + offset.x() * factor, a.vPos[1] + offset.y() * factor, 0);
-                Vector3 bVPos(b.vPos[0] + offset.x() * factor, b.vPos[1] + offset.y() * factor, 0);
-                Vector3 cVPos(c.vPos[0] + offset.x() * factor, c.vPos[1] + offset.y() * factor, 0);
+                const Vector2 begin = aVPos.cwiseMin(bVPos).cwiseMin(cVPos);
+                const Vector2 end = aVPos.cwiseMax(bVPos).cwiseMax(cVPos);
 
-                const float xMin = std::min(a.vPos[0], std::min(b.vPos[0], c.vPos[0]));
-                const float xMax = std::max(a.vPos[0], std::max(b.vPos[0], c.vPos[0]));
-                const float yMin = std::min(a.vPos[1], std::min(b.vPos[1], c.vPos[1]));
-                const float yMax = std::max(a.vPos[1], std::max(b.vPos[1], c.vPos[1]));
+                const uint16_t xBegin = std::max(0, (uint16_t)std::roundf((float)size * begin.x()) - 1);
+                const uint16_t xEnd = std::min(size - 1, (uint16_t)std::roundf((float)size * end.x()) + 1);
 
-                const uint16_t xBegin = std::max(0, (uint16_t)std::roundf((float)size * xMin) - 1);
-                const uint16_t xEnd = std::min(size - 1, (uint16_t)std::roundf((float)size * xMax) + 1);
-
-                const uint16_t yBegin = std::max(0, (uint16_t)std::roundf((float)size * yMin) - 1);
-                const uint16_t yEnd = std::min(size - 1, (uint16_t)std::roundf((float)size * yMax) + 1);
+                const uint16_t yBegin = std::max(0, (uint16_t)std::roundf((float)size * begin.y()) - 1);
+                const uint16_t yEnd = std::min(size - 1, (uint16_t)std::roundf((float)size * end.y()) + 1);
 
                 for (uint16_t x = xBegin; x <= xEnd; x++)
                 {
                     for (uint16_t y = yBegin; y <= yEnd; y++)
                     {
-                        const Vector3 vPos(((float)x + 0.5f) / (float)size, ((float)y + 0.5f) / (float)size, 0);
+                        const Vector2 vPos(((float)x + 0.5f) / (float)size, ((float)y + 0.5f) / (float)size);
                         const Vector2 baryUV = getBarycentricCoords(vPos, aVPos, bVPos, cVPos);
 
                         if (baryUV[0] < 0 || baryUV[0] > 1 ||
@@ -172,11 +171,12 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
                             continue;
 
                         const Vector3 position = barycentricLerp(a.position, b.position, c.position, baryUV);
+
                         const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV).normalized();
                         const Vector3 tangent = barycentricLerp(a.tangent, b.tangent, c.tangent, baryUV).normalized();
                         const Vector3 binormal = barycentricLerp(a.binormal, b.binormal, c.binormal, baryUV).normalized();
 
-                        bakePoints[y * size + x] = 
+                        bakePoints[y * size + x] =
                         {
                             position + position.cwiseAbs().cwiseProduct(normal.cwiseSign()) * 0.0000002f,
                             tangent, binormal, normal, {}, {}, x, y
@@ -187,7 +187,8 @@ std::vector<TBakePoint> createBakePoints(const RaytracingContext& raytracingCont
         }
     }
 
-    if (invalid)
+    // If a good chunk of triangles are invalid, warn the user about it
+    if (validTriCount < triCount / 2)
         Logger::logFormatted(LogType::Warning, "Instance \"%s\" has invalid lightmap UV data", instance.name.c_str());
 
     return bakePoints;
