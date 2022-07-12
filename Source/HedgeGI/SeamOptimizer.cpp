@@ -105,6 +105,10 @@ SeamOptimizer::SeamOptimizer(const Instance& instance) : instance(instance)
             const Vertex& b = mesh->vertices[triangle.b];
             const Vertex& c = mesh->vertices[triangle.c];
 
+            // Skip if the triangle is degenerate
+            if (nearlyEqual(a.vPos, b.vPos) || nearlyEqual(b.vPos, c.vPos) || nearlyEqual(c.vPos, a.vPos))
+                continue;
+
             nodes.push_back({ std::min(a.position.x(), std::min(b.position.x(), c.position.x())), (uint32_t)i, (uint32_t)j });
         }
     }
