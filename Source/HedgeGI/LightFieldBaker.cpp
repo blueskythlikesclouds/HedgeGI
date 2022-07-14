@@ -80,8 +80,8 @@ namespace
     }
 }
 
-void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytracingContext, LightField& lightField, size_t cellIndex, const AABB& aabb,
-    std::vector<LightFieldPoint>& bakePoints, CornerMap& cornerMap, const BakeParams& bakeParams, const bool regenerateCells)
+void LightFieldBaker::createBakePointsRecursively(tbb::task_group& group, CriticalSection& criticalSection, const RaytracingContext& raytracingContext, 
+    LightField& lightField, size_t cellIndex, const AABB& aabb, std::vector<LightFieldPoint>& bakePoints, CornerMap& cornerMap, const BakeParams& bakeParams, const bool regenerateCells)
 {
     RTCPointQueryContext context{};
     rtcInitPointQueryContext(&context);
@@ -107,6 +107,8 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
     rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
 
+    criticalSection.lock();
+
     LightFieldCell& cell = lightField.cells[cellIndex];
 
     if (regenerateCells ? radius <= bakeParams.lightField.minCellRadius || 
@@ -130,6 +132,8 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
             lightField.indices.push_back(index);
         }
+
+        criticalSection.unlock();
     }
 
     else
@@ -146,6 +150,7 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
             lightField.cells.emplace_back();
             lightField.cells.emplace_back();
+
         }
         else
         {
@@ -153,8 +158,13 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
             cellIndex = cell.index;
         }
 
-        createBakePointsRecursively(raytracingContext, lightField, cellIndex + 0, getAabbHalf(aabb, axisIndex, 0), bakePoints, cornerMap, bakeParams, regenerateCells);
-        createBakePointsRecursively(raytracingContext, lightField, cellIndex + 1, getAabbHalf(aabb, axisIndex, 1), bakePoints, cornerMap, bakeParams, regenerateCells);
+        criticalSection.unlock();
+
+        group.run([&, cellIndex, aabb, axisIndex, regenerateCells]
+        {
+            createBakePointsRecursively(group, criticalSection, raytracingContext, lightField, cellIndex + 0, getAabbHalf(aabb, axisIndex, 0), bakePoints, cornerMap, bakeParams, regenerateCells);
+            createBakePointsRecursively(group, criticalSection, raytracingContext, lightField, cellIndex + 1, getAabbHalf(aabb, axisIndex, 1), bakePoints, cornerMap, bakeParams, regenerateCells);
+        });
     }
 }
 
@@ -183,7 +193,12 @@ void LightFieldBaker::bake(LightField& lightField, const RaytracingContext& rayt
     std::vector<LightFieldPoint> bakePoints;
     CornerMap cornerMap;
 
-    createBakePointsRecursively(raytracingContext, lightField, 0, lightField.aabb, bakePoints, cornerMap, bakeParams, regenerateCells);
+    tbb::task_group group;
+    CriticalSection criticalSection;
+
+    createBakePointsRecursively(group, criticalSection, raytracingContext, lightField, 0, lightField.aabb, bakePoints, cornerMap, bakeParams, regenerateCells);
+
+    group.wait();
 
     Logger::log(LogType::Normal, "Baking points...");
 

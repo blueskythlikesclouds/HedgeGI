@@ -15,8 +15,8 @@ typedef phmap::parallel_flat_hash_map<Vector3, std::vector<uint32_t>, EigenHash<
 
 class LightFieldBaker
 {
-    static void createBakePointsRecursively(const RaytracingContext& raytracingContext, LightField& lightField, size_t cellIndex, const AABB& aabb,
-        std::vector<LightFieldPoint>& bakePoints, CornerMap& cornerMap, const BakeParams& bakeParams, bool regenerateCells);
+    static void createBakePointsRecursively(tbb::task_group& group, CriticalSection& criticalSection, const RaytracingContext& raytracingContext, 
+        LightField& lightField, size_t cellIndex, const AABB& aabb, std::vector<LightFieldPoint>& bakePoints, CornerMap& cornerMap, const BakeParams& bakeParams, bool regenerateCells);
 
 public:
     static void bake(LightField& lightField, const RaytracingContext& raytracingContext, const BakeParams& bakeParams, bool regenerateCells);
