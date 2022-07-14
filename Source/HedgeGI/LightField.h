@@ -34,7 +34,9 @@ public:
     std::vector<uint32_t> indices;
 
     void optimizeProbes();
+    void clear(bool clearCells);
 
+    void read(void* rawData);
     void write(hl::stream& stream, hl::off_table& offTable) const;
     void save(const std::string& filePath) const;
 };

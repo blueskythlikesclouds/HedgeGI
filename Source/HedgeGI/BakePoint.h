@@ -80,7 +80,7 @@ void BakePoint<BasisCount, Flags>::end(const uint32_t sampleCount)
 }
 
 // Thanks Mr F
-static const Vector2 BAKE_POINT_OFFSETS[] =
+inline const Vector2 BAKE_POINT_OFFSETS[] =
 {
     {-2, -2},
     {2, -2},

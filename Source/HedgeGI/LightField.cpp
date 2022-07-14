@@ -1,6 +1,14 @@
 ﻿#include "LightField.h"
 #include "Utilities.h"
 
+struct LightFieldHeader
+{
+    float aabb[6];
+    hl::arr32<LightFieldCell> cells;
+    hl::arr32<LightFieldProbe> probes;
+    hl::arr32<uint32_t> indices;
+};
+
 template <typename T, typename... Rest>
 void hashCombine(size_t& seed, const T& v, const Rest&... rest)
 {
@@ -56,22 +64,53 @@ void LightField::optimizeProbes()
     std::swap(probes, newProbes);
 }
 
+void LightField::clear(const bool clearCells)
+{
+    if (clearCells)
+        cells.clear();
+
+    probes.clear();
+    indices.clear();
+}
+
+void LightField::read(void* rawData)
+{
+    hl::hh::mirage::fix(rawData);
+
+    const LightFieldHeader* header = hl::hh::mirage::get_data<LightFieldHeader>(rawData);
+
+    for (size_t i = 0; i < 3; i++)
+    {
+        aabb.min()[i] = header->aabb[i * 2 + 0];
+        aabb.max()[i] = header->aabb[i * 2 + 1];
+
+        hl::endian_swap(aabb.min()[i]);
+        hl::endian_swap(aabb.max()[i]);
+    }
+
+    clear(true);
+
+    cells.resize(HL_SWAP_U32(header->cells.count));
+
+    for (size_t i = 0; i < cells.size(); i++)
+    {
+        const LightFieldCell& srcCell = header->cells.get()[i];
+        LightFieldCell& dstCell = cells[i];
+
+        dstCell.type = (LightFieldCellType)HL_SWAP_U32(srcCell.type);
+        dstCell.index = HL_SWAP_U32(srcCell.index);
+    }
+
+    // We never need probes or indices, so skip parsing them.
+}
+
 void LightField::write(hl::stream& stream, hl::off_table& offTable) const
 {
-    struct LightFieldHeader
-    {
-        float aabb[6];
-        hl::u32 cellCount;
-        hl::u32 cellsOffset;
-        hl::u32 probeCount;
-        hl::u32 probesOffset;
-        hl::u32 indexCount;
-        hl::u32 indicesOffset;
-    } header;
+    LightFieldHeader header {};
 
-    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, cellsOffset));
-    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, probesOffset));
-    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, indicesOffset));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, cells.data));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, probes.data));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, indices.data));
 
     for (size_t i = 0; i < 3; i++)
     {
@@ -86,19 +125,16 @@ void LightField::write(hl::stream& stream, hl::off_table& offTable) const
     const size_t probesOffset = cellsOffset + sizeof(LightFieldCell) * cells.size();
     const size_t indicesOffset = probesOffset + sizeof(LightFieldProbe) * probes.size();
 
-    header.cellCount = (hl::u32)cells.size();
-    header.cellsOffset = (hl::u32)cellsOffset;
-    header.probeCount = (hl::u32)probes.size();
-    header.probesOffset = (hl::u32)probesOffset;
-    header.indexCount = (hl::u32)indices.size();
-    header.indicesOffset = (hl::u32)indicesOffset;
+    header.cells.count = (hl::u32)cells.size();
+    header.cells.data = (hl::u32)cellsOffset;
+    header.probes.count = (hl::u32)probes.size();
+    header.probes.data = (hl::u32)probesOffset;
+    header.indices.count = (hl::u32)indices.size();
+    header.indices.data = (hl::u32)indicesOffset;
 
-    hl::endian_swap(header.cellCount);
-    hl::endian_swap(header.cellsOffset);
-    hl::endian_swap(header.probeCount);
-    hl::endian_swap(header.probesOffset);
-    hl::endian_swap(header.indexCount);
-    hl::endian_swap(header.indicesOffset);
+    hl::endian_swap(header.cells);
+    hl::endian_swap(header.probes);
+    hl::endian_swap(header.indices);
     
     stream.write_obj(header);
 

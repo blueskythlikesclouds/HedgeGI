@@ -51,5 +51,5 @@ public:
     void update(float deltaTime) override;
 };
 
-static const inline Im3d::Id IM3D_TRANSPARENT_DISCARD_ID = Im3d::MakeId("TRANSPARENT_DISCARD");
-static const inline float IM3D_LINE_SIZE = 3.0f;
+inline const Im3d::Id IM3D_TRANSPARENT_DISCARD_ID = Im3d::MakeId("TRANSPARENT_DISCARD");
+inline const float IM3D_LINE_SIZE = 3.0f;

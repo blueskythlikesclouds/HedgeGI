@@ -579,17 +579,20 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene, const
 
     for (auto& entry : archive)
     {
-        if (!hl::text::strstr(entry.name(), HL_NTEXT(".shlf")))
-            continue;
+        if (hl::text::equal(entry.name(), HL_NTEXT("light-field.lft")))
+            scene.lightField.read((void*)entry.file_data());
 
-        void* data = (void*)entry.file_data();
+        else if (hl::text::strstr(entry.name(), HL_NTEXT(".shlf")))
+        {
+            void* data = (void*)entry.file_data();
 
-        hl::bina::fix64(data, entry.size());
+            hl::bina::fix64(data, entry.size());
 
-        auto shlf = hl::bina::get_data<hl::hh::needle::raw_sh_light_field>(data);
+            auto shlf = hl::bina::get_data<hl::hh::needle::raw_sh_light_field>(data);
 
-        for (size_t i = 0; i < shlf->count; i++)
-            scene.shLightFields.push_back(std::move(createSHLightField(&shlf->entries[i])));
+            for (size_t i = 0; i < shlf->count; i++)
+                scene.shLightFields.push_back(std::move(createSHLightField(&shlf->entries[i])));
+        }
     }
 }
 

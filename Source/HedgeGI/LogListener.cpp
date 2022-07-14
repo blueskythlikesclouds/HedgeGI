@@ -38,6 +38,8 @@ bool LogListener::drawContainerUI(const ImVec2& size)
     if (logs.empty() || !ImGui::BeginListBox("##Logs", size))
         return false;
 
+    ImGui::PushTextWrapPos();
+
     for (auto& log : logs)
     {
         const ImVec4 colors[] =
@@ -50,6 +52,8 @@ bool LogListener::drawContainerUI(const ImVec2& size)
 
         ImGui::TextColored(colors[(size_t)log.first], log.second.c_str());
     }
+
+    ImGui::PopTextWrapPos();
 
     if (previousSize != logs.size())
         ImGui::SetScrollHereY();

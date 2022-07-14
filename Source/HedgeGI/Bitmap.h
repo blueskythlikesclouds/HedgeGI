@@ -20,7 +20,7 @@ typedef void BitmapTransformer(Color4& color);
 class Bitmap
 {
 public:
-    void* data;
+    void* data{};
     size_t width{};
     size_t height{};
     size_t arraySize{};

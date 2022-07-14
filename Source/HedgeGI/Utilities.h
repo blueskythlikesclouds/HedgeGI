@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-static std::string getDirectoryPath(const std::string& path)
+inline std::string getDirectoryPath(const std::string& path)
 {
     const size_t index = path.find_last_of("\\/");
     if (index != std::string::npos)
@@ -9,7 +9,7 @@ static std::string getDirectoryPath(const std::string& path)
     return std::string();
 }
 
-static std::string getFileName(const std::string& path)
+inline std::string getFileName(const std::string& path)
 {
     const size_t index = path.find_last_of("\\/");
     if (index != std::string::npos)
@@ -18,7 +18,7 @@ static std::string getFileName(const std::string& path)
     return path;
 }
 
-static std::string getFileNameWithoutExtension(const std::string& path)
+inline std::string getFileNameWithoutExtension(const std::string& path)
 {
     std::string fileName;
 
@@ -35,7 +35,7 @@ static std::string getFileNameWithoutExtension(const std::string& path)
     return fileName;
 }
 
-static std::string getExecutableDirectoryPath()
+inline std::string getExecutableDirectoryPath()
 {
     WCHAR moduleFilePathWideChar[1024];
     GetModuleFileNameW(NULL, moduleFilePathWideChar, 1024);

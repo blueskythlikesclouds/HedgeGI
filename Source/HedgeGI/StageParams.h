@@ -22,6 +22,7 @@ public:
     std::string outputDirectoryPath;
 
     bool skipExistingFiles{ true };
+    bool useExistingLightField{};
 
     size_t resolutionSuperSampleScale{ 1 };
 

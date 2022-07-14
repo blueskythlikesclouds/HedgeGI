@@ -17,6 +17,7 @@ void StageParams::loadProperties()
     mode = propertyBag.get(PROP("mode"), BakingFactoryMode::GI);
     skipExistingFiles = propertyBag.get(PROP("skipExistingFiles"), false);
     resolutionSuperSampleScale = propertyBag.get(PROP("resolutionSuperSampleScale"), 1);
+    useExistingLightField = propertyBag.get(PROP("useExistingLightField"), false);
 
     if (stage->getGameType() == GameType::Forces)
         bakeParams.targetEngine = TargetEngine::HE2;
@@ -33,6 +34,7 @@ void StageParams::storeProperties()
     propertyBag.set(PROP("mode"), mode);
     propertyBag.set(PROP("skipExistingFiles"), skipExistingFiles);
     propertyBag.set(PROP("resolutionSuperSampleScale"), resolutionSuperSampleScale);
+    propertyBag.set(PROP("useExistingLightField"), useExistingLightField);
 }
 
 bool StageParams::validateOutputDirectoryPath(const bool create) const

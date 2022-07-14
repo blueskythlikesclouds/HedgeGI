@@ -11,8 +11,12 @@ const char* UIComponent::makeName(const char* name)
 
 bool UIComponent::beginProperties(const char* name, ImGuiTableFlags flags)
 {
-    return ImGui::BeginTable(name, 2, flags, 
-        { ImGui::GetWindowWidth() - ImGui::GetCursorPosX() - 5.0f, 0 });
+    const bool result = ImGui::BeginTable(name, 2, flags, { ImGui::GetContentRegionAvail().x, 0 });
+
+    if (result)
+        ImGui::PushTextWrapPos();
+
+    return result;
 }
 
 void UIComponent::beginProperty(const char* name, const float width)
@@ -73,7 +77,7 @@ bool UIComponent::property(const Label& label, std::string& data)
 bool UIComponent::property(const Label& label, Eigen::Array3i& data)
 {
     beginProperty(label.name);
-    const bool result = ImGui::InputInt3(label.name, data.data());
+    const bool result = ImGui::InputInt3(makeName(label.name), data.data());
     tooltip(label.desc, result);
     return result;
 }
@@ -89,13 +93,14 @@ bool UIComponent::dragProperty(const Label& label, float& data, float speed, flo
 bool UIComponent::dragProperty(const Label& label, Vector3& data, float speed, float min, float max)
 {
     beginProperty(label.name);
-    const bool result = ImGui::DragFloat3(label.name, data.data(), speed, min, max);
+    const bool result = ImGui::DragFloat3(makeName(label.name), data.data(), speed, min, max);
     tooltip(label.desc, result);
     return result;
 }
 
 void UIComponent::endProperties()
 {
+    ImGui::PopTextWrapPos();
     ImGui::EndTable();
 }
 

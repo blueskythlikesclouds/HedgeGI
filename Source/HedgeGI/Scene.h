@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "LightBVH.h"
+#include "LightField.h"
 #include "SceneEffect.h"
 
 class Bitmap;
@@ -36,6 +37,7 @@ public:
 
     std::vector<std::unique_ptr<Light>> lights;
     std::vector<std::unique_ptr<SHLightField>> shLightFields;
+    LightField lightField;
 
     std::unique_ptr<const Bitmap> rgbTable;
 

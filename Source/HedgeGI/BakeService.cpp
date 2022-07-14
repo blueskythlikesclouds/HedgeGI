@@ -15,8 +15,6 @@
 #include "SGGIBaker.h"
 #include "SHLightFieldBaker.h"
 
-#define TRY_CANCEL() if (cancel) return;
-
 struct GIBakerContext
 {
     const Instance* instance{};
@@ -400,14 +398,20 @@ void BakeService::bakeLightField()
 
     else if (params->bakeParams.targetEngine == TargetEngine::HE1)
     {
-        TRY_CANCEL()
+        if (cancel)
+            return;
 
-        std::unique_ptr<LightField> lightField = LightFieldBaker::bake(stage->getScene()->getRaytracingContext(), params->bakeParams);
+        LightFieldBaker::bake(scene->lightField, scene->getRaytracingContext(), params->bakeParams, !params->useExistingLightField);
 
         Logger::log(LogType::Normal, "Saving...\n");
 
-        TRY_CANCEL()
+        if (!cancel)
+            scene->lightField.save(params->outputDirectoryPath + "/light-field.lft");
 
-        lightField->save(params->outputDirectoryPath + "/light-field.lft");
+        // Keep cells for future baking processes
+        scene->lightField.clear(false);
+
+        if (!params->useExistingLightField)
+            Logger::log(LogType::Warning, "Pre-generated light field tree data has been replaced in the current HedgeGI session");
     }
 }

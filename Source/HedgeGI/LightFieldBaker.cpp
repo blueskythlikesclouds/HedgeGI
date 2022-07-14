@@ -81,15 +81,15 @@ namespace
 }
 
 void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytracingContext, LightField& lightField, size_t cellIndex, const AABB& aabb,
-    std::vector<LightFieldPoint>& bakePoints, phmap::parallel_flat_hash_map<Vector3, std::vector<uint32_t>, EigenHash<Vector3>>& corners, const BakeParams& bakeParams)
+    std::vector<LightFieldPoint>& bakePoints, CornerMap& cornerMap, const BakeParams& bakeParams, const bool regenerateCells)
 {
+    RTCPointQueryContext context{};
+    rtcInitPointQueryContext(&context);
+
     const Vector3 center = aabb.center();
     const float radius = (aabb.max() - aabb.min()).norm() / 2.0f;
 
-    RTCPointQueryContext context {};
-    rtcInitPointQueryContext(&context);
-
-    RTCPointQuery query {};
+    RTCPointQuery query{};
     query.x = center.x();
     query.y = center.y();
     query.z = center.z();
@@ -107,14 +107,17 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
 
     rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
 
-    if (radius < bakeParams.lightField.minCellRadius || userData.meshes.size() <= 1)
+    LightFieldCell& cell = lightField.cells[cellIndex];
+
+    if (regenerateCells ? radius <= bakeParams.lightField.minCellRadius || 
+        userData.meshes.size() <= 1 : cell.type == LightFieldCellType::Probe)
     {
-        lightField.cells[cellIndex].type = LightFieldCellType::Probe;
-        lightField.cells[cellIndex].index = (uint32_t)lightField.indices.size();
+        cell.type = LightFieldCellType::Probe;
+        cell.index = (uint32_t)lightField.indices.size();
 
         for (size_t i = 0; i < 8; i++)
         {
-            uint32_t index = (uint32_t)lightField.probes.size();
+            const uint32_t index = (uint32_t)lightField.probes.size();
             lightField.probes.emplace_back();
 
             LightFieldPoint bakePoint = {};
@@ -123,45 +126,64 @@ void LightFieldBaker::createBakePointsRecursively(const RaytracingContext& raytr
             bakePoint.y = (index >> 16) & 0xFFFF;
 
             bakePoints.push_back(std::move(bakePoint));
-            corners[userData.corners[i]].push_back(index);
+            cornerMap[userData.corners[i]].push_back(index);
 
             lightField.indices.push_back(index);
         }
     }
+
     else
     {
         size_t axisIndex;
-        aabb.sizes().maxCoeff(&axisIndex);
 
-        const size_t index = lightField.cells.size();
+        if (regenerateCells)
+        {
+            aabb.sizes().maxCoeff(&axisIndex);
+            cellIndex = lightField.cells.size();
 
-        lightField.cells[cellIndex].type = (LightFieldCellType)axisIndex;
-        lightField.cells[cellIndex].index = (uint32_t)index;
+            cell.type = (LightFieldCellType)axisIndex;
+            cell.index = (uint32_t)cellIndex;
 
-        lightField.cells.emplace_back();
-        lightField.cells.emplace_back();
+            lightField.cells.emplace_back();
+            lightField.cells.emplace_back();
+        }
+        else
+        {
+            axisIndex = (size_t)cell.type;
+            cellIndex = cell.index;
+        }
 
-        createBakePointsRecursively(raytracingContext, lightField, index, getAabbHalf(aabb, axisIndex, 0), bakePoints, corners, bakeParams);
-        createBakePointsRecursively(raytracingContext, lightField, index + 1, getAabbHalf(aabb, axisIndex, 1), bakePoints, corners, bakeParams);
+        createBakePointsRecursively(raytracingContext, lightField, cellIndex + 0, getAabbHalf(aabb, axisIndex, 0), bakePoints, cornerMap, bakeParams, regenerateCells);
+        createBakePointsRecursively(raytracingContext, lightField, cellIndex + 1, getAabbHalf(aabb, axisIndex, 1), bakePoints, cornerMap, bakeParams, regenerateCells);
     }
 }
 
-std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytracingContext, const BakeParams& bakeParams)
+void LightFieldBaker::bake(LightField& lightField, const RaytracingContext& raytracingContext, const BakeParams& bakeParams, bool regenerateCells)
 {
-    std::unique_ptr<LightField> lightField = std::make_unique<LightField>();
-    lightField->cells.emplace_back();
+    if (!regenerateCells && lightField.cells.empty())
+    {
+        Logger::log(LogType::Warning, "Valid pre-generated light field tree data could not be found");
+        regenerateCells = true;
+    }
+
+    lightField.clear(regenerateCells);
+
+    if (regenerateCells)
+    {
+        lightField.cells.emplace_back();
+        lightField.aabb = raytracingContext.scene->aabb;
+
+        const Vector3 center = lightField.aabb.center();
+        lightField.aabb.min() = (lightField.aabb.min() - center) * bakeParams.lightField.aabbSizeMultiplier + center;
+        lightField.aabb.max() = (lightField.aabb.max() - center) * bakeParams.lightField.aabbSizeMultiplier + center;
+    }
 
     Logger::log(LogType::Normal, "Generating bake points...");
 
     std::vector<LightFieldPoint> bakePoints;
-    phmap::parallel_flat_hash_map<Vector3, std::vector<uint32_t>, EigenHash<Vector3>> corners;
+    CornerMap cornerMap;
 
-    lightField->aabb = raytracingContext.scene->aabb;
-    const Vector3 center = lightField->aabb.center();
-    lightField->aabb.min() = (lightField->aabb.min() - center) * bakeParams.lightField.aabbSizeMultiplier + center;
-    lightField->aabb.max() = (lightField->aabb.max() - center) * bakeParams.lightField.aabbSizeMultiplier + center;
-
-    createBakePointsRecursively(raytracingContext, *lightField, 0, lightField->aabb, bakePoints, corners, bakeParams);
+    createBakePointsRecursively(raytracingContext, lightField, 0, lightField.aabb, bakePoints, cornerMap, bakeParams, regenerateCells);
 
     Logger::log(LogType::Normal, "Baking points...");
 
@@ -170,7 +192,7 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
     Logger::log(LogType::Normal, "Finalizing...");
 
     // Average every probe sharing the same cell corner.
-    for (auto& cornerPair : corners)
+    for (auto& cornerPair : cornerMap)
     {
         LightFieldPoint& firstBakePoint = bakePoints[cornerPair.second[0]];
 
@@ -202,7 +224,7 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
 
     for (auto& bakePoint : bakePoints)
     {
-        LightFieldProbe& probe = lightField->probes[bakePoint.x | bakePoint.y << 16];
+        LightFieldProbe& probe = lightField.probes[bakePoint.x | bakePoint.y << 16];
 
         for (size_t i = 0; i < 8; i++)
         {
@@ -213,7 +235,13 @@ std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytr
         probe.shadow = (uint8_t)(saturate(bakePoint.shadow) * 255.0f);
     }
 
-    lightField->optimizeProbes();
+    lightField.optimizeProbes();
+}
 
+std::unique_ptr<LightField> LightFieldBaker::bake(const RaytracingContext& raytracingContext, const BakeParams& bakeParams)
+{
+    std::unique_ptr<LightField> lightField = std::make_unique<LightField>();
+    bake(*lightField, raytracingContext, bakeParams, true);
     return lightField;
 }
+    

@@ -169,7 +169,7 @@ inline Vector3 sampleDirectionSphere(const float u1, const float u2)
     return { x, y, z };
 }
 
-const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
+inline const float GOLDEN_ANGLE = PI * (3 - sqrtf(5));
 
 inline Vector3 sampleSphere(const size_t index, const size_t sampleCount)
 {

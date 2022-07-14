@@ -36,11 +36,18 @@ const Label MIN_CELL_RADIUS_LABEL = { "Minimum Cell Radius",
     "Minimum size for a cell in the light field tree.\n\n"
     "Smaller values are going to produce more accurate light field at the cost of higher disk and memory space requirements.\n\n"
     "1-2 is good for accuracy whereas 5-10 is good for disk space and bake speed.\n\n"
-    "Please note that you might run out of memory if the cell radius is too small. You should watch your memory usage to ensure this doesn't happen." };
+    "Please note that you might run out of memory if the cell radius is too small. You should watch your memory usage to ensure this doesn't happen.\n\n"
+    "This option has no effect if \"Use Pre-generated Light Field Tree\" is enabled."};
 
 const Label AABB_SIZE_MULTIPLIER_LABEL = { "AABB Size Multiplier",
     "Size multiplier for the area the light field tree covers.\n\n"
-    "You can increase this in case the light field fails to cover enough space in the air." };
+    "You can increase this in case the light field fails to cover enough space in the air.\n\n"
+    "This option has no effect if \"Use Pre-generated Light Field Tree\" is enabled." };
+
+const Label USE_EXISTING_LIGHT_FIELD_TREE_LABEL = { "Use Pre-generated Light Field Tree",
+    "Uses the pre-generated light field tree data contained in stage files.\n\n"
+    "This is useful if you want to bake light field for a stage that already contains one.\n\n"
+    "The size of the resulting light field data is going to be nearly the same as the original." };
 
 const Label DENOISE_SHADOW_MAP_LABEL = { "Denoise Shadow Map",
     "Denoises the resulting shadow map using the specified denoiser type.\n\n"
@@ -180,6 +187,7 @@ void BakingFactoryWindow::update(const float deltaTime)
             {
                 property(MIN_CELL_RADIUS_LABEL, ImGuiDataType_Float, &params->bakeParams.lightField.minCellRadius);
                 property(AABB_SIZE_MULTIPLIER_LABEL, ImGuiDataType_Float, &params->bakeParams.lightField.aabbSizeMultiplier);
+                property(USE_EXISTING_LIGHT_FIELD_TREE_LABEL, params->useExistingLightField);
             }
             else if (params->mode == BakingFactoryMode::GI)
             {
