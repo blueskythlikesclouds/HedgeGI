@@ -12,13 +12,21 @@ public:
 
     ~FileStream()
     {
-        if (file != nullptr)
-            fclose(file);
+        close();
     }
 
     bool isOpen() const
     {
         return file != nullptr;
+    }
+
+    void close()
+    {
+        if (!file)
+            return;
+        
+        fclose(file);
+        file = nullptr;
     }
 
     long getPosition() const

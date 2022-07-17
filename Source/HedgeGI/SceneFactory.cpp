@@ -90,7 +90,7 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     return bitmap;
 }
 
-std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_material_v3* material, const Scene& scene)
+std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_material_v3* material)
 {
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
@@ -144,7 +144,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
 
         const Bitmap* bitmap = nullptr;
 
-        for (auto& item : scene.bitmaps)
+        for (auto& item : scene->bitmaps)
         {
             if (strcmp(texture->texName.get(), item->name.c_str()) != 0)
                 continue;
@@ -206,7 +206,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
     return newMaterial;
 }
 
-std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, const Affine3& transformation, const Scene& scene)
+std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, const Affine3& transformation)
 {
     std::unique_ptr<Mesh> newMesh = std::make_unique<Mesh>();
 
@@ -333,7 +333,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     newMesh->triangles = std::make_unique<Triangle[]>(triangles.size());
     std::copy(triangles.begin(), triangles.end(), newMesh->triangles.get());
 
-    for (auto& material : scene.materials)
+    for (auto& material : scene->materials)
     {
         if (strcmp(material->name.c_str(), mesh->materialName.get()) != 0)
             continue;
@@ -353,18 +353,19 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     return newMesh;
 }
 
-std::unique_ptr<Model> SceneFactory::createModel(hl::hh::mirage::raw_skeletal_model_v5* model, Scene& scene)
+std::unique_ptr<Model> SceneFactory::createModel(hl::hh::mirage::raw_skeletal_model_v5* model)
 {
     std::unique_ptr<Model> newModel = std::make_unique<Model>();
 
     auto addMesh = [&](hl::hh::mirage::raw_mesh* srcMesh, const MeshType type)
     {
-        std::unique_ptr<Mesh> mesh = createMesh(srcMesh, Affine3::Identity(), scene);
+        std::unique_ptr<Mesh> mesh = createMesh(srcMesh, Affine3::Identity());
         mesh->type = type;
 
         newModel->meshes.push_back(mesh.get());
 
-        scene.meshes.push_back(std::move(mesh));
+        std::lock_guard lock(criticalSection);
+        scene->meshes.push_back(std::move(mesh));
     };
 
     for (auto& meshGroup : model->meshGroups)
@@ -382,7 +383,7 @@ std::unique_ptr<Model> SceneFactory::createModel(hl::hh::mirage::raw_skeletal_mo
     return newModel;
 }
 
-std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, hl::hh::mirage::raw_terrain_model_v5* model, Scene& scene)
+std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, hl::hh::mirage::raw_terrain_model_v5* model)
 {
     std::unique_ptr<Instance> newInstance = std::make_unique<Instance>();
 
@@ -410,12 +411,13 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terra
 
     auto addMesh = [&](hl::hh::mirage::raw_mesh* srcMesh, const MeshType type)
     {
-        std::unique_ptr<Mesh> mesh = createMesh(srcMesh, transformationAffine, scene);
+        std::unique_ptr<Mesh> mesh = createMesh(srcMesh, transformationAffine);
         mesh->type = type;
 
         newInstance->meshes.push_back(mesh.get());
 
-        scene.meshes.push_back(std::move(mesh));
+        std::lock_guard lock(criticalSection);
+        scene->meshes.push_back(std::move(mesh));
     };
 
     for (auto& meshGroup : model->meshGroups)
@@ -478,7 +480,7 @@ std::unique_ptr<SHLightField> SceneFactory::createSHLightField(hl::hh::needle::r
     return newSHLightField;
 }
 
-void SceneFactory::loadLights(const hl::archive& archive, Scene& scene)
+void SceneFactory::loadLights(const hl::archive& archive)
 {
     for (auto& entry : archive)
     {
@@ -495,12 +497,15 @@ void SceneFactory::loadLights(const hl::archive& archive, Scene& scene)
         std::unique_ptr<Light> newLight = createLight(light);
         newLight->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
-        scene.lights.push_back(std::move(newLight));
+        std::lock_guard lock(criticalSection);
+        scene->lights.push_back(std::move(newLight));
     }
 }
 
-void SceneFactory::loadResources(const hl::archive& archive, Scene& scene, const std::string& stageName)
+void SceneFactory::loadResources(const hl::archive& archive)
 {
+    tbb::task_group group;
+
     const auto rgbTableName = toNchar((stageName + "_rgb_table0.dds").c_str());
 
     for (auto& entry : archive)
@@ -508,79 +513,93 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene, const
         if (!hl::text::strstr(entry.name(), HL_NTEXT(".dds")) && !hl::text::strstr(entry.name(), HL_NTEXT(".DDS")))
             continue;
 
-        std::unique_ptr<Bitmap> bitmap = createBitmap(entry.file_data<uint8_t>(), entry.size());
-        if (!bitmap)
+        group.run([&]
         {
-            Logger::logFormatted(LogType::Error, "Failed to load %s", toUtf8(entry.name()).data());
-            continue;
-        }
+            std::unique_ptr<Bitmap> bitmap = createBitmap(entry.file_data<uint8_t>(), entry.size());
+            if (!bitmap)
+            {
+                Logger::logFormatted(LogType::Error, "Failed to load %s", toUtf8(entry.name()).data());
+                return;
+            }
 
-        bitmap->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
+            bitmap->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
-        if (hl::text::equal(entry.name(), rgbTableName.data()))
-            scene.rgbTable = std::move(bitmap);
+            std::lock_guard lock(criticalSection);
 
-        else
-            scene.bitmaps.push_back(std::move(bitmap));
+            if (hl::text::equal(entry.name(), rgbTableName.data()))
+                scene->rgbTable = std::move(bitmap);
+
+            else
+                scene->bitmaps.push_back(std::move(bitmap));
+        });
     }
+
+    group.wait();
 
     for (auto& entry : archive)
     {
         if (!hl::text::strstr(entry.name(), HL_NTEXT(".material")))
             continue;
 
-        void* data = (void*)entry.file_data();
-
-        hl::hh::mirage::fix(data);
-
-        hl::u32 version;
-        auto material = hl::hh::mirage::get_data<hl::hh::mirage::raw_material_v3>(data, &version);
-
-        // Allow version 0 to account for HedgeLib C#'s faulty writing
-        if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 0 && version != 3)
+        group.run([&]
         {
-            Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
-            continue;
-        }
+            void* data = (void*)entry.file_data();
 
-        material->fix();
+            hl::hh::mirage::fix(data);
 
-        std::unique_ptr<Material> newMaterial = createMaterial(material, scene);
-        newMaterial->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
+            hl::u32 version;
+            auto material = hl::hh::mirage::get_data<hl::hh::mirage::raw_material_v3>(data, &version);
 
-        scene.materials.push_back(std::move(newMaterial));
+            // Allow version 0 to account for HedgeLib C#'s faulty writing
+            if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 0 && version != 3)
+            {
+                Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
+                return;
+            }
+
+            material->fix();
+
+            std::unique_ptr<Material> newMaterial = createMaterial(material);
+            newMaterial->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
+
+            std::lock_guard lock(criticalSection);
+            scene->materials.push_back(std::move(newMaterial));
+        });
     }
+
+    group.wait();
 
     for (auto& entry : archive)
     {
-        if (!hl::text::strstr(entry.name(), HL_NTEXT(".model")))
-            continue;
-
-        void* data = (void*)entry.file_data();
-
-        hl::hh::mirage::fix(data);
-
-        hl::u32 version;
-        auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_skeletal_model_v5>(data, &version);
-
-        if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 5)
+        if (hl::text::strstr(entry.name(), HL_NTEXT(".model")))
         {
-            Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
-            continue;
+            group.run([&]
+            {
+                void* data = (void*)entry.file_data();
+
+                hl::hh::mirage::fix(data);
+
+                hl::u32 version;
+                auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_skeletal_model_v5>(data, &version);
+
+                if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 5)
+                {
+                    Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
+                    return;
+                }
+
+                model->fix();
+
+                std::unique_ptr<Model> newModel = createModel(model);
+                newModel->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
+
+                std::lock_guard lock(criticalSection);
+                scene->models.push_back(std::move(newModel));
+            });
         }
 
-        model->fix();
-
-        std::unique_ptr<Model> newModel = createModel(model, scene);
-        newModel->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
-
-        scene.models.push_back(std::move(newModel));
-    }
-
-    for (auto& entry : archive)
-    {
-        if (hl::text::equal(entry.name(), HL_NTEXT("light-field.lft")))
-            scene.lightField.read((void*)entry.file_data());
+        else if (hl::text::equal(entry.name(), HL_NTEXT("light-field.lft")))
+            scene->lightField.read((void*)entry.file_data());
 
         else if (hl::text::strstr(entry.name(), HL_NTEXT(".shlf")))
         {
@@ -591,14 +610,19 @@ void SceneFactory::loadResources(const hl::archive& archive, Scene& scene, const
             auto shlf = hl::bina::get_data<hl::hh::needle::raw_sh_light_field>(data);
 
             for (size_t i = 0; i < shlf->count; i++)
-                scene.shLightFields.push_back(std::move(createSHLightField(&shlf->entries[i])));
+                scene->shLightFields.push_back(std::move(createSHLightField(&shlf->entries[i])));
         }
     }
+
+    group.wait();
 }
 
-void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& scene)
+void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
 {
+    tbb::task_group group;
+
     std::vector<hl::hh::mirage::raw_terrain_model_v5*> models;
+    CriticalSection critSect;
 
     for (auto& archive : archives)
     {
@@ -607,36 +631,42 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
             if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-model")))
                 continue;
 
-            void* data = (void*)entry.file_data();
-
-            hl::hh::mirage::fix(data);
-
-            const bool hasSampleChunkHeader = hl::hh::mirage::has_sample_chunk_header_fixed(data);
-
-            if (hasSampleChunkHeader)
+            group.run([&]
             {
-                const auto header = (hl::hh::mirage::sample_chunk::raw_header*)data;
-                const auto node = header->get_node("DisableC");
+                void* data = (void*)entry.file_data();
 
-                if (node != nullptr && node->value != 0)
-                    continue;
-            }
+                hl::hh::mirage::fix(data);
 
-            hl::u32 version;
-            auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_model_v5>(data, &version);
+                const bool hasSampleChunkHeader = hl::hh::mirage::has_sample_chunk_header_fixed(data);
 
-            if (!hasSampleChunkHeader && version != 5)
-            {
-                Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
-                continue;
-            }
+                if (hasSampleChunkHeader)
+                {
+                    const auto header = (hl::hh::mirage::sample_chunk::raw_header*)data;
+                    const auto node = header->get_node("DisableC");
 
-            model->fix();
+                    if (node != nullptr && node->value != 0)
+                        return;
+                }
 
-            model->rev2_flags = false;
-            models.push_back(model);
+                hl::u32 version;
+                auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_model_v5>(data, &version);
+
+                if (!hasSampleChunkHeader && version != 5)
+                {
+                    Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
+                    return;
+                }
+
+                model->fix();
+                model->rev2_flags = false;
+
+                std::lock_guard lock(critSect);
+                models.push_back(model);
+            });
         }
     }
+
+    group.wait();
 
     for (auto& archive : archives)
     {
@@ -645,25 +675,34 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
             if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-instanceinfo")))
                 continue;
 
-            void* data = (void*)entry.file_data();
-
-            hl::hh::mirage::fix(data);
-
-            auto instance = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_instance_info_v0>(data);
-            instance->fix();
-
-            for (auto& model : models)
+            group.run([&]
             {
-                if (strcmp(model->name.get(), instance->modelName.get()) != 0)
-                    continue;
+                void* data = (void*)entry.file_data();
 
-                model->rev2_flags = true;
+                hl::hh::mirage::fix(data);
 
-                scene.instances.push_back(createInstance(instance, model, scene));
-                break;
-            }
+                auto instance = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_instance_info_v0>(data);
+                instance->fix();
+
+                for (auto& model : models)
+                {
+                    if (strcmp(model->name.get(), instance->modelName.get()) != 0)
+                        continue;
+
+                    model->rev2_flags = true;
+
+                    std::unique_ptr<Instance> newInstance = createInstance(instance, model);
+
+                    std::lock_guard lock(criticalSection);
+                    scene->instances.push_back(std::move(newInstance));
+
+                    break;
+                }
+            });
         }
     }
+
+    group.wait();
 
     // Load models that aren't bound to any instances
     for (auto& model : models)
@@ -671,11 +710,19 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives, Scene& 
         if (model->rev2_flags)
             continue;
 
-        scene.instances.push_back(createInstance(nullptr, model, scene));
+        group.run([&]
+        {
+            std::unique_ptr<Instance> newInstance = createInstance(nullptr, model);
+
+            std::lock_guard lock(criticalSection);
+            scene->instances.push_back(std::move(newInstance));
+        });
     }
+
+    group.wait();
 }
 
-void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, const std::string& stageName)
+void SceneFactory::loadSceneEffect(const hl::archive& archive)
 {
     auto hhdName = toNchar((stageName + ".hhd").c_str());
     auto rflName = toNchar((stageName + ".rfl").c_str());
@@ -687,7 +734,7 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, con
             tinyxml2::XMLDocument doc;
 
             if (doc.Parse(entry.file_data<char>(), entry.size()) == tinyxml2::XML_SUCCESS)
-                scene.effect.load(doc);
+                scene->effect.load(doc);
 
             break;
         }
@@ -697,7 +744,7 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, con
             hl::bina::fix32((void*)entry.file_data(), entry.size());
 
             if (const auto data = hl::bina::get_data<sonic2013::FxSceneData>(entry.file_data()); data)
-                scene.effect.load(*data);
+                scene->effect.load(*data);
 
             break;
         }
@@ -707,24 +754,18 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive, Scene& scene, con
             hl::bina::fix64((void*)entry.file_data(), entry.size());
 
             if (const auto data = hl::bina::get_data<wars::NeedleFxSceneData>(entry.file_data()); data)
-                scene.effect.load(*data);
+                scene->effect.load(*data);
 
             break;
         }
     }
 }
 
-std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& directoryPath)
+void SceneFactory::createFromGenerations(const std::string& directoryPath)
 {
-    const std::string stageName = getFileNameWithoutExtension(directoryPath);
-
-    std::unique_ptr<Scene> scene = std::make_unique<Scene>();
-
     auto filePath = toNchar((directoryPath + "/" + stageName + ".ar.00").c_str());
 
     const auto resArchive = hl::hh::ar::load(filePath.data());
-    loadResources(resArchive, *scene, stageName);
-    loadLights(resArchive, *scene);
 
     hl::hh::pfi::v0::header* pfi = nullptr;
 
@@ -746,76 +787,93 @@ std::unique_ptr<Scene> SceneFactory::createFromGenerations(const std::string& di
     if (!pfi)
     {
         Logger::log(LogType::Error, "Failed to find Stage.pfi");
-        return nullptr;
+        scene = nullptr;
+        return;
     }
 
-    const FileStream pfdFile((directoryPath + "/Stage.pfd").c_str(), "rb");
+    loadResources(resArchive);
+    loadLights(resArchive);
+
+    const std::string pfdFilePath = directoryPath + "/Stage.pfd";
+
+    tbb::task_group group;
 
     for (auto& entry : pfi->entries)
     {
         if (!strstr(entry->name.get(), "tg-"))
             continue;
 
-        std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(entry->dataSize);
-        pfdFile.seek(entry->dataPos, SEEK_SET);
-        pfdFile.read(data.get(), entry->dataSize);
+        group.run([&]
+        {
+            std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(entry->dataSize);
 
-        loadTerrain({ CabinetCompression::load(data.get(), entry->dataSize) }, *scene);
+            FileStream pfdFile(pfdFilePath.c_str(), "rb");
+            pfdFile.seek(entry->dataPos, SEEK_SET);
+            pfdFile.read(data.get(), entry->dataSize);
+            pfdFile.close();
+
+            loadTerrain({ CabinetCompression::load(data.get(), entry->dataSize) });
+        });
     }
+    scene->createLightBVH();
+
+    group.wait();
 
     scene->sortAndUnify();
     scene->buildAABB();
-    scene->createLightBVH();
 
     auto arFilePath = toNchar((directoryPath + "/../../#" + stageName + ".ar.00").c_str());
 
     if (hl::path::exists(arFilePath.data()))
-        loadSceneEffect(hl::hh::ar::load(arFilePath.data()), *scene, stageName);
-
-    return scene;
+        loadSceneEffect(hl::hh::ar::load(arFilePath.data()));
 }
 
-std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::string& directoryPath)
+void SceneFactory::createFromLostWorldOrForces(const std::string& directoryPath)
 {
-    std::unique_ptr<Scene> scene = std::make_unique<Scene>();
-
     std::vector<hl::archive> archives;
-
-    const std::string stageName = getFileNameWithoutExtension(directoryPath);
     {
         auto filePath = toNchar((directoryPath + "/" + stageName + "_trr_cmn.pac").c_str());
+        auto archive = hl::pacx::load(filePath.data());
 
-        const auto archive = hl::pacx::load(filePath.data());
-
-        loadResources(archive, *scene, stageName);
+        loadResources(archive);
         archives.push_back(std::move(archive));
     }
 
-    for (uint32_t i = 0; i < 100; i++)
+    tbb::task_group group;
+
+    for (size_t i = 0; i < 100; i++)
     {
         char slot[4];
-        sprintf(slot, "%02d", i);
+        sprintf(slot, "%02lld", i);
 
         auto filePath = toNchar((directoryPath + "/" + stageName + "_trr_s" + slot + ".pac").c_str());
 
         if (!hl::path::exists(filePath.data()))
             continue;
 
-        archives.push_back(std::move(hl::pacx::load(filePath.data())));
+        group.run([&, filePath]
+        {
+            hl::archive archive = hl::pacx::load(filePath.data());
+
+            std::lock_guard lock(criticalSection);
+            archives.push_back(std::move(archive));
+        });
     }
 
-    loadTerrain(archives, *scene);
+    group.wait();
+
+    loadTerrain(archives);
 
     // Load lights from sectors
     for (auto& archive : archives)
-        loadLights(archive, *scene);
+        loadLights(archive);
 
     archives.clear();
 
     auto skyFilePath = toNchar((directoryPath + "/" + stageName + "_sky.pac").c_str());
 
     if (hl::path::exists(skyFilePath.data()))
-        loadResources(hl::pacx::load(skyFilePath.data()), *scene, stageName);
+        loadResources(hl::pacx::load(skyFilePath.data()));
 
     scene->sortAndUnify();
     scene->buildAABB();
@@ -824,15 +882,20 @@ std::unique_ptr<Scene> SceneFactory::createFromLostWorldOrForces(const std::stri
     auto miscFilePath = toNchar((directoryPath + "/" + stageName + "_misc.pac").c_str());
 
     if (hl::path::exists(miscFilePath.data()))
-        loadSceneEffect(hl::pacx::load(miscFilePath.data()), *scene, stageName);
-
-    return scene;
+        loadSceneEffect(hl::pacx::load(miscFilePath.data()));
 }
 
 std::unique_ptr<Scene> SceneFactory::create(const std::string& directoryPath)
 {
-    if (std::filesystem::exists(directoryPath + "/Stage.pfd"))
-        return createFromGenerations(directoryPath);
+    SceneFactory factory;
 
-    return createFromLostWorldOrForces(directoryPath);
+    factory.scene = std::make_unique<Scene>();
+    factory.stageName = getFileNameWithoutExtension(directoryPath);
+
+    if (std::filesystem::exists(directoryPath + "/Stage.pfd"))
+        factory.createFromGenerations(directoryPath);
+    else
+        factory.createFromLostWorldOrForces(directoryPath);
+
+    return std::move(factory.scene);
 }
