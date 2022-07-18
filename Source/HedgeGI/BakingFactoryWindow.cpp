@@ -116,7 +116,7 @@ void BakingFactoryWindow::update(const float deltaTime)
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
 
-    if (ImGui::CollapsingHeader("Output"))
+    if (ImGui::CollapsingHeader("Output", ImGuiTreeNodeFlags_DefaultOpen))
     {
         if (beginProperties("##Baking Factory Settings"))
         {
@@ -139,7 +139,7 @@ void BakingFactoryWindow::update(const float deltaTime)
             endProperties();
         }
 
-        const float buttonWidth = (ImGui::GetWindowSize().x - ImGui::GetStyle().ItemSpacing.x * 2) / 2;
+        const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2;
 
         if (ImGui::Button("Open in Explorer", { buttonWidth, 0 }))
         {
@@ -157,7 +157,7 @@ void BakingFactoryWindow::update(const float deltaTime)
         tooltip(CLEAN_DIR_DESC);
     }
 
-    if (ImGui::CollapsingHeader("Baker"))
+    if (ImGui::CollapsingHeader("Baker", ImGuiTreeNodeFlags_DefaultOpen))
     {
         if (beginProperties("##Mode Settings"))
         {
@@ -236,7 +236,7 @@ void BakingFactoryWindow::update(const float deltaTime)
             endProperties();
         }
 
-        const float buttonWidth = (ImGui::GetWindowSize().x - ImGui::GetStyle().ItemSpacing.x * 3) / 3;
+        const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2) / 3;
 
         if (ImGui::Button("Bake", { buttonWidth / 2, 0 }))
             get<StateManager>()->bake();

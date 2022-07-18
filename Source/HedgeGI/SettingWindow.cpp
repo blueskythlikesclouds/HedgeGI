@@ -125,7 +125,7 @@ void SettingWindow::update(float deltaTime)
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Environment") && beginProperties("##Environment"))
+    if (ImGui::CollapsingHeader("Environment", ImGuiTreeNodeFlags_DefaultOpen) && beginProperties("##Environment"))
     {
         property("Mode",
             {
@@ -178,7 +178,7 @@ void SettingWindow::update(float deltaTime)
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Light") && beginProperties("##Light"))
+    if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen) && beginProperties("##Light"))
     {
         property(LIGHT_BOUNCE_COUNT_LABEL, ImGuiDataType_U32, &params->bakeParams.light.bounceCount);
         property(LIGHT_SAMPLE_COUNT_LABEL, ImGuiDataType_U32, &params->bakeParams.light.sampleCount);
@@ -186,7 +186,7 @@ void SettingWindow::update(float deltaTime)
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Shadow") && beginProperties("##Shadow"))
+    if (ImGui::CollapsingHeader("Shadow", ImGuiTreeNodeFlags_DefaultOpen) && beginProperties("##Shadow"))
     {
         property(SHADOW_SAMPLE_COUNT_LABEL, ImGuiDataType_U32, &params->bakeParams.shadow.sampleCount);
         property(SHADOW_SEARCH_RADIUS_LABEL, ImGuiDataType_Float, &params->bakeParams.shadow.radius);
@@ -194,7 +194,7 @@ void SettingWindow::update(float deltaTime)
         endProperties();
     }
 
-    if (ImGui::CollapsingHeader("Material") && beginProperties("##Material"))
+    if (ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen) && beginProperties("##Material"))
     {
         property(DIFFUSE_INTENSITY_LABEL, ImGuiDataType_Float, &params->bakeParams.material.diffuseIntensity);
         property(DIFFUSE_SATURATION_LABEL, ImGuiDataType_Float, &params->bakeParams.material.diffuseSaturation);

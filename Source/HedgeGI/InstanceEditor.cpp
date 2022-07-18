@@ -31,6 +31,12 @@ const char* const COMPUTE_NEW_RESOLUTIONS_DESC =
     "Generates a new resolution for every instance using the parameters defined above.\n\n"
     "This is going to override custom instance resolutions.";
 
+const char* const DOUBLE_RESOLUTIONS_DESC =
+    "Multiplies the resolution of every instance by 2.";
+
+const char* const HALVEN_RESOLUTIONS_DESC =
+    "Divides the resolution of every instance by 2.";
+
 const char* const RESTORE_ORIGINAL_RESOLUTIONS_DESC =
     "Sets the resolution of every instance to their original resolutions contained in stage files.\n\n"
     "This is useful if you want to bake global illumination for a stage that already contains it.\n\n"
@@ -43,6 +49,8 @@ void InstanceEditor::update(float deltaTime)
 
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
+
+    const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2) / 3;
 
     ImGui::SetNextItemWidth(-1);
     const bool doSearch = ImGui::InputText("##SearchInstances", search, sizeof(search)) || strlen(search) > 0;
@@ -69,14 +77,6 @@ void InstanceEditor::update(float deltaTime)
         ImGui::EndListBox();
     }
 
-    if (ImGui::Button("Restore Original Resolutions"))
-    {
-        for (auto& instance : stage->getScene()->instances)
-            instance->setResolution(params->propertyBag, instance->originalResolution);
-    }
-
-    tooltip(RESTORE_ORIGINAL_RESOLUTIONS_DESC);
-
     if (selection != nullptr)
     {
         uint16_t resolution = selection->getResolution(params->propertyBag);
@@ -86,9 +86,42 @@ void InstanceEditor::update(float deltaTime)
                 selection->setResolution(params->propertyBag, nextPowerOfTwo(resolution));
 
             endProperties();
-            ImGui::Separator();
         }
     }
+
+    if (ImGui::Button("Restore Original Resolutions", { buttonWidth * 2.0f, 0 }))
+    {
+        for (auto& instance : stage->getScene()->instances)
+            instance->setResolution(params->propertyBag, instance->originalResolution);
+    }
+
+    tooltip(RESTORE_ORIGINAL_RESOLUTIONS_DESC);
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("0.5x", { buttonWidth / 2.0f, 0.0f}))
+    {
+        for (auto& instance : stage->getScene()->instances)
+        {
+            instance->setResolution(params->propertyBag, (uint16_t)std::max<size_t>(params->bakeParams.resolution.min,
+                std::min<size_t>(params->bakeParams.resolution.max, instance->getResolution(params->propertyBag) / 2)));
+        }
+    }
+
+    tooltip(HALVEN_RESOLUTIONS_DESC);
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("2x", { buttonWidth / 2.0f, 0.0f }))
+    {
+        for (auto& instance : stage->getScene()->instances)
+        {
+            instance->setResolution(params->propertyBag, (uint16_t)std::max<size_t>(params->bakeParams.resolution.min,
+                std::min<size_t>(params->bakeParams.resolution.max, instance->getResolution(params->propertyBag) * 2)));
+        }
+    }
+
+    tooltip(DOUBLE_RESOLUTIONS_DESC);
 
     if (beginProperties("##Resolution Settings"))
     {
@@ -99,7 +132,7 @@ void InstanceEditor::update(float deltaTime)
         endProperties();
     }
 
-    if (ImGui::Button("Compute New Resolutions"))
+    if (ImGui::Button("Compute New Resolutions", { buttonWidth * 2.0f, 0 }))
     {
         for (auto& instance : stage->getScene()->instances)
         {
