@@ -31,6 +31,11 @@ const char* const COMPUTE_NEW_RESOLUTIONS_DESC =
     "Generates a new resolution for every instance using the parameters defined above.\n\n"
     "This is going to override custom instance resolutions.";
 
+const char* const RESTORE_ORIGINAL_RESOLUTIONS_DESC =
+    "Sets the resolution of every instance to their original resolutions contained in stage files.\n\n"
+    "This is useful if you want to bake global illumination for a stage that already contains it.\n\n"
+    "This is the default behavior when opening a stage in HedgeGI for the first time.";
+
 void InstanceEditor::update(float deltaTime)
 {
     if (!ImGui::CollapsingHeader("Instances"))
@@ -49,7 +54,7 @@ void InstanceEditor::update(float deltaTime)
     {
         for (auto& instance : stage->getScene()->instances)
         {
-            const uint16_t resolution = params->propertyBag.get<uint16_t>(instance->name + ".resolution", 256);
+            const uint16_t resolution = instance->getResolution(params->propertyBag);
 
             char name[1024];
             sprintf(name, "%s (%dx%d)", instance->name.c_str(), resolution, resolution);
@@ -64,13 +69,21 @@ void InstanceEditor::update(float deltaTime)
         ImGui::EndListBox();
     }
 
+    if (ImGui::Button("Restore Original Resolutions"))
+    {
+        for (auto& instance : stage->getScene()->instances)
+            instance->setResolution(params->propertyBag, instance->originalResolution);
+    }
+
+    tooltip(RESTORE_ORIGINAL_RESOLUTIONS_DESC);
+
     if (selection != nullptr)
     {
-        uint16_t resolution = params->propertyBag.get<uint16_t>(selection->name + ".resolution", 256);
+        uint16_t resolution = selection->getResolution(params->propertyBag);
         if (beginProperties("##Instance Settings"))
         {
             if (property(SELECTED_INSTANCE_RESOLUTIN_LABEL, ImGuiDataType_U16, &resolution))
-                params->propertyBag.set(selection->name + ".resolution", nextPowerOfTwo(resolution));
+                selection->setResolution(params->propertyBag, nextPowerOfTwo(resolution));
 
             endProperties();
             ImGui::Separator();
@@ -93,7 +106,7 @@ void InstanceEditor::update(float deltaTime)
             uint16_t resolution = nextPowerOfTwo((int)exp2f(params->bakeParams.resolution.bias + logf(getRadius(instance->aabb)) / logf(params->bakeParams.resolution.base)));
             resolution = std::max(params->bakeParams.resolution.min, std::min(params->bakeParams.resolution.max, resolution));
 
-            params->propertyBag.set(instance->name + ".resolution", resolution);
+            instance->setResolution(params->propertyBag, resolution);
         }
     }
 

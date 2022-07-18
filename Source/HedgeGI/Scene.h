@@ -29,11 +29,11 @@ class Scene
 public:
     ~Scene();
 
-    std::vector<std::unique_ptr<const Bitmap>> bitmaps;
-    std::vector<std::unique_ptr<const Material>> materials;
-    std::vector<std::unique_ptr<const Mesh>> meshes;
-    std::vector<std::unique_ptr<const Model>> models;
-    std::vector<std::unique_ptr<const Instance>> instances;
+    std::vector<std::unique_ptr<Bitmap>> bitmaps;
+    std::vector<std::unique_ptr<Material>> materials;
+    std::vector<std::unique_ptr<Mesh>> meshes;
+    std::vector<std::unique_ptr<Model>> models;
+    std::vector<std::unique_ptr<Instance>> instances;
 
     std::vector<std::unique_ptr<Light>> lights;
     std::vector<std::unique_ptr<SHLightField>> shLightFields;

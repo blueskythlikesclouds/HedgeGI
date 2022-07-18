@@ -28,7 +28,7 @@ private:
     void loadLights(const hl::archive& archive);
     void loadResources(const hl::archive& archive);
     void loadTerrain(const std::vector<hl::archive>& archives);
-
+    void loadResolutions(const hl::archive& archive);
     void loadSceneEffect(const hl::archive& archive);
 
     void createFromGenerations(const std::string& directoryPath);

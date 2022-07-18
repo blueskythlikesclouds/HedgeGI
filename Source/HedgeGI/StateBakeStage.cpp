@@ -73,7 +73,7 @@ void StateBakeStage::update(float deltaTime)
             char overlay[1024];
             if (lastBakedInstance != nullptr)
             {
-                const uint16_t resolution = params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override : params->propertyBag.get(lastBakedInstance->name + ".resolution", 256);
+                const uint16_t resolution = params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override : lastBakedInstance->getResolution(params->propertyBag);
                 if (params->resolutionSuperSampleScale > 1)
                 {
                     const uint16_t resolutionSuperSampled = (uint16_t)(resolution * params->resolutionSuperSampleScale);

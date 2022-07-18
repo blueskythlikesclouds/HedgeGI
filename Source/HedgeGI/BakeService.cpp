@@ -338,7 +338,7 @@ void BakeService::bakeGI()
         context->instance = instance;
 
         context->resolution = (uint16_t)((params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override :
-            params->propertyBag.get(instance->name + ".resolution", 256)) * params->resolutionSuperSampleScale);
+            instance->getResolution(params->propertyBag)) * params->resolutionSuperSampleScale);
 
         context->lightMapFileName = std::move(lightMapFileName);
         context->shadowMapFileName = std::move(shadowMapFileName);

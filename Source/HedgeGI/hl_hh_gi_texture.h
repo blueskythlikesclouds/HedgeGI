@@ -16,6 +16,28 @@ public:
     float x;
     float y;
 
+    HL_API void read(stream& stream) noexcept
+    {
+        u8 nameSize;
+        u8 width;
+        u8 height;
+        u8 x;
+        u8 y;
+
+        stream.read_obj(nameSize);
+        name.resize(nameSize);
+        stream.read(nameSize, name.data());
+        stream.read_obj(width);
+        stream.read_obj(height);
+        stream.read_obj(x);
+        stream.read_obj(y);
+
+        this->width = 1.0f / (float) (1 << width);
+        this->height = 1.0f / (float) (1 << height);
+        this->x = (float)x / 256.0f;
+        this->y = (float)y / 256.0f;
+    }
+
     HL_API void write(stream& stream) const noexcept
     {
         const u8 nameSize = static_cast<u8>(name.size());
@@ -39,6 +61,20 @@ public:
     std::string name;
     std::vector<atlas_texture> textures;
 
+    HL_API void read(stream& stream) noexcept
+    {
+        u8 nameSize;
+        u16 textureCount;
+
+        stream.read_obj(nameSize);
+        name.resize(nameSize);
+        stream.read(nameSize, name.data());
+        stream.read_obj(textureCount);
+
+        for (size_t i = 0; i < textureCount; i++)
+            textures.emplace_back().read(stream);
+    }
+
     HL_API void write(stream& stream) const noexcept
     {
         const u8 nameSize = static_cast<u8>(name.size());
@@ -57,6 +93,22 @@ class atlas_info
 {
 public:
     std::vector<atlas> atlases;
+
+    HL_API void read(stream& stream) noexcept
+    {
+        u8 empty;
+        u16 atlasCount;
+
+        stream.read_obj(empty);
+
+        if (empty)
+            return;
+
+        stream.read_obj(atlasCount);
+
+        for (size_t i = 0; i < atlasCount; i++)
+            atlases.emplace_back().read(stream);
+    }
 
     HL_API void write(stream& stream) const noexcept
     {

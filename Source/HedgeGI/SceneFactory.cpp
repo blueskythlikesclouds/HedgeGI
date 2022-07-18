@@ -722,6 +722,90 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
     group.wait();
 }
 
+void SceneFactory::loadResolutions(const hl::archive& archive)
+{
+    struct Res
+    {
+        uint32_t height;
+        uint32_t width;
+    };
+
+    std::unordered_map<std::string, Res> resolutions;
+
+    for (auto& entry : archive)
+    {
+        const hl::nchar* substr = hl::text::strstr(entry.name(), HL_NTEXT(".dds"));
+
+        if (!substr)
+            substr = hl::text::strstr(entry.name(), HL_NTEXT(".DDS"));
+
+        if (!substr)
+            continue;
+
+        char name[0x400]{};
+        WideCharToMultiByte(CP_UTF8, 0, entry.name(), (int)(substr - entry.name()), name, sizeof(name), nullptr, nullptr);
+
+        resolutions[name] = *(Res*)((char*)entry.file_data() + 0xC);
+    }
+
+    for (auto& entry : archive)
+    {
+        if (!hl::text::equal(entry.name(), HL_NTEXT("atlasinfo")))
+            continue;
+        
+        hl::readonly_mem_stream stream(entry.file_data(), entry.size());
+
+        hl::hh::mirage::atlas_info atlasInfo;
+        atlasInfo.read(stream);
+
+        for (auto& atlas : atlasInfo.atlases)
+        {
+            const auto& res = resolutions.find(atlas.name);
+            if (res == resolutions.end())
+                continue;
+
+            for (auto& texture : atlas.textures)
+            {
+                resolutions[texture.name] = {
+                    (uint32_t)(res->second.height * texture.height), (uint32_t)(res->second.width * texture.width) };
+            }
+        }
+
+        break;
+    }
+
+    for (auto& instance : scene->instances)
+    {
+        if (instance->originalResolution > 0)
+            continue;
+
+        constexpr const char* suffixes[] = 
+        {
+            "-level2",
+            "_sg-level2",
+            "_occlusion-level2",
+
+            "_sg",
+            "_occlusion",
+            ""
+        };
+
+        for (size_t i = 0; i < _countof(suffixes); i++)
+        {
+            const auto& res = resolutions.find(instance->name + suffixes[i]);
+            if (res == resolutions.end())
+                continue;
+
+            instance->originalResolution = std::max(res->second.width, res->second.height);
+
+            if (i < 3) // -level2
+                instance->originalResolution *= 4;
+
+            break;
+        }
+    }
+}
+
 void SceneFactory::loadSceneEffect(const hl::archive& archive)
 {
     auto hhdName = toNchar((stageName + ".hhd").c_str());
@@ -798,6 +882,17 @@ void SceneFactory::createFromGenerations(const std::string& directoryPath)
 
     tbb::task_group group;
 
+    auto loadPfdEntry = [&](const hl::hh::pfi::file_entry& entry)
+    {
+        std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(entry.dataSize);
+
+        const FileStream pfdFile(pfdFilePath.c_str(), "rb");
+        pfdFile.seek(entry.dataPos, SEEK_SET);
+        pfdFile.read(data.get(), entry.dataSize);
+
+        return data;
+    };
+
     for (auto& entry : pfi->entries)
     {
         if (!strstr(entry->name.get(), "tg-"))
@@ -805,16 +900,23 @@ void SceneFactory::createFromGenerations(const std::string& directoryPath)
 
         group.run([&]
         {
-            std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(entry->dataSize);
-
-            FileStream pfdFile(pfdFilePath.c_str(), "rb");
-            pfdFile.seek(entry->dataPos, SEEK_SET);
-            pfdFile.read(data.get(), entry->dataSize);
-            pfdFile.close();
-
-            loadTerrain({ CabinetCompression::load(data.get(), entry->dataSize) });
+            loadTerrain({ CabinetCompression::load(loadPfdEntry(*entry).get(), entry->dataSize)});
         });
     }
+
+    group.wait();
+
+    for (auto& entry : pfi->entries)
+    {
+        if (!strstr(entry->name.get(), "gia-") && !strstr(entry->name.get(), "gi-texture-"))
+            continue;
+
+        group.run([&]
+        {
+            loadResolutions({ CabinetCompression::load(loadPfdEntry(*entry).get(), entry->dataSize)});
+        });
+    }
+
     scene->createLightBVH();
 
     group.wait();
@@ -863,10 +965,13 @@ void SceneFactory::createFromLostWorldOrForces(const std::string& directoryPath)
     group.wait();
 
     loadTerrain(archives);
-
-    // Load lights from sectors
+    
+    // Load lights/resolutions from sectors
     for (auto& archive : archives)
+    {
         loadLights(archive);
+        loadResolutions(archive);
+    }
 
     archives.clear();
 

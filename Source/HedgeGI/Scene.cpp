@@ -139,7 +139,7 @@ void Scene::sortAndUnify()
         bitmapSet.insert(material->textures.environment);
     }
 
-    std::vector<std::unique_ptr<const Bitmap>> distinctBitmaps;
+    std::vector<std::unique_ptr<Bitmap>> distinctBitmaps;
     for (auto& bitmap : bitmaps)
     {
         if (bitmapSet.find(bitmap.get()) == bitmapSet.end())
