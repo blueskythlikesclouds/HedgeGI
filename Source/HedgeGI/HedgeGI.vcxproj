@@ -332,6 +332,8 @@
     <ClCompile Include="BakeParams.cpp" />
     <ClCompile Include="ImageUtil.cpp" />
     <ClCompile Include="MaterialWindow.cpp" />
+    <ClCompile Include="MetaInstancerBaker.cpp" />
+    <ClCompile Include="SnapToClosestTriangle.cpp" />
     <ClCompile Include="StateBakeStage.cpp" />
     <ClCompile Include="BakingFactoryWindow.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -423,6 +425,8 @@
     <ClInclude Include="Frustum.h" />
     <ClInclude Include="ImageUtil.h" />
     <ClInclude Include="MaterialWindow.h" />
+    <ClInclude Include="MetaInstancerBaker.h" />
+    <ClInclude Include="SnapToClosestTriangle.h" />
     <ClInclude Include="StateBakeStage.h" />
     <ClInclude Include="BakingFactoryWindow.h" />
     <ClInclude Include="Camera.h" />

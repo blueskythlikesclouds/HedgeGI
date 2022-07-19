@@ -13,6 +13,7 @@
 
 #include "FileStream.h"
 #include "Logger.h"
+#include "MetaInstancer.h"
 #include "Utilities.h"
 
 std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const size_t length)
@@ -611,6 +612,21 @@ void SceneFactory::loadResources(const hl::archive& archive)
 
             for (size_t i = 0; i < shlf->count; i++)
                 scene->shLightFields.push_back(std::move(createSHLightField(&shlf->entries[i])));
+        }
+
+        else if (hl::text::strstr(entry.name(), HL_NTEXT(".mti")))
+        {
+            hl::readonly_mem_stream stream(entry.file_data(), entry.size());
+
+            std::unique_ptr<MetaInstancer> newMetaInstancer = std::make_unique<MetaInstancer>();
+            newMetaInstancer->read(stream);
+
+            if (newMetaInstancer->instances.empty())
+                continue;
+
+            newMetaInstancer->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
+
+            scene->metaInstancers.push_back(std::move(newMetaInstancer));
         }
     }
 

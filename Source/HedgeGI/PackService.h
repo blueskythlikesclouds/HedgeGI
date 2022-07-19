@@ -5,7 +5,8 @@
 enum class PackResourceMode
 {
     Light,
-    LightField
+    LightField,
+    MetaInstancer
 };
 
 class PackService final : public Component

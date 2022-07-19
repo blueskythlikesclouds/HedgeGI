@@ -6,17 +6,24 @@ public:
     class Instance
     {
     public:
-        Vector3 position;
-        uint8_t type;
-        float sway;
-        Quaternion rotation;
-        Color4 color;
+        Vector3 position{};
+        uint8_t type{};
 
-        Instance();
+        float sway{};
+
+        float pitchAfterSway{};
+        float yawAfterSway{};
+
+        float pitchBeforeSway{};
+        float yawBeforeSway{};
+
+        Color4 color{};
     };
 
+    std::string name;
     std::vector<Instance> instances;
 
-    void save(hl::stream& stream);
-    void save(const std::string& filePath);
+    void read(hl::stream& stream);
+    void save(hl::stream& stream) const;
+    void save(const std::string& filePath) const;
 };

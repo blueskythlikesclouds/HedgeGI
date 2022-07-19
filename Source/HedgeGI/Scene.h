@@ -4,6 +4,7 @@
 #include "LightField.h"
 #include "SceneEffect.h"
 
+class MetaInstancer;
 class Bitmap;
 class Material;
 class Mesh;
@@ -34,16 +35,14 @@ public:
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Model>> models;
     std::vector<std::unique_ptr<Instance>> instances;
-
     std::vector<std::unique_ptr<Light>> lights;
+    std::vector<std::unique_ptr<MetaInstancer>> metaInstancers;
     std::vector<std::unique_ptr<SHLightField>> shLightFields;
+
     LightField lightField;
-
-    std::unique_ptr<const Bitmap> rgbTable;
-
+    std::unique_ptr<Bitmap> rgbTable;
+    SceneEffect effect{};
     AABB aabb;
-
-    SceneEffect effect {};
 
     const LightBVH& getLightBVH() const;
 

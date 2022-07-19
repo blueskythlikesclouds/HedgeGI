@@ -11,6 +11,8 @@
 #include "LightField.h"
 #include "Instance.h"
 #include "LightFieldBaker.h"
+#include "MetaInstancer.h"
+#include "MetaInstancerBaker.h"
 #include "SeamOptimizer.h"
 #include "SGGIBaker.h"
 #include "SHLightFieldBaker.h"
@@ -89,6 +91,9 @@ void BakeService::bake()
 
     else if (params->mode == BakingFactoryMode::LightField)
         bakeLightField();
+
+    else if (params->mode == BakingFactoryMode::MetaInstancer)
+        bakeMetaInstancer();
 
     const auto end = std::chrono::high_resolution_clock::now();
     const auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - begin);
@@ -414,4 +419,24 @@ void BakeService::bakeLightField()
         if (!params->useExistingLightField)
             Logger::log(LogType::Warning, "Pre-generated light field tree data has been replaced in the current HedgeGI session");
     }
+}
+
+void BakeService::bakeMetaInstancer()
+{
+    const auto stage = get<Stage>();
+    const auto scene = stage->getScene();
+    const auto params = get<StageParams>();
+
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, scene->metaInstancers.size()), [&](const tbb::blocked_range<size_t> range)
+    {
+        for (size_t i = range.begin(); i < range.end(); i++)
+        {
+            auto& mti = *scene->metaInstancers[i];
+            MetaInstancerBaker::bake(mti, scene->getRaytracingContext(), params->bakeParams);
+
+            mti.save(params->outputDirectoryPath + "/" + mti.name + ".mti");
+
+            Logger::logFormatted(LogType::Normal, "Saved %s.mti", mti.name.c_str());
+        }
+    });
 }

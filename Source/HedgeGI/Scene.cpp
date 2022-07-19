@@ -5,6 +5,7 @@
 #include "Light.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "MetaInstancer.h"
 #include "Model.h"
 #include "RaytracingDevice.h"
 #include "SHLightField.h"

@@ -8,6 +8,7 @@
 #include "Light.h"
 #include "PostRender.h"
 #include "Instance.h"
+#include "MetaInstancer.h"
 
 void PackService::pack()
 {
@@ -34,14 +35,18 @@ void PackService::pack()
         default: break;
         }
     }
+
+    else if (params->mode == BakingFactoryMode::MetaInstancer)
+        packResources(PackResourceMode::MetaInstancer);
 }
 
 void PackService::packResources(PackResourceMode mode)
 {
     const auto stage = get<Stage>();
+    const auto scene = stage->getScene();
     const auto params = get<StageParams>();
 
-    if (mode == PackResourceMode::LightField && !params->validateOutputDirectoryPath(false))
+    if ((mode == PackResourceMode::LightField || mode == PackResourceMode::MetaInstancer) && !params->validateOutputDirectoryPath(false))
         return;
 
     std::string archiveFileName;
@@ -138,6 +143,32 @@ void PackService::packResources(PackResourceMode mode)
 
             addOrReplace(archive, toNchar((light->name + ".light").c_str()).data(), stream.get_size(), stream.get_data_ptr());
         }
+    }
+
+    else if (mode == PackResourceMode::MetaInstancer)
+    {
+        bool any = false;
+
+        for (auto& mti : scene->metaInstancers)
+        {
+            const std::string mtiFileName = mti->name + ".mti";
+            const std::string mtiFilePath = params->outputDirectoryPath + "/" + mtiFileName;
+
+            if (!std::filesystem::exists(mtiFilePath))
+            {
+                Logger::logFormatted(LogType::Error, "Failed to find %s", mtiFileName.c_str());
+                continue;
+            }
+
+            any = true;
+
+            Logger::logFormatted(LogType::Normal, "Packed %s", mtiFileName.c_str());
+
+            addOrReplace(archive, toNchar(mtiFileName.c_str()).data(), hl::blob(toNchar(mtiFilePath.c_str()).data()));
+        }
+
+        if (!any)
+            return;
     }
 
     else return;

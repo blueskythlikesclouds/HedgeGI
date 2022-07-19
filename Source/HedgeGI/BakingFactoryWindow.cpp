@@ -26,6 +26,9 @@ const Label MODE_LIGHT_FIELD_LABEL = { "Light Field",
     "Bakes lighting data for dynamic objects.\n\n"
     "This mode is significantly faster than global illumination mode." };
 
+const Label MODE_META_INSTANCER_LABEL = { "Meta Instancer",
+    "Bakes lighting data for instances such as grass and clouds." };
+
 const Label ENGINE_HE1_LABEL = { "Hedgehog Engine 1",
     "HE1 is used for Sonic Generations and Sonic Lost World." };
 
@@ -114,6 +117,7 @@ void BakingFactoryWindow::update(const float deltaTime)
         return ImGui::End();
 
     const auto stage = get<Stage>();
+    const auto scene = stage->getScene();
     const auto params = get<StageParams>();
 
     if (ImGui::CollapsingHeader("Output", ImGuiTreeNodeFlags_DefaultOpen))
@@ -161,13 +165,27 @@ void BakingFactoryWindow::update(const float deltaTime)
     {
         if (beginProperties("##Mode Settings"))
         {
-            property("Mode",
-                {
-                    { MODE_GLOBAL_ILLUMINATION_LABEL, BakingFactoryMode::GI },
-                    { MODE_LIGHT_FIELD_LABEL, BakingFactoryMode::LightField }
-                },
-                params->mode
-                );
+            if (!scene->metaInstancers.empty() && params->bakeParams.targetEngine == TargetEngine::HE1)
+            {
+                property("Mode",
+                    {
+                        { MODE_GLOBAL_ILLUMINATION_LABEL, BakingFactoryMode::GI },
+                        { MODE_LIGHT_FIELD_LABEL, BakingFactoryMode::LightField },
+                        { MODE_META_INSTANCER_LABEL, BakingFactoryMode::MetaInstancer }
+                    },
+                    params->mode
+                    );
+            }
+            else
+            {
+                property("Mode",
+                    {
+                        { MODE_GLOBAL_ILLUMINATION_LABEL, BakingFactoryMode::GI },
+                        { MODE_LIGHT_FIELD_LABEL, BakingFactoryMode::LightField }
+                    },
+                    params->mode
+                    );
+            }
 
             params->dirty |= property("Engine",
                 {
@@ -177,19 +195,30 @@ void BakingFactoryWindow::update(const float deltaTime)
                 params->bakeParams.targetEngine
                 );
 
+            if (params->bakeParams.targetEngine != TargetEngine::HE1 && params->mode == BakingFactoryMode::MetaInstancer)
+                params->mode = BakingFactoryMode::GI;
+
             endProperties();
-            ImGui::Separator();
         }
 
-        if (beginProperties("##Mode Specific Settings"))
+        if (params->mode == BakingFactoryMode::LightField && params->bakeParams.targetEngine == TargetEngine::HE1)
         {
-            if (params->mode == BakingFactoryMode::LightField && params->bakeParams.targetEngine == TargetEngine::HE1)
+            ImGui::Separator();
+
+            if (beginProperties("##Light Field Settings"))
             {
                 property(MIN_CELL_RADIUS_LABEL, ImGuiDataType_Float, &params->bakeParams.lightField.minCellRadius);
                 property(AABB_SIZE_MULTIPLIER_LABEL, ImGuiDataType_Float, &params->bakeParams.lightField.aabbSizeMultiplier);
                 property(USE_EXISTING_LIGHT_FIELD_TREE_LABEL, params->useExistingLightField);
+
+                endProperties();
             }
-            else if (params->mode == BakingFactoryMode::GI)
+        }
+        else if (params->mode == BakingFactoryMode::GI)
+        {
+            ImGui::Separator();
+
+            if (beginProperties("##GI Settings"))
             {
                 property(DENOISE_SHADOW_MAP_LABEL, params->bakeParams.postProcess.denoiseShadowMap);
                 property(OPTIMIZE_SEAMS_LABEL, params->bakeParams.postProcess.optimizeSeams);
@@ -231,9 +260,9 @@ void BakingFactoryWindow::update(const float deltaTime)
 
                 if (property(RESOLUTION_SUPERSAMPLE_SCALE, ImGuiDataType_U64, &params->resolutionSuperSampleScale))
                     params->resolutionSuperSampleScale = nextPowerOfTwo(std::max<size_t>(1, params->resolutionSuperSampleScale));
-            }
 
-            endProperties();
+                endProperties();
+            }
         }
 
         const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2) / 3;

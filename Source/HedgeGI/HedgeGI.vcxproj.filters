@@ -322,6 +322,12 @@
     <ClCompile Include="StateEditMaterial.cpp">
       <Filter>States</Filter>
     </ClCompile>
+    <ClCompile Include="MetaInstancerBaker.cpp">
+      <Filter>Baker\Subclasses</Filter>
+    </ClCompile>
+    <ClCompile Include="SnapToClosestTriangle.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -610,6 +616,12 @@
     </ClInclude>
     <ClInclude Include="StateEditMaterial.h">
       <Filter>States</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaInstancerBaker.h">
+      <Filter>Baker\Subclasses</Filter>
+    </ClInclude>
+    <ClInclude Include="SnapToClosestTriangle.h">
+      <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

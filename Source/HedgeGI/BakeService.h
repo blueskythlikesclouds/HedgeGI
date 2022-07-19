@@ -25,4 +25,5 @@ public:
     void bake();
     void bakeGI();
     void bakeLightField();
+    void bakeMetaInstancer();
 };

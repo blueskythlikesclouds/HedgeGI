@@ -76,7 +76,7 @@ void Stage::clean()
         std::string extension = file.path().extension().string();
         std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
 
-        if (extension != ".png" && extension != ".dds" && extension != ".lft" && extension != ".shlf")
+        if (extension != ".png" && extension != ".dds" && extension != ".lft" && extension != ".shlf" && extension != ".mti")
             continue;
 
         std::filesystem::remove(file);

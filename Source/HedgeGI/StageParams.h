@@ -7,7 +7,8 @@
 enum class BakingFactoryMode
 {
     GI,
-    LightField
+    LightField,
+    MetaInstancer
 };
 
 class StageParams final : public Component

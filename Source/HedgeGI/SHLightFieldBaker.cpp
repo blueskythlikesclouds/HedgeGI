@@ -5,6 +5,7 @@
 #include "Bitmap.h"
 #include "Math.h"
 #include "SHLightField.h"
+#include "SnapToClosestTriangle.h"
 
 const Vector3 SHLF_DIRECTIONS[6] =
 {
@@ -54,42 +55,6 @@ struct SHLightFieldPoint : BakePoint<6, BAKE_POINT_FLAGS_SHADOW | BAKE_POINT_FLA
     }
 };
 
-namespace
-{
-    struct PointQueryFuncUserData
-    {
-        const Scene* scene {};
-        Vector3 position {};
-        Vector3 newPosition {};
-        float distance {};
-    };
-
-    bool pointQueryFunc(struct RTCPointQueryFunctionArguments* args)
-    {
-        PointQueryFuncUserData* userData = (PointQueryFuncUserData*)args->userPtr;
-
-        const Mesh& mesh = *userData->scene->meshes[args->geomID];
-
-        const Triangle& triangle = mesh.triangles[args->primID];
-        const Vertex& a = mesh.vertices[triangle.a];
-        const Vertex& b = mesh.vertices[triangle.b];
-        const Vertex& c = mesh.vertices[triangle.c];
-
-        const Vector3 closestPoint = closestPointTriangle(userData->position, a.position, b.position, c.position);
-        const Vector2 baryUV = getBarycentricCoords(closestPoint, a.position, b.position, c.position);
-        const Vector3 normal = barycentricLerp(a.normal, b.normal, c.normal, baryUV);
-
-        const float distance = (closestPoint - userData->position).squaredNorm();
-        if (distance > userData->distance)
-            return false;
-
-        userData->newPosition = closestPoint + normal.normalized() * 0.1f;
-        userData->distance = distance;
-
-        return false;
-    }
-}
-
 std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const RaytracingContext& raytracingContext, const SHLightField& shlf)
 {
     std::vector<SHLightFieldPoint> bakePoints;
@@ -120,30 +85,8 @@ std::vector<SHLightFieldPoint> SHLightFieldBaker::createBakePoints(const Raytrac
         }
     }
 
-    const float radius = (shlf.scale.array() / shlf.resolution.cast<float>()).maxCoeff() / 10.0f * sqrtf(2.0f) / 2.0f;
-
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, bakePoints.size()), [&](const tbb::blocked_range<size_t>& range)
-    {
-        for (size_t r = range.begin(); r < range.end(); r++)
-        {
-            auto& bakePoint = bakePoints[r];
-
-            // Snap to the closest triangle
-            RTCPointQueryContext context{};
-            rtcInitPointQueryContext(&context);
-
-            RTCPointQuery query{};
-            query.x = bakePoint.position.x();
-            query.y = bakePoint.position.y();
-            query.z = bakePoint.position.z();
-            query.radius = radius;
-
-            PointQueryFuncUserData userData = { raytracingContext.scene, bakePoint.position, bakePoint.position, INFINITY };
-            rtcPointQuery(raytracingContext.rtcScene, &query, &context, pointQueryFunc, &userData);
-
-            bakePoint.position = userData.newPosition;
-        }
-    });
+    SnapToClosestTriangle::process(raytracingContext, bakePoints, 
+        (shlf.scale.array() / shlf.resolution.cast<float>()).maxCoeff() / 10.0f * sqrtf(2.0f) / 2.0f);
 
     return bakePoints;
 }
