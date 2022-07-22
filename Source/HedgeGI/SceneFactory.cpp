@@ -1,22 +1,19 @@
 ﻿#include "SceneFactory.h"
 
-#include "Scene.h"
-
 #include "Bitmap.h"
 #include "CabinetCompression.h"
-#include "Material.h"
-#include "Mesh.h"
-#include "Model.h"
 #include "Instance.h"
 #include "Light.h"
-#include "SHLightField.h"
-
-#include "FileStream.h"
 #include "Logger.h"
+#include "Material.h"
+#include "Mesh.h"
 #include "MetaInstancer.h"
+#include "Model.h"
+#include "Scene.h"
+#include "SHLightField.h"
 #include "Utilities.h"
 
-std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const size_t length)
+std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const size_t length) const
 {
     std::unique_ptr<DirectX::ScratchImage> scratchImage = std::make_unique<DirectX::ScratchImage>();
 
@@ -91,7 +88,7 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     return bitmap;
 }
 
-std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_material_v3* material)
+std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_material_v3* material) const
 {
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
@@ -207,7 +204,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
     return newMaterial;
 }
 
-std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, const Affine3& transformation)
+std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, const Affine3& transformation) const
 {
     std::unique_ptr<Mesh> newMesh = std::make_unique<Mesh>();
 
@@ -443,7 +440,7 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terra
     return newInstance;
 }
 
-std::unique_ptr<Light> SceneFactory::createLight(hl::hh::mirage::raw_light* light)
+std::unique_ptr<Light> SceneFactory::createLight(hl::hh::mirage::raw_light* light) const
 {
     std::unique_ptr<Light> newLight = std::make_unique<Light>();
 
@@ -469,7 +466,7 @@ std::unique_ptr<Light> SceneFactory::createLight(hl::hh::mirage::raw_light* ligh
     return newLight;
 }
 
-std::unique_ptr<SHLightField> SceneFactory::createSHLightField(hl::hh::needle::raw_sh_light_field_node* shlf)
+std::unique_ptr<SHLightField> SceneFactory::createSHLightField(hl::hh::needle::raw_sh_light_field_node* shlf) const
 {
     std::unique_ptr<SHLightField> newSHLightField = std::make_unique<SHLightField>();
     newSHLightField->name = shlf->name.get();
@@ -738,7 +735,7 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
     group.wait();
 }
 
-void SceneFactory::loadResolutions(const hl::archive& archive)
+void SceneFactory::loadResolutions(const hl::archive& archive) const
 {
     struct Res
     {
@@ -822,7 +819,7 @@ void SceneFactory::loadResolutions(const hl::archive& archive)
     }
 }
 
-void SceneFactory::loadSceneEffect(const hl::archive& archive)
+void SceneFactory::loadSceneEffect(const hl::archive& archive) const
 {
     auto hhdName = toNchar((stageName + ".hhd").c_str());
     auto rflName = toNchar((stageName + ".rfl").c_str());
@@ -863,79 +860,48 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive)
 
 void SceneFactory::createFromGenerations(const std::string& directoryPath)
 {
-    auto filePath = toNchar((directoryPath + "/" + stageName + ".ar.00").c_str());
-
-    const auto resArchive = hl::hh::ar::load(filePath.data());
-
-    hl::hh::pfi::v0::header* pfi = nullptr;
-
-    for (auto& entry : resArchive)
+    // Load resources
     {
-        if (!hl::text::equal(entry.name(), HL_NTEXT("Stage.pfi")))
-            continue;
+        const auto resArchive = hl::hh::ar::load(toNchar((directoryPath + "/" + stageName + ".ar.00").c_str()).data());
 
-        void* data = (void*)entry.file_data();
+        loadResources(resArchive);
+        loadLights(resArchive);
 
-        hl::hh::mirage::fix(data);
-
-        pfi = hl::hh::mirage::get_data<hl::hh::pfi::v0::header>(data);
-        pfi->fix();
-
-        break;
+        scene->createLightBVH();
     }
 
-    if (!pfi)
+    // Load packed file data
     {
-        Logger::log(LogType::Error, "Failed to find Stage.pfi");
-        scene = nullptr;
-        return;
-    }
+        tbb::task_group group;
 
-    loadResources(resArchive);
-    loadLights(resArchive);
+        auto pfdArchive = hl::hh::pfd::load(toNchar((directoryPath + "/Stage.pfd").c_str()).data());
 
-    const std::string pfdFilePath = directoryPath + "/Stage.pfd";
-
-    tbb::task_group group;
-
-    auto loadPfdEntry = [&](const hl::hh::pfi::file_entry& entry)
-    {
-        std::unique_ptr<uint8_t[]> data = std::make_unique<uint8_t[]>(entry.dataSize);
-
-        const FileStream pfdFile(pfdFilePath.c_str(), "rb");
-        pfdFile.seek(entry.dataPos, SEEK_SET);
-        pfdFile.read(data.get(), entry.dataSize);
-
-        return data;
-    };
-
-    for (auto& entry : pfi->entries)
-    {
-        if (!strstr(entry->name.get(), "tg-"))
-            continue;
-
-        group.run([&]
+        for (auto& entry : pfdArchive)
         {
-            loadTerrain({ CabinetCompression::load(loadPfdEntry(*entry).get(), entry->dataSize)});
-        });
-    }
+            if (!hl::text::strstr(entry.name(), HL_NTEXT("tg-")))
+                continue;
 
-    group.wait();
+            group.run([&]
+            {
+                loadTerrain({ CabinetCompression::load(entry.file_data(), entry.size()) });
+            });
+        }
 
-    for (auto& entry : pfi->entries)
-    {
-        if (!strstr(entry->name.get(), "gia-") && !strstr(entry->name.get(), "gi-texture-"))
-            continue;
+        group.wait();
 
-        group.run([&]
+        for (auto& entry : pfdArchive)
         {
-            loadResolutions({ CabinetCompression::load(loadPfdEntry(*entry).get(), entry->dataSize)});
-        });
+            if (!hl::text::strstr(entry.name(), HL_NTEXT("gia-")) && !hl::text::strstr(entry.name(), HL_NTEXT("gi-texture-")))
+                continue;
+
+            group.run([&]
+            {
+                loadResolutions({ CabinetCompression::load(entry.file_data(), entry.size()) });
+            });
+        }
+
+        group.wait();
     }
-
-    scene->createLightBVH();
-
-    group.wait();
 
     scene->sortAndUnify();
     scene->buildAABB();
