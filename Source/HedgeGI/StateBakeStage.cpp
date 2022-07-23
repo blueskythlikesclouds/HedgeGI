@@ -19,9 +19,9 @@ StateBakeStage::StateBakeStage(const bool packAfterFinish) : packAfterFinish(pac
 void StateBakeStage::enter()
 {
     future = std::async(std::launch::async, [this]
-        {
-            getContext()->get<BakeService>()->bake();
-        });
+    {
+        getContext()->get<BakeService>()->bake();
+    });
 
     getContext()->get<ImGuiPresenter>()->pushBackgroundColor({ 0.11f, 0.11f, 0.11f, 1.0f });
     getContext()->get<LogListener>()->clear();
@@ -68,34 +68,32 @@ void StateBakeStage::update(float deltaTime)
 
         ImGui::SetNextItemWidth(popupWidth);
 
-        if (params->mode == BakingFactoryMode::GI)
+        char overlay[1024] = "Waiting...";
+        float fraction = 0.0f;
+
+        if (params->mode == BakingFactoryMode::GI && lastBakedInstance != nullptr)
         {
-            char overlay[1024];
-            if (lastBakedInstance != nullptr)
+            const uint16_t resolution = params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override : lastBakedInstance->getResolution(params->propertyBag);
+
+            if (params->resolutionSuperSampleScale > 1)
             {
-                const uint16_t resolution = params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override : lastBakedInstance->getResolution(params->propertyBag);
-                if (params->resolutionSuperSampleScale > 1)
-                {
-                    const uint16_t resolutionSuperSampled = (uint16_t)(resolution * params->resolutionSuperSampleScale);
-                    sprintf(overlay, "%s (%dx%d to %dx%d)", lastBakedInstance->name.c_str(), resolutionSuperSampled, resolutionSuperSampled, resolution, resolution);
-                }
-                else
-                {
-                    sprintf(overlay, "%s (%dx%d)", lastBakedInstance->name.c_str(), resolution, resolution);
-                }
+                const uint16_t resolutionSuperSampled = (uint16_t)(resolution * params->resolutionSuperSampleScale);
+                sprintf(overlay, "%s (%dx%d to %dx%d)", lastBakedInstance->name.c_str(), resolutionSuperSampled, resolutionSuperSampled, resolution, resolution);
             }
 
-            ImGui::ProgressBar(bakeProgress / ((float)stage->getScene()->instances.size() + 1), { 0, 0 }, lastBakedInstance ? overlay : nullptr);
+            else
+                sprintf(overlay, "%s (%dx%d)", lastBakedInstance->name.c_str(), resolution, resolution);
+
+            fraction = bakeProgress / (float)std::max<size_t>(1, stage->getScene()->instances.size());
         }
-        else if (params->mode == BakingFactoryMode::LightField)
+
+        else if (params->mode == BakingFactoryMode::LightField && lastBakedShlf != nullptr)
         {
-            char overlay[1024];
-            if (lastBakedShlf != nullptr)
-                sprintf(overlay, "%s (%dx%dx%d)", lastBakedShlf->name.c_str(), lastBakedShlf->resolution.x(), lastBakedShlf->resolution.y(), lastBakedShlf->resolution.z());
-
-            ImGui::ProgressBar(bakeProgress / ((float)stage->getScene()->shLightFields.size() + 1), { 0, 0 }, lastBakedShlf ? overlay : nullptr);
+            sprintf(overlay, "%s (%dx%dx%d)", lastBakedShlf->name.c_str(), lastBakedShlf->resolution.x(), lastBakedShlf->resolution.y(), lastBakedShlf->resolution.z());
+            fraction = bakeProgress / (float)std::max<size_t>(1, stage->getScene()->shLightFields.size());
         }
 
+        ImGui::ProgressBar(fraction, { 0, 0 }, overlay);
         ImGui::Separator();
     }
 
