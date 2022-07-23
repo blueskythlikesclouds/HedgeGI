@@ -376,10 +376,6 @@ void BakeService::bakeLightField()
         SHLFBakerFunctionNode bake(g, tbb::flow::unlimited, [=](SHLFBakerContextPtr context)
         {
             context->bitmap = SHLightFieldBaker::bake(scene->getRaytracingContext(), *context->shlf, params->bakeParams);
-
-            ++progress;
-            lastBakedShlf = context->shlf;
-
             return std::move(context);
         });      
 
@@ -392,6 +388,10 @@ void BakeService::bakeLightField()
         SHLFBakerFunctionNode save(g, tbb::flow::unlimited, [=](SHLFBakerContextPtr context)
         {
             context->bitmap->save(params->outputDirectoryPath + "/" + context->shlf->name + ".dds", DXGI_FORMAT_R16G16B16A16_FLOAT);
+
+            ++progress;
+            lastBakedShlf = context->shlf;
+
             return std::move(context);
         });
 
