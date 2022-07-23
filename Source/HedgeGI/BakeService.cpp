@@ -118,10 +118,6 @@ void BakeService::bakeGI()
     GIBakerFunctionNode bake(g, tbb::flow::unlimited, [=](GIBakerContextPtr context)
     {
         context->pair = GIBaker::bake(scene->getRaytracingContext(), *context->instance, context->resolution, params->bakeParams);
-
-        ++progress;
-        lastBakedInstance = context->instance;
-
         return std::move(context);
     });
 
@@ -165,6 +161,9 @@ void BakeService::bakeGI()
         context->combined->save(context->shadowMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT,
             Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
 
+        ++progress;
+        lastBakedInstance = context->instance;
+
         return std::move(context);
     });
 
@@ -180,7 +179,13 @@ void BakeService::bakeGI()
             context->combined->save(context->lightMapFileName, DXGI_FORMAT_BC3_UNORM, nullptr, params->resolutionSuperSampleScale);
         }
         else if (params->bakeParams.targetEngine == TargetEngine::HE2)
+        {
             saveSeparated.try_put(context);
+            return std::move(context);
+        }
+
+        ++progress;
+        lastBakedInstance = context->instance;
 
         return std::move(context);
     });
@@ -218,10 +223,6 @@ void BakeService::bakeGI()
     GIBakerFunctionNode bakeSg(g, tbb::flow::unlimited, [=](GIBakerContextPtr context)
     {
         context->pair = SGGIBaker::bake(scene->getRaytracingContext(), *context->instance, context->resolution, params->bakeParams);
-
-        ++progress;
-        lastBakedInstance = context->instance;
-
         return std::move(context);
     });
 
@@ -257,6 +258,9 @@ void BakeService::bakeGI()
         context->pair.lightMap->save(context->lightMapFileName, SGGIBaker::LIGHT_MAP_FORMAT, nullptr, params->resolutionSuperSampleScale);
         context->pair.shadowMap->save(context->shadowMapFileName, SGGIBaker::SHADOW_MAP_FORMAT, nullptr, params->resolutionSuperSampleScale);
 
+        ++progress;
+        lastBakedInstance = context->instance;
+
         return std::move(context);
     });
 
@@ -266,6 +270,9 @@ void BakeService::bakeGI()
         {
             context->pair.lightMap->save(context->lightMapFileName, DXGI_FORMAT_R16G16B16A16_FLOAT, nullptr, params->resolutionSuperSampleScale);
             context->pair.shadowMap->save(context->shadowMapFileName, DXGI_FORMAT_R8_UNORM, nullptr, params->resolutionSuperSampleScale);
+
+            ++progress;
+            lastBakedInstance = context->instance;
         }
 
         else
@@ -335,6 +342,7 @@ void BakeService::bakeGI()
 
             ++progress;
             lastBakedInstance = instance;
+
             return;
         }
 
