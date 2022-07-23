@@ -107,7 +107,7 @@ void StateBakeStage::leave()
 {
     getContext()->get<ImGuiPresenter>()->popBackgroundColor();
 
-    if (packAfterFinish)
+    if (packAfterFinish && !getContext()->get<BakeService>()->isPendingCancel())
         getContext()->get<StateManager>()->pack(false);
     else
         getContext()->get<AppWindow>()->alert();
