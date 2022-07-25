@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Component.h"
-#include "GameType.h"
+#include "Game.h"
 #include "Scene.h"
 
 class Stage final : public Component
@@ -10,7 +10,7 @@ class Stage final : public Component
 
     std::string name;
     std::string directoryPath;
-    GameType gameType{};
+    Game game{};
     std::unique_ptr<Scene> scene;
 
 public:
@@ -18,7 +18,7 @@ public:
 
     const std::string& getName() const;
     const std::string& getDirectoryPath() const;
-    GameType getGameType() const;
+    Game getGame() const;
     Scene* getScene() const;
 
     void loadStage(const std::string& directoryPath);

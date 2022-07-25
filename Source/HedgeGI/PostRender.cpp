@@ -3,6 +3,7 @@
 #include "BakeParams.h"
 #include "CabinetCompression.h"
 #include "D3D11Device.h"
+#include "Game.h"
 #include "Logger.h"
 #include "Utilities.h"
 
@@ -567,20 +568,21 @@ std::vector<PostRender::Atlas> PostRender::createAtlases(std::list<Texture>& tex
     return atlases;
 }
 
-void PostRender::process(const std::string& stageDirectoryPath, const std::string& inputDirectoryPath, TargetEngine targetEngine)
+void PostRender::process(const std::string& stageDirectoryPath, const std::string& inputDirectoryPath, Game game, TargetEngine targetEngine)
 {
     const std::string stageName = getFileName(stageDirectoryPath);
 
-    const std::string resourcesFilePath = stageDirectoryPath + "/" + stageName + ".ar.00";
+    const std::string resourcesFilePath = stageDirectoryPath + 
+        (game == Game::Unleashed ? "/../../#" : "/") + stageName + ".ar.00";
+
     if (!std::filesystem::exists(resourcesFilePath))
     {
-        Logger::logFormatted(LogType::Error, "Failed to find %s.ar.00", stageName.c_str());
+        Logger::logFormatted(LogType::Error, "Failed to find %s", getFileName(resourcesFilePath).c_str());
         return;
     }
 
     auto nResourcesFilePath = toNchar(resourcesFilePath.c_str());
-
-    hl::archive resourcesArchive = hl::hh::ar::load(nResourcesFilePath.data());
+    hl::archive resourcesArchive = loadArchive(nResourcesFilePath.data());
 
     std::unique_ptr<hl::u8[]> groupInfoData;
     hl::u8* groupInfoOriginalData = nullptr;
@@ -657,7 +659,11 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
                 for (auto& entry : archive)
                     memorySize += (hl::u32)entry.size();
 
-                CabinetCompression::save(archive, stream, name);
+                if (game == Game::Generations)
+                    CabinetCompression::save(archive, stream, name);
+
+                else
+                    saveArchive(archive, stream);
             }
 
             Logger::logFormatted(LogType::Normal, "Saved %s", name);
@@ -680,9 +686,6 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
         }
     });
 
-    const std::string stageAddPfdFilePath = stageDirectoryPath + "/Stage-Add.pfd";
-    auto nStageAddPfdFilePath = toNchar(stageAddPfdFilePath.c_str());
-
     {
         hl::packed_file_info stagePfi;
         hl::hh::pfd::save(stageArchive, nStagePfdFilePath.data(), hl::hh::pfd::default_alignment, &stagePfi);
@@ -695,6 +698,16 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
         Logger::log(LogType::Normal, "Saved Stage.pfd");
     }
 
+    std::string stageAddPfdFilePath = stageDirectoryPath;
+    if (game == Game::Unleashed)
+    {
+        stageAddPfdFilePath += "/../../Additional/" + stageName;
+        std::filesystem::create_directories(stageAddPfdFilePath);
+    }
+
+    stageAddPfdFilePath += "/Stage-Add.pfd";
+
+    auto nStageAddPfdFilePath = toNchar(stageAddPfdFilePath.c_str());
     {
         hl::packed_file_info stageAddPfi;
         hl::hh::pfd::save(stageAddArchive, nStageAddPfdFilePath.data(), hl::hh::pfd::default_alignment, &stageAddPfi);
@@ -707,7 +720,7 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
         Logger::log(LogType::Normal, "Saved Stage-Add.pfd");
     }
 
-    hl::hh::ar::save(resourcesArchive, nResourcesFilePath.data());
+    hl::hh::ar::save(resourcesArchive, getFullPath(nResourcesFilePath).data()); // Use getFullPath as a workaround for HedgeLib extension bug
 
-    Logger::logFormatted(LogType::Normal, "Saved %s.ar.00", stageName.c_str());
+    Logger::logFormatted(LogType::Normal, "Saved %s", getFileName(resourcesFilePath).c_str());
 }

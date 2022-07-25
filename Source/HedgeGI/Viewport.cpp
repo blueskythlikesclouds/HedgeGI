@@ -109,18 +109,19 @@ void Viewport::copy()
 void Viewport::toneMap()
 {
     const auto stage = get<Stage>();
+    const auto game = stage->getGame();
     const auto params = get<StageParams>();
 
     const float middleGray = stage->getScene()->effect.hdr.middleGray;
 
     toneMapShader.use();
     toneMapShader.set("uRect", Vector4(0, 1 - normalizedHeight, normalizedWidth, normalizedHeight));
-    toneMapShader.set("uMiddleGray", stage->getGameType() == GameType::Forces ? middleGray * 0.5f : middleGray);
+    toneMapShader.set("uMiddleGray", stage->getGame() == Game::Forces ? middleGray * 0.5f : middleGray);
     toneMapShader.set("uTexture", 0);
     toneMapShader.set("uAvgLuminanceTex", 1);
     toneMapShader.set("uGamma",
         params->bakeParams.targetEngine == TargetEngine::HE2 ? 1.0f / 2.2f :
-        stage->getGameType() == GameType::Generations && params->gammaCorrectionFlag ? 1.25f :
+        (game == Game::Generations || game == Game::LostWorld) && params->gammaCorrectionFlag ? 1.25f :
         1.0f);
 
     const bool enableRgbTable = params->bakeParams.targetEngine == TargetEngine::HE2 && params->colorCorrectionFlag && rgbTable != nullptr;

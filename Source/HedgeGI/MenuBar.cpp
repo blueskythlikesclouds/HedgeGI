@@ -103,7 +103,7 @@ void MenuBar::update(float deltaTime)
         if (stage)
         {
             char text[0x100];
-            sprintf(text, "%s - %s", stage->getName().c_str(), GAME_NAMES[(int)stage->getGameType()]);
+            sprintf(text, "%s - %s", stage->getName().c_str(), GAME_NAMES[(int)stage->getGame()]);
 
             ImGui::SameLine(ImGui::GetWindowSize().x - ImGui::CalcTextSize(text).x - 8.0f);
             ImGui::Text(text);

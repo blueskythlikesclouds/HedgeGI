@@ -29,7 +29,7 @@ public:
         file = nullptr;
     }
 
-    long getPosition() const
+    long tell() const
     {
         return ftell(file);
     }

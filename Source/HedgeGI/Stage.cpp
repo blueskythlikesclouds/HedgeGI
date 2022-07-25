@@ -19,9 +19,9 @@ const std::string& Stage::getDirectoryPath() const
     return directoryPath;
 }
 
-GameType Stage::getGameType() const
+Game Stage::getGame() const
 {
-    return gameType;
+    return game;
 }
 
 Scene* Stage::getScene() const
@@ -34,7 +34,7 @@ void Stage::loadStage(const std::string& directoryPath)
     name = getFileNameWithoutExtension(directoryPath);
     this->directoryPath = directoryPath;
     get<AppData>()->addRecentStage(directoryPath);
-    gameType = detectGameFromStageDirectory(directoryPath);
+    game = detectGameFromStageDirectory(directoryPath);
 
     const auto params = get<StageParams>();
     params->propertyBag.load(directoryPath + "/" + name + ".hgi");

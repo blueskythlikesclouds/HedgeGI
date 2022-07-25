@@ -114,7 +114,8 @@ void SettingWindow::update(float deltaTime)
 
     if (beginProperties("##Viewport Settings"))
     {
-        if (stage->getGameType() == GameType::Generations && params->bakeParams.targetEngine == TargetEngine::HE1)
+        if ((stage->getGame() == Game::Generations || stage->getGame() == Game::LostWorld) && 
+            params->bakeParams.targetEngine == TargetEngine::HE1)
             property(GAMMA_CORRECTION_LABEL, params->gammaCorrectionFlag);
 
         if (params->bakeParams.targetEngine == TargetEngine::HE2)

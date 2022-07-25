@@ -111,7 +111,7 @@
     <ClCompile Include="BakeParams.cpp">
       <Filter>Baker</Filter>
     </ClCompile>
-    <ClCompile Include="GameType.cpp">
+    <ClCompile Include="Game.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="SceneEffect.cpp">
@@ -194,9 +194,6 @@
     </ClCompile>
     <ClCompile Include="SHLightField.cpp">
       <Filter>Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="CabinetCompression.cpp">
-      <Filter>Utilities</Filter>
     </ClCompile>
     <ClCompile Include="MetaInstancer.cpp">
       <Filter>HedgehogEngine</Filter>
@@ -328,6 +325,81 @@
     <ClCompile Include="SnapToClosestTriangle.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\cabc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\cabd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\chmc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\chmd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\crc32.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\hlpc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\hlpd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\kwajc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\kwajd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\litc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\litd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\lzssd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\lzxc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\lzxd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\mszipc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\mszipd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\oabc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\oabd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\qtmd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\system.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\szddc.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Dependencies\mspack\szddd.c">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="ArchiveCompression.cpp">
+      <Filter>Compression</Filter>
+    </ClCompile>
+    <ClCompile Include="CabinetCompression.cpp">
+      <Filter>Compression</Filter>
+    </ClCompile>
+    <ClCompile Include="XCompression.cpp">
+      <Filter>Compression</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -442,7 +514,7 @@
     <ClInclude Include="BakeParams.h">
       <Filter>Baker</Filter>
     </ClInclude>
-    <ClInclude Include="GameType.h">
+    <ClInclude Include="Game.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -480,9 +552,6 @@
     </ClInclude>
     <ClInclude Include="LightBVH.h">
       <Filter>Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="CabinetCompression.h">
-      <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="MetaInstancer.h">
       <Filter>HedgehogEngine</Filter>
@@ -623,6 +692,15 @@
     <ClInclude Include="SnapToClosestTriangle.h">
       <Filter>Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="CabinetCompression.h">
+      <Filter>Compression</Filter>
+    </ClInclude>
+    <ClInclude Include="ArchiveCompression.h">
+      <Filter>Compression</Filter>
+    </ClInclude>
+    <ClInclude Include="XCompression.h">
+      <Filter>Compression</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Scene">
@@ -714,6 +792,9 @@
     </Filter>
     <Filter Include="Components\Common">
       <UniqueIdentifier>{7c2aaba0-68db-4c6e-880d-c0252db48a6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Compression">
+      <UniqueIdentifier>{153e30b9-8efe-442b-ae91-4398dcc3204a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

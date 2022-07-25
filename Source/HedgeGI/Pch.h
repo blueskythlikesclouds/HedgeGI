@@ -92,6 +92,10 @@ using Quaternion = Eigen::Quaternionf;
 #include <im3d/im3d_config.h>
 #include <im3d/im3d_math.h>
 
+// mspack
+#include <mspack.h>
+#include <lzx.h>
+
 // Common types
 class CriticalSection
 {

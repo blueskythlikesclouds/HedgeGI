@@ -1,12 +1,13 @@
 ﻿#pragma once
 
-enum class GameType
+enum class Game
 {
     Unknown,
+    Unleashed,
     Generations,
     LostWorld,
     Forces
 };
 
 extern const char* const GAME_NAMES[];
-extern GameType detectGameFromStageDirectory(const std::string& directoryPath);
+extern Game detectGameFromStageDirectory(const std::string& directoryPath);

@@ -171,6 +171,14 @@ inline std::array<char, N> toUtf8(const hl::nchar* value)
     return array;
 }
 
+template<int N = 0x400>
+inline std::array<hl::nchar, N> getFullPath(const std::array<hl::nchar, N>& path)
+{
+    std::array<hl::nchar, N> array{};
+    GetFullPathName(path.data(), N, array.data(), nullptr);
+    return array;
+}
+
 inline Im3d::Vec3 transformIm3d(const Vector3& value, const Matrix4& matrix, float scale)
 {
     const Vector3 transformed = (matrix * Vector4(value.x(), value.y(), value.z(), 1.0f)).head<3>() * scale;
@@ -269,4 +277,67 @@ inline void savePfi(const hl::packed_file_info& pfi, hl::stream& stream)
     hl::hh::mirage::standard::raw_header::start_write(stream);
     hl::hh::pfi::v0::write(pfi, sizeof(hl::hh::mirage::standard::raw_header), offTable, stream);
     hl::hh::mirage::standard::raw_header::finish_write(0, sizeof(hl::hh::mirage::standard::raw_header), 0, offTable, stream, "");
+}
+
+inline void loadArchive(hl::archive& archive, void* data, const size_t dataSize)
+{
+    auto header = (hl::hh::ar::header*)data;
+
+    header->fix(dataSize);
+    header->parse(dataSize, archive);
+}
+
+inline hl::archive loadArchive(void* data, const size_t dataSize)
+{
+    hl::archive archive;
+    loadArchive(archive, data, dataSize);
+    return archive;
+}
+
+extern void loadArchive(hl::archive& archive, const hl::nchar* filePath);
+
+inline hl::archive loadArchive(const hl::nchar* filePath)
+{
+    hl::archive archive;
+    loadArchive(archive, filePath);
+    return archive;
+}
+
+inline void saveArchive(const hl::archive& archive, hl::stream& stream)
+{
+    const hl::hh::ar::header header =
+    {
+        0,
+        sizeof(hl::hh::ar::header),
+        sizeof(hl::hh::ar::file_entry),
+        16
+    };
+
+    stream.write_obj(header);
+
+    for (auto& entry : archive)
+    {
+        const size_t hhEntryPos = stream.tell();
+        const size_t nameLen = hl::text::len(entry.name());
+        const size_t dataPos = hl::align(hhEntryPos + sizeof(hl::hh::ar::file_entry) + nameLen + 1, 16);
+
+        const hl::hh::ar::file_entry hhEntry =
+        {
+            (hl::u32)(dataPos + entry.size() - hhEntryPos),
+            (hl::u32)entry.size(),
+            (hl::u32)(dataPos - hhEntryPos),
+            0,
+            0
+        };
+
+        stream.write_obj(hhEntry);
+
+        const auto name = toUtf8(entry.name());
+        stream.write_arr(nameLen + 1, name.data());
+
+        stream.pad(16);
+        stream.write(entry.size(), entry.file_data());
+    }
+
+    stream.seek(hl::seek_mode::beg, 0);
 }

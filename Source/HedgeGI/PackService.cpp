@@ -21,14 +21,15 @@ void PackService::pack()
     else if (params->mode == BakingFactoryMode::GI && 
         params->validateOutputDirectoryPath(false))
     {
-        switch (stage->getGameType())
+        switch (stage->getGame())
         {
-        case GameType::Generations:
-            packGenerationsGI();
+        case Game::Unleashed:
+        case Game::Generations:
+            packUnleashedOrGenerationsGI();
             break;
 
-        case GameType::LostWorld:
-        case GameType::Forces:
+        case Game::LostWorld:
+        case Game::Forces:
             packLostWorldOrForcesGI();
             break;
 
@@ -43,6 +44,7 @@ void PackService::pack()
 void PackService::packResources(PackResourceMode mode)
 {
     const auto stage = get<Stage>();
+    const auto game = stage->getGame();
     const auto scene = stage->getScene();
     const auto params = get<StageParams>();
 
@@ -51,17 +53,30 @@ void PackService::packResources(PackResourceMode mode)
 
     std::string archiveFileName;
 
-    if (stage->getGameType() == GameType::Generations)
+    if (game == Game::Unleashed)
+    {
+        if (mode == PackResourceMode::Light)
+            archiveFileName = "#";
+
+        archiveFileName += stage->getName();
+        archiveFileName += ".ar.00";
+    }
+
+    else if (game == Game::Generations)
         archiveFileName = stage->getName() + ".ar.00";
 
-    else if (stage->getGameType() == GameType::LostWorld || stage->getGameType() == GameType::Forces)
+    else if (game == Game::LostWorld || game == Game::Forces)
         archiveFileName = stage->getName() + "_trr_cmn.pac";
 
     else return;
 
-    auto nArchiveFilePath = toNchar((stage->getDirectoryPath() + "/" + archiveFileName).c_str());
+    const std::string archiveFilePath = stage->getDirectoryPath() +
+        (game == Game::Unleashed ? "/../../" : "/") + archiveFileName;
 
-    hl::archive archive = stage->getGameType() == GameType::Generations ? hl::hh::ar::load(nArchiveFilePath.data()) : hl::pacx::load(nArchiveFilePath.data());
+    auto nArchiveFilePath = toNchar(archiveFilePath.c_str());
+
+    hl::archive archive = game == Game::Unleashed || game == Game::Generations ? 
+        loadArchive(nArchiveFilePath.data()) : hl::pacx::load(nArchiveFilePath.data());
 
     if (mode == PackResourceMode::LightField)
     {
@@ -124,7 +139,7 @@ void PackService::packResources(PackResourceMode mode)
                 ++it;
         }
 
-        if (stage->getGameType() == GameType::Generations)
+        if (game == Game::Unleashed || game == Game::Generations)
         {
             Logger::log(LogType::Normal, "Packing light-list.light-list");
 
@@ -173,37 +188,39 @@ void PackService::packResources(PackResourceMode mode)
 
     else return;
 
-    switch (stage->getGameType())
+    switch (game)
     {
-    case GameType::Generations:
-        hl::hh::ar::save(archive, nArchiveFilePath.data());
+    case Game::Unleashed:
+    case Game::Generations:
+        hl::hh::ar::save(archive, getFullPath(nArchiveFilePath).data());
         break;
 
-    case GameType::LostWorld:
+    case Game::LostWorld:
         hl::pacx::v2::save(archive, hl::bina::endian_flag::little, hl::pacx::lw_exts, hl::pacx::lw_ext_count, nArchiveFilePath.data());
         break;
 
-    case GameType::Forces:
+    case Game::Forces:
         hl::pacx::v3::save(archive, hl::bina::endian_flag::little, hl::pacx::forces_exts, hl::pacx::forces_ext_count, nArchiveFilePath.data());
         break;
 
     default: return;
     }
 
-    Logger::logFormatted(LogType::Normal, "Saved %s", archiveFileName.c_str());
+    Logger::logFormatted(LogType::Normal, "Saved %s", getFileName(archiveFilePath).c_str());
 }
 
-void PackService::packGenerationsGI()
+void PackService::packUnleashedOrGenerationsGI()
 {
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
 
-    PostRender::process(stage->getDirectoryPath(), params->outputDirectoryPath, params->bakeParams.targetEngine);
+    PostRender::process(stage->getDirectoryPath(), params->outputDirectoryPath, stage->getGame(), params->bakeParams.targetEngine);
 }
 
 void PackService::packLostWorldOrForcesGI()
 {
     const auto stage = get<Stage>();
+    const auto game = stage->getGame();
     const auto params = get<StageParams>();
 
     static const char* lwSuffixes[] = { ".dds" };
@@ -212,12 +229,12 @@ void PackService::packLostWorldOrForcesGI()
     const char** suffixes;
     size_t suffixCount;
 
-    if (stage->getGameType() == GameType::LostWorld)
+    if (game == Game::LostWorld)
     {
         suffixes = lwSuffixes;
         suffixCount = _countof(lwSuffixes);
     }
-    else if (stage->getGameType() == GameType::Forces)
+    else if (game == Game::Forces)
     {
         suffixes = forcesSuffixes;
         suffixCount = _countof(forcesSuffixes);
@@ -287,10 +304,10 @@ void PackService::packLostWorldOrForcesGI()
 
         if (!any) return;
 
-        if (stage->getGameType() == GameType::LostWorld)
+        if (game == Game::LostWorld)
             hl::pacx::v2::save(archive, hl::bina::endian_flag::little, hl::pacx::lw_exts, hl::pacx::lw_ext_count, nArchiveFilePath.data());
 
-        else if (stage->getGameType() == GameType::Forces)
+        else if (game == Game::Forces)
             hl::pacx::v3::save(archive, hl::bina::endian_flag::little, hl::pacx::forces_exts, hl::pacx::forces_ext_count, nArchiveFilePath.data());
 
         Logger::logFormatted(LogType::Normal, "Saved %s", archiveFileName.c_str());

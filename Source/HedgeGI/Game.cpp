@@ -1,4 +1,4 @@
-﻿#include "GameType.h"
+﻿#include "Game.h"
 
 #include "FileStream.h"
 #include "Utilities.h"
@@ -6,17 +6,23 @@
 const char* const GAME_NAMES[] =
 {
     "Unknown",
+    "Sonic Unleashed",
     "Sonic Generations",
     "Sonic Lost World",
     "Sonic Forces"
 };
 
-GameType detectGameFromStageDirectory(const std::string& directoryPath)
+Game detectGameFromStageDirectory(const std::string& directoryPath)
 {
-    GameType game = GameType::Unknown;
+    Game game = Game::Unknown;
 
     if (std::filesystem::exists(directoryPath + "/Stage.pfd"))
-        game = GameType::Generations;
+    {
+        if (std::filesystem::exists(directoryPath + "/" + getFileName(directoryPath) + ".ar.00"))
+            game = Game::Generations;
+        else
+            game = Game::Unleashed;
+    }
 
     else
     {
@@ -26,7 +32,7 @@ GameType detectGameFromStageDirectory(const std::string& directoryPath)
             fileStream.seek(4, SEEK_SET);
             const char version = fileStream.read<char>();
 
-            game = version == '3' ? GameType::Forces : version == '2' ? GameType::LostWorld : GameType::Unknown;
+            game = version == '3' ? Game::Forces : version == '2' ? Game::LostWorld : Game::Unknown;
         }
     }
 

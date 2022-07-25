@@ -122,24 +122,20 @@ namespace
     {
         return fdiOpen(pszName, 0, 0);
     }
-
-    hl::archive loadArchive(void* data, const size_t dataSize)
-    {
-        hl::archive archive;
-
-        auto header = (hl::hh::ar::header*)data;
-
-        header->fix(dataSize);
-        header->parse(dataSize, archive);
-
-        return archive;
-    }
 }
 
-hl::archive CabinetCompression::load(void* data, const size_t dataSize)
+bool CabinetCompression::checkSignature(void* data)
 {
-    if (*(uint32_t*)data != MAKEFOURCC('M', 'S', 'C', 'F'))
-        return loadArchive(data, dataSize);
+    return *(uint32_t*)data == MAKEFOURCC('M', 'S', 'C', 'F');
+}
+
+void CabinetCompression::load(hl::archive& archive, void* data, size_t dataSize)
+{
+    if (!checkSignature(data))
+    {
+        loadArchive(archive, data, dataSize);
+        return;
+    }
 
     hl::readonly_mem_stream source(data, dataSize);
     hl::mem_stream destination;
@@ -165,50 +161,20 @@ hl::archive CabinetCompression::load(void* data, const size_t dataSize)
     FDICopy(fdi, cabinet, cabPath, 0, fdiNotify, nullptr, &destination);
     FDIDestroy(fdi);
 
-    return loadArchive(destination.get_data_ptr(), destination.get_size());
+    loadArchive(archive, destination.get_data_ptr(), destination.get_size());
+}
+
+hl::archive CabinetCompression::load(void* data, const size_t dataSize)
+{
+    hl::archive archive;
+    load(archive, data, dataSize);
+    return archive;
 }
 
 void CabinetCompression::save(const hl::archive& archive, hl::stream& destination, char* fileName)
 {
-    // HedgeLib has no stream overloads for archive save functions, yay...
     hl::mem_stream source;
-    {
-        const hl::hh::ar::header header =
-        {
-            0,
-            sizeof(hl::hh::ar::header),
-            sizeof(hl::hh::ar::file_entry),
-            16
-        };
-
-        source.write_obj(header);
-
-        for (auto& entry : archive)
-        {
-            const size_t hhEntryPos = source.tell();
-            const size_t nameLen = hl::text::len(entry.name());
-            const size_t dataPos = hl::align(hhEntryPos + sizeof(hl::hh::ar::file_entry) + nameLen + 1, 16);
-
-            const hl::hh::ar::file_entry hhEntry =
-            {
-                (hl::u32)(dataPos + entry.size() - hhEntryPos),
-                (hl::u32)entry.size(),
-                (hl::u32)(dataPos - hhEntryPos),
-                0,
-                0
-            };
-
-            source.write_obj(hhEntry);
-
-            const auto name = toUtf8(entry.name());
-            source.write_arr(nameLen + 1, name.data());
-
-            source.pad(16);
-            source.write(entry.size(), entry.file_data());
-        }
-
-        source.seek(hl::seek_mode::beg, 0);
-    }
+    saveArchive(archive, source);
 
     CCAB ccab;
     ZeroMemory(&ccab, sizeof(ccab));

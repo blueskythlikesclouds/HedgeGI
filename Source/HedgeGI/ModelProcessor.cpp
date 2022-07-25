@@ -79,11 +79,11 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
     }
     else
     {
-        hl::archive archive = hl::hh::ar::load(nArchiveFilePath.data());
+        hl::archive archive = loadArchive(nArchiveFilePath.data());
         if (!processArchive(archive, function))
             return;
 
-        hl::hh::ar::save(archive, nArchiveFilePath.data(), 0, 0x10, hl::compress_type::none, false);
+        hl::hh::ar::save(archive, getFullPath(nArchiveFilePath).data(), 0, 0x10, hl::compress_type::none, false);
     }
 
     Logger::logFormatted(LogType::Normal, "Saved %s", fileName.c_str());
@@ -129,7 +129,7 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
 
         auto nResourcesFilePath = toNchar(resourcesFilePath.c_str());
 
-        hl::archive archive = hl::hh::ar::load(nResourcesFilePath.data());
+        hl::archive archive = loadArchive(nResourcesFilePath.data());
         for (size_t i = 0; i < archive.size(); i++)
         {
             hl::archive_entry& entry = archive[i];
@@ -143,7 +143,7 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
             break;
         }
 
-        hl::hh::ar::save(archive, nResourcesFilePath.data());
+        hl::hh::ar::save(archive, getFullPath(nResourcesFilePath).data());
     }
 }
 

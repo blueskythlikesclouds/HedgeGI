@@ -15,6 +15,6 @@ public:
     void pack();
 
     void packResources(PackResourceMode mode);
-    void packGenerationsGI();
+    void packUnleashedOrGenerationsGI();
     void packLostWorldOrForcesGI();
 };

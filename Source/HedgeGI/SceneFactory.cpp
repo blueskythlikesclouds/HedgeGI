@@ -1,7 +1,7 @@
 ﻿#include "SceneFactory.h"
 
+#include "ArchiveCompression.h"
 #include "Bitmap.h"
-#include "CabinetCompression.h"
 #include "Instance.h"
 #include "Light.h"
 #include "Logger.h"
@@ -88,7 +88,8 @@ std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const si
     return bitmap;
 }
 
-std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_material_v3* material) const
+template<typename T>
+std::unique_ptr<Material> SceneFactory::createMaterial(T* material, const hl::archive& archive) const
 {
     std::unique_ptr<Material> newMaterial = std::make_unique<Material>();
 
@@ -136,10 +137,8 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
     newMaterial->parameters.doubleSided = material->noBackfaceCulling;
     newMaterial->parameters.additive = material->useAdditiveBlending;
 
-    for (size_t i = 0; i < material->textureEntryCount; i++)
+    const auto createTexture = [&](const hl::hh::mirage::raw_texture_entry_v1* texture)
     {
-        const auto& texture = material->textureEntries[i];
-
         const Bitmap* bitmap = nullptr;
 
         for (auto& item : scene->bitmaps)
@@ -154,7 +153,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
         if (bitmap == nullptr)
         {
             Logger::logFormatted(LogType::Error, "Failed to find %s.dds", texture->texName.get());
-            continue;
+            return;
         }
 
         if (strcmp(texture->type.get(), "diffuse") == 0)
@@ -199,6 +198,66 @@ std::unique_ptr<Material> SceneFactory::createMaterial(hl::hh::mirage::raw_mater
         {
             newMaterial->textures.environment = bitmap;
         }
+    };
+
+    if constexpr (std::is_same_v<T, hl::hh::mirage::raw_material_v1>)
+    {
+        const auto texsetFileName = toNchar((std::string(material->texsetName.get()) + ".texset").c_str());
+
+        for (auto& texsetEntry : archive)
+        {
+            if (!hl::text::equal(texsetEntry.name(), texsetFileName.data()))
+                continue;
+
+            void* data = (void*)texsetEntry.file_data();
+            uint32_t* marker = (uint32_t*)data + 1;
+
+            // Mark manually to not corrupt the data with repeating calls.
+            if (*marker != ~0)
+                hl::hh::mirage::fix(data);
+
+            const auto texset = hl::hh::mirage::get_data<hl::hh::mirage::raw_texset_v0>(data);
+            if (*marker != ~0)
+            {
+                texset->fix();
+                *marker = ~0;
+            }
+
+            for (auto& texName : texset->textureEntryNames)
+            {
+                const auto texFileName = toNchar((std::string(texName.get()) + ".texture").c_str());
+
+                for (auto& texEntry : archive)
+                {
+                    if (!hl::text::equal(texEntry.name(), texFileName.data()))
+                        continue;
+
+                    data = (void*)texEntry.file_data();
+                    marker = (uint32_t*)data + 1;
+
+                    // Same logic as texset for textures.
+                    if (*marker != ~0)
+                        hl::hh::mirage::fix(data);
+
+                    const auto texture = hl::hh::mirage::get_data<hl::hh::mirage::raw_texture_entry_v1>(data);
+                    if (*marker != ~0)
+                    {
+                        texture->fix();
+                        *marker = ~0;
+                    }
+
+                    createTexture(texture);
+                }
+            }
+
+            break;
+        }
+    }
+
+    else
+    {
+        for (size_t i = 0; i < material->textureEntryCount; i++)
+            createTexture(material->textureEntries[i].get());
     }
 
     return newMaterial;
@@ -548,16 +607,26 @@ void SceneFactory::loadResources(const hl::archive& archive)
             hl::u32 version;
             auto material = hl::hh::mirage::get_data<hl::hh::mirage::raw_material_v3>(data, &version);
 
-            // Allow version 0 to account for HedgeLib C#'s faulty writing
-            if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 0 && version != 3)
+            std::unique_ptr<Material> newMaterial;
+
+            if (hl::hh::mirage::has_sample_chunk_header_fixed(data) || version == 3)
+            {
+                material->fix();
+                newMaterial = createMaterial(material, archive);
+            }
+            else if (version == 1)
+            {
+                const auto mat = reinterpret_cast<hl::hh::mirage::raw_material_v1*>(material);
+                mat->fix();
+
+                newMaterial = createMaterial(mat, archive);
+            }
+            else
             {
                 Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
                 return;
             }
 
-            material->fix();
-
-            std::unique_ptr<Material> newMaterial = createMaterial(material);
             newMaterial->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
             std::lock_guard lock(criticalSection);
@@ -634,7 +703,7 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
 {
     tbb::task_group group;
 
-    std::vector<hl::hh::mirage::raw_terrain_model_v5*> models;
+    std::vector<std::pair<hl::hh::mirage::raw_terrain_model_v5*, bool>> models;
     CriticalSection critSect;
 
     for (auto& archive : archives)
@@ -671,10 +740,9 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
                 }
 
                 model->fix();
-                model->rev2_flags = false;
 
                 std::lock_guard lock(critSect);
-                models.push_back(model);
+                models.push_back(std::make_pair(model, false));
             });
         }
     }
@@ -697,14 +765,14 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
                 auto instance = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_instance_info_v0>(data);
                 instance->fix();
 
-                for (auto& model : models)
+                for (auto& pair : models)
                 {
-                    if (strcmp(model->name.get(), instance->modelName.get()) != 0)
+                    if (strcmp(pair.first->name.get(), instance->modelName.get()) != 0)
                         continue;
 
-                    model->rev2_flags = true;
+                    pair.second = true;
 
-                    std::unique_ptr<Instance> newInstance = createInstance(instance, model);
+                    std::unique_ptr<Instance> newInstance = createInstance(instance, pair.first);
 
                     std::lock_guard lock(criticalSection);
                     scene->instances.push_back(std::move(newInstance));
@@ -720,12 +788,12 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
     // Load models that aren't bound to any instances
     for (auto& model : models)
     {
-        if (model->rev2_flags)
+        if (model.second)
             continue;
 
         group.run([&]
         {
-            std::unique_ptr<Instance> newInstance = createInstance(nullptr, model);
+            std::unique_ptr<Instance> newInstance = createInstance(nullptr, model.first);
 
             std::lock_guard lock(criticalSection);
             scene->instances.push_back(std::move(newInstance));
@@ -858,14 +926,82 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive) const
     }
 }
 
-void SceneFactory::createFromGenerations(const std::string& directoryPath)
+void SceneFactory::createFromUnleashedOrGenerations(const std::string& directoryPath)
 {
     // Load resources
+    const auto rootDirPath = directoryPath + "/../../";
+    const auto packedDirPath = directoryPath + "/";
+    
+    const auto highPrioArFilePath = rootDirPath + "#" + stageName + ".ar.00";
     {
-        const auto resArchive = hl::hh::ar::load(toNchar((directoryPath + "/" + stageName + ".ar.00").c_str()).data());
+        hl::archive archive;
 
-        loadResources(resArchive);
-        loadLights(resArchive);
+        const auto loadArchiveIfExist = [&](const std::string& filePath)
+        {
+            if (std::filesystem::exists(filePath))
+                loadArchive(archive, toNchar(filePath.c_str()).data());
+        };
+
+        const auto resArchiveFilePath = packedDirPath + stageName + ".ar.00";
+
+        if (!std::filesystem::exists(resArchiveFilePath)) // Very likely Unleashed
+        {
+            loadArchiveIfExist(rootDirPath + stageName + ".ar.00");
+            loadArchiveIfExist(highPrioArFilePath);
+
+            std::string type;
+            std::string region;
+
+            // Try extracting the stage type and region.
+            size_t index = stageName.find("Act");
+            if (index != std::string::npos)
+            {
+                const char typeChar = stageName[index + 3];
+                if (typeChar == 'D' || typeChar == 'N')
+                    type = typeChar;
+            }
+
+            index = stageName.find('_');
+            if (index != std::string::npos)
+            {
+                region = stageName.substr(index + 1);
+
+                index = region.find("Sub");
+                if (index != std::string::npos)
+                    region.erase(index, 3);
+
+                const auto eraseSuffix = [&](const char* suffix)
+                {
+                    index = region.find(suffix);
+                    if (index != std::string::npos)
+                        region.erase(index, region.size() - index);
+                };
+
+                eraseSuffix("_");
+                eraseSuffix("Act1");
+                eraseSuffix("Act2");
+                eraseSuffix("Evil");
+            }
+
+            if (!region.empty())
+            {
+                loadArchiveIfExist(rootDirPath + "CmnAct_" + region + ".ar.00");
+                if (!type.empty())
+                    loadArchiveIfExist(rootDirPath + "CmnAct" + type + "_Terrain_" + region + ".ar.00");
+
+                loadArchiveIfExist(rootDirPath + "Cmn" + region + ".ar.00");
+            }
+        }
+
+        else // Generations
+        {
+            loadArchiveIfExist(resArchiveFilePath);
+            loadArchiveIfExist(highPrioArFilePath);
+        }
+
+        loadResources(archive);
+        loadLights(archive);
+        loadSceneEffect(archive);
 
         scene->createLightBVH();
     }
@@ -883,7 +1019,7 @@ void SceneFactory::createFromGenerations(const std::string& directoryPath)
 
             group.run([&]
             {
-                loadTerrain({ CabinetCompression::load(entry.file_data(), entry.size()) });
+                loadTerrain({ ArchiveCompression::load(entry.file_data(), entry.size()) });
             });
         }
 
@@ -896,7 +1032,7 @@ void SceneFactory::createFromGenerations(const std::string& directoryPath)
 
             group.run([&]
             {
-                loadResolutions({ CabinetCompression::load(entry.file_data(), entry.size()) });
+                loadResolutions({ ArchiveCompression::load(entry.file_data(), entry.size()) });
             });
         }
 
@@ -905,11 +1041,6 @@ void SceneFactory::createFromGenerations(const std::string& directoryPath)
 
     scene->sortAndUnify();
     scene->buildAABB();
-
-    auto arFilePath = toNchar((directoryPath + "/../../#" + stageName + ".ar.00").c_str());
-
-    if (hl::path::exists(arFilePath.data()))
-        loadSceneEffect(hl::hh::ar::load(arFilePath.data()));
 }
 
 void SceneFactory::createFromLostWorldOrForces(const std::string& directoryPath)
@@ -980,7 +1111,7 @@ std::unique_ptr<Scene> SceneFactory::create(const std::string& directoryPath)
     factory.stageName = getFileNameWithoutExtension(directoryPath);
 
     if (std::filesystem::exists(directoryPath + "/Stage.pfd"))
-        factory.createFromGenerations(directoryPath);
+        factory.createFromUnleashedOrGenerations(directoryPath);
     else
         factory.createFromLostWorldOrForces(directoryPath);
 

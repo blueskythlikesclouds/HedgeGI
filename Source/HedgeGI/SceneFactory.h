@@ -18,7 +18,7 @@ private:
     CriticalSection criticalSection;
 
     std::unique_ptr<Bitmap> createBitmap(const uint8_t* data, size_t length) const;
-    std::unique_ptr<Material> createMaterial(hl::hh::mirage::raw_material_v3* material) const;
+    template<typename T> std::unique_ptr<Material> createMaterial(T* material, const hl::archive& archive) const;
     std::unique_ptr<Mesh> createMesh(hl::hh::mirage::raw_mesh* mesh, const Affine3& transformation) const;
     std::unique_ptr<Model> createModel(hl::hh::mirage::raw_skeletal_model_v5* model);
     std::unique_ptr<Instance> createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, hl::hh::mirage::raw_terrain_model_v5* model);
@@ -31,7 +31,7 @@ private:
     void loadResolutions(const hl::archive& archive) const;
     void loadSceneEffect(const hl::archive& archive) const;
 
-    void createFromGenerations(const std::string& directoryPath);
+    void createFromUnleashedOrGenerations(const std::string& directoryPath);
     void createFromLostWorldOrForces(const std::string& directoryPath);
 
 public:

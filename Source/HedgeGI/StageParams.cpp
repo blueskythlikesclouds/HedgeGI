@@ -19,7 +19,7 @@ void StageParams::loadProperties()
     resolutionSuperSampleScale = propertyBag.get(PROP("resolutionSuperSampleScale"), 1);
     useExistingLightField = propertyBag.get(PROP("useExistingLightField"), false);
 
-    if (stage->getGameType() == GameType::Forces)
+    if (stage->getGame() == Game::Forces)
         bakeParams.targetEngine = TargetEngine::HE2;
 }
 

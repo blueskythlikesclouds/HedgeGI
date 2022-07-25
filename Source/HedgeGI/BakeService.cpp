@@ -108,6 +108,7 @@ void BakeService::bake()
 void BakeService::bakeGI()
 {
     const auto stage = get<Stage>();
+    const auto game = stage->getGame();
     const auto scene = stage->getScene();
     const auto params = get<StageParams>();
 
@@ -155,10 +156,10 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode saveSeparated(g, 1, [=](GIBakerContextPtr context)
     {
-        context->combined->save(context->lightMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT,
+        context->combined->save(context->lightMapFileName, game == Game::Generations ? DXGI_FORMAT_R16G16B16A16_FLOAT : SGGIBaker::LIGHT_MAP_FORMAT,
             Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
 
-        context->combined->save(context->shadowMapFileName, stage->getGameType() == GameType::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT,
+        context->combined->save(context->shadowMapFileName, game == Game::Generations ? DXGI_FORMAT_R8_UNORM : SGGIBaker::SHADOW_MAP_FORMAT,
             Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
 
         ++progress;
@@ -169,12 +170,12 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode save(g, tbb::flow::unlimited, [=, &saveSeparated](GIBakerContextPtr context)
     {
-        if (stage->getGameType() == GameType::Generations && params->bakeParams.targetEngine == TargetEngine::HE1)
+        if (game == Game::Unleashed || (game == Game::Generations && params->bakeParams.targetEngine == TargetEngine::HE1))
         {
             context->combined->save(context->lightMapFileName, Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
             context->combined->save(context->shadowMapFileName, Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
         }
-        else if (stage->getGameType() == GameType::LostWorld)
+        else if (game == Game::LostWorld)
         {
             context->combined->save(context->lightMapFileName, DXGI_FORMAT_BC3_UNORM, nullptr, params->resolutionSuperSampleScale);
         }
@@ -266,7 +267,7 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode saveSg(g, tbb::flow::unlimited, [=, &saveSgCompressed](GIBakerContextPtr context)
     {
-        if (stage->getGameType() == GameType::Generations)
+        if (game == Game::Generations)
         {
             context->pair.lightMap->save(context->lightMapFileName, DXGI_FORMAT_R16G16B16A16_FLOAT, nullptr, params->resolutionSuperSampleScale);
             context->pair.shadowMap->save(context->shadowMapFileName, DXGI_FORMAT_R8_UNORM, nullptr, params->resolutionSuperSampleScale);
@@ -316,7 +317,7 @@ void BakeService::bakeGI()
                 lightMapFileName = isSg ? instance->name + "_sg.dds" : instance->name + ".dds";
                 shadowMapFileName = instance->name + "_occlusion.dds";
             }
-            else if (stage->getGameType() == GameType::LostWorld)
+            else if (game == Game::LostWorld)
             {
                 lightMapFileName = instance->name + ".dds";
             }
