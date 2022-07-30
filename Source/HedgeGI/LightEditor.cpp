@@ -264,13 +264,13 @@ void LightEditor::update(float deltaTime)
             }
 
             // Convert to SRGB when dealing with HE2
-            if (params->bakeParams.targetEngine == TargetEngine::HE2)
+            if (params->targetEngine == TargetEngine::HE2)
                 color = color.pow(1.0f / 2.2f);
 
             params->dirty |= property(LIGHT_COLOR_LABEL, color);
             params->dirty |= dragProperty(LIGHT_COLOR_INTENSITY_LABEL, intensity, 0.01f, 0, INFINITY);
 
-            if (params->bakeParams.targetEngine == TargetEngine::HE2)
+            if (params->targetEngine == TargetEngine::HE2)
                 color = color.pow(2.2f);
 
             selection->color = color * intensity;
@@ -282,12 +282,12 @@ void LightEditor::update(float deltaTime)
 
             if (selection->type == LightType::Point)
             {
-                if (params->bakeParams.targetEngine == TargetEngine::HE1)
+                if (params->targetEngine == TargetEngine::HE1)
                 {
                     params->dirtyBVH |= dragProperty(LIGHT_INNER_RADIUS_LABEL, selection->range.z(), 0.1f, 0.0f, selection->range.w());
                     params->dirtyBVH |= dragProperty(LIGHT_OUTER_RADIUS_LABEL, selection->range.w(), 0.1f, selection->range.z(), INFINITY);
                 }
-                else if (params->bakeParams.targetEngine == TargetEngine::HE2)
+                else if (params->targetEngine == TargetEngine::HE2)
                 {
                     if (dragProperty(LIGHT_RADIUS_LABEL, selection->range.w()))
                     {

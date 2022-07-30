@@ -9,7 +9,7 @@ void StageParams::loadProperties()
     const auto stage = get<Stage>();
 
     get<CameraController>()->load(propertyBag);
-    bakeParams.load(propertyBag);
+    load(propertyBag);
     viewportResolutionInvRatio = propertyBag.get(PROP("viewportResolutionInvRatio"), 2.0f);
     gammaCorrectionFlag = propertyBag.get(PROP("gammaCorrectionFlag"), false);
     colorCorrectionFlag = propertyBag.get(PROP("colorCorrectionFlag"), true);
@@ -20,13 +20,13 @@ void StageParams::loadProperties()
     useExistingLightField = propertyBag.get(PROP("useExistingLightField"), false);
 
     if (stage->getGame() == Game::Forces)
-        bakeParams.targetEngine = TargetEngine::HE2;
+        targetEngine = TargetEngine::HE2;
 }
 
 void StageParams::storeProperties()
 {
     get<CameraController>()->store(propertyBag);
-    bakeParams.store(propertyBag);
+    store(propertyBag);
     propertyBag.set(PROP("viewportResolutionInvRatio"), viewportResolutionInvRatio);
     propertyBag.set(PROP("gammaCorrectionFlag"), gammaCorrectionFlag);
     propertyBag.set(PROP("colorCorrectionFlag"), colorCorrectionFlag);

@@ -118,7 +118,7 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode bake(g, tbb::flow::unlimited, [=](GIBakerContextPtr context)
     {
-        context->pair = GIBaker::bake(scene->getRaytracingContext(), *context->instance, context->resolution, params->bakeParams);
+        context->pair = GIBaker::bake(scene->getRaytracingContext(), *context->instance, context->resolution, *static_cast<BakeParams*>(params));
         return std::move(context);
     });
 
@@ -138,7 +138,7 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode denoise(g, 1, [=](GIBakerContextPtr context)
     {
-        context->combined = BitmapHelper::denoise(*context->combined, params->bakeParams.getDenoiserType(), params->bakeParams.postProcess.denoiseShadowMap);
+        context->combined = BitmapHelper::denoise(*context->combined, params->getDenoiserType(), params->postProcess.denoiseShadowMap);
         return std::move(context);
     });
 
@@ -170,7 +170,7 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode save(g, tbb::flow::unlimited, [=, &saveSeparated](GIBakerContextPtr context)
     {
-        if (game == Game::Unleashed || (game == Game::Generations && params->bakeParams.targetEngine == TargetEngine::HE1))
+        if (game == Game::Unleashed || (game == Game::Generations && params->targetEngine == TargetEngine::HE1))
         {
             context->combined->save(context->lightMapFileName, Bitmap::transformToLightMap, params->resolutionSuperSampleScale);
             context->combined->save(context->shadowMapFileName, Bitmap::transformToShadowMap, params->resolutionSuperSampleScale);
@@ -179,7 +179,7 @@ void BakeService::bakeGI()
         {
             context->combined->save(context->lightMapFileName, DXGI_FORMAT_BC3_UNORM, nullptr, params->resolutionSuperSampleScale);
         }
-        else if (params->bakeParams.targetEngine == TargetEngine::HE2)
+        else if (params->targetEngine == TargetEngine::HE2)
         {
             saveSeparated.try_put(context);
             return std::move(context);
@@ -197,19 +197,19 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode* output = &combine;
 
-    if (params->bakeParams.getDenoiserType() != DenoiserType::None)
+    if (params->getDenoiserType() != DenoiserType::None)
     {
         tbb::flow::make_edge(*output, denoise);
         output = &denoise;
     }
 
-    if (params->bakeParams.postProcess.optimizeSeams)
+    if (params->postProcess.optimizeSeams)
     {
         tbb::flow::make_edge(*output, optimizeSeams);
         output = &optimizeSeams;
     }
 
-    if (params->bakeParams.targetEngine == TargetEngine::HE1)
+    if (params->targetEngine == TargetEngine::HE1)
     {
         tbb::flow::make_edge(*output, encodeReady);
         output = &encodeReady;
@@ -223,7 +223,7 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode bakeSg(g, tbb::flow::unlimited, [=](GIBakerContextPtr context)
     {
-        context->pair = SGGIBaker::bake(scene->getRaytracingContext(), *context->instance, context->resolution, params->bakeParams);
+        context->pair = SGGIBaker::bake(scene->getRaytracingContext(), *context->instance, context->resolution, *static_cast<BakeParams*>(params));
         return std::move(context);
     });
 
@@ -237,10 +237,10 @@ void BakeService::bakeGI()
 
     GIBakerFunctionNode denoiseSg(g, 1, [=](GIBakerContextPtr context)
     {
-        context->pair.lightMap = BitmapHelper::denoise(*context->pair.lightMap, params->bakeParams.getDenoiserType());
+        context->pair.lightMap = BitmapHelper::denoise(*context->pair.lightMap, params->getDenoiserType());
 
-        if (params->bakeParams.postProcess.denoiseShadowMap)
-            context->pair.shadowMap = BitmapHelper::denoise(*context->pair.shadowMap, params->bakeParams.getDenoiserType());
+        if (params->postProcess.denoiseShadowMap)
+            context->pair.shadowMap = BitmapHelper::denoise(*context->pair.shadowMap, params->getDenoiserType());
 
         return std::move(context);
     });
@@ -287,13 +287,13 @@ void BakeService::bakeGI()
 
     output = &dilateSg;
 
-    if (params->bakeParams.getDenoiserType() != DenoiserType::None)
+    if (params->getDenoiserType() != DenoiserType::None)
     {
         tbb::flow::make_edge(*output, denoiseSg);
         output = &denoiseSg;
     }
 
-    if (params->bakeParams.postProcess.optimizeSeams)
+    if (params->postProcess.optimizeSeams)
     {
         tbb::flow::make_edge(*output, optimizeSeamsSg);
         output = &optimizeSeamsSg;
@@ -305,14 +305,14 @@ void BakeService::bakeGI()
     {
         bool skip = instance->name.find("_NoGI") != std::string::npos || instance->name.find("_noGI") != std::string::npos;
 
-        const bool isSg = !skip && params->bakeParams.targetEngine == TargetEngine::HE2 && params->propertyBag.get(instance->name + ".isSg", true);
+        const bool isSg = !skip && params->targetEngine == TargetEngine::HE2 && params->propertyBag.get(instance->name + ".isSg", true);
 
         std::string lightMapFileName;
         std::string shadowMapFileName;
 
         if (!skip)
         {
-            if (params->bakeParams.targetEngine == TargetEngine::HE2)
+            if (params->targetEngine == TargetEngine::HE2)
             {
                 lightMapFileName = isSg ? instance->name + "_sg.dds" : instance->name + ".dds";
                 shadowMapFileName = instance->name + "_occlusion.dds";
@@ -351,7 +351,7 @@ void BakeService::bakeGI()
 
         context->instance = instance;
 
-        context->resolution = (uint16_t)((params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override :
+        context->resolution = (uint16_t)((params->resolution.override > 0 ? params->resolution.override :
             instance->getResolution(params->propertyBag)) * params->resolutionSuperSampleScale);
 
         context->lightMapFileName = std::move(lightMapFileName);
@@ -372,17 +372,17 @@ void BakeService::bakeLightField()
     const auto scene = stage->getScene();
     const auto params = get<StageParams>();
 
-    if (params->bakeParams.targetEngine == TargetEngine::HE2)
+    if (params->targetEngine == TargetEngine::HE2)
     {
         SHLFBakerFunctionNode bake(g, tbb::flow::unlimited, [=](SHLFBakerContextPtr context)
         {
-            context->bitmap = SHLightFieldBaker::bake(scene->getRaytracingContext(), *context->shlf, params->bakeParams);
+            context->bitmap = SHLightFieldBaker::bake(scene->getRaytracingContext(), *context->shlf, *static_cast<BakeParams*>(params));
             return std::move(context);
         });      
 
         SHLFBakerFunctionNode denoise(g, 1, [=](SHLFBakerContextPtr context)
         {
-            context->bitmap = BitmapHelper::denoise(*context->bitmap, params->bakeParams.getDenoiserType());
+            context->bitmap = BitmapHelper::denoise(*context->bitmap, params->getDenoiserType());
             return std::move(context);
         });
 
@@ -396,7 +396,7 @@ void BakeService::bakeLightField()
             return std::move(context);
         });
 
-        if (params->bakeParams.getDenoiserType() != DenoiserType::None)
+        if (params->getDenoiserType() != DenoiserType::None)
         {
             tbb::flow::make_edge(bake, denoise);
             tbb::flow::make_edge(denoise, save);
@@ -410,12 +410,12 @@ void BakeService::bakeLightField()
         g.wait_for_all();
     }
 
-    else if (params->bakeParams.targetEngine == TargetEngine::HE1)
+    else if (params->targetEngine == TargetEngine::HE1)
     {
         if (cancel)
             return;
 
-        LightFieldBaker::bake(scene->lightField, scene->getRaytracingContext(), params->bakeParams, !params->useExistingLightField);
+        LightFieldBaker::bake(scene->lightField, scene->getRaytracingContext(), *static_cast<BakeParams*>(params), !params->useExistingLightField);
 
         Logger::log(LogType::Normal, "Saving...\n");
 
@@ -441,7 +441,7 @@ void BakeService::bakeMetaInstancer()
         for (size_t i = range.begin(); i < range.end(); i++)
         {
             auto& mti = *scene->metaInstancers[i];
-            MetaInstancerBaker::bake(mti, scene->getRaytracingContext(), params->bakeParams);
+            MetaInstancerBaker::bake(mti, scene->getRaytracingContext(), *static_cast<BakeParams*>(params));
 
             mti.save(params->outputDirectoryPath + "/" + mti.name + ".mti");
 

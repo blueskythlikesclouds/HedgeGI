@@ -60,7 +60,7 @@ void StateBakeStage::update(float deltaTime)
     if (log->drawContainerUI({ popupWidth, popupHeight }))
         ImGui::Separator();
 
-    if (params->mode == BakingFactoryMode::GI || params->bakeParams.targetEngine == TargetEngine::HE2)
+    if (params->mode == BakingFactoryMode::GI || params->targetEngine == TargetEngine::HE2)
     {
         const Instance* const lastBakedInstance = bake->getLastBakedInstance();
         const SHLightField* const lastBakedShlf = bake->getLastBakedShlf();
@@ -73,7 +73,7 @@ void StateBakeStage::update(float deltaTime)
 
         if (params->mode == BakingFactoryMode::GI && lastBakedInstance != nullptr)
         {
-            const uint16_t resolution = params->bakeParams.resolution.override > 0 ? params->bakeParams.resolution.override : lastBakedInstance->getResolution(params->propertyBag);
+            const uint16_t resolution = params->resolution.override > 0 ? params->resolution.override : lastBakedInstance->getResolution(params->propertyBag);
 
             if (params->resolutionSuperSampleScale > 1)
             {

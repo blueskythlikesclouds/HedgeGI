@@ -103,8 +103,8 @@ void InstanceEditor::update(float deltaTime)
     {
         for (auto& instance : stage->getScene()->instances)
         {
-            instance->setResolution(params->propertyBag, (uint16_t)std::max<size_t>(params->bakeParams.resolution.min,
-                std::min<size_t>(params->bakeParams.resolution.max, instance->getResolution(params->propertyBag) / 2)));
+            instance->setResolution(params->propertyBag, (uint16_t)std::max<size_t>(params->resolution.min,
+                std::min<size_t>(params->resolution.max, instance->getResolution(params->propertyBag) / 2)));
         }
     }
 
@@ -116,8 +116,8 @@ void InstanceEditor::update(float deltaTime)
     {
         for (auto& instance : stage->getScene()->instances)
         {
-            instance->setResolution(params->propertyBag, (uint16_t)std::max<size_t>(params->bakeParams.resolution.min,
-                std::min<size_t>(params->bakeParams.resolution.max, instance->getResolution(params->propertyBag) * 2)));
+            instance->setResolution(params->propertyBag, (uint16_t)std::max<size_t>(params->resolution.min,
+                std::min<size_t>(params->resolution.max, instance->getResolution(params->propertyBag) * 2)));
         }
     }
 
@@ -125,10 +125,10 @@ void InstanceEditor::update(float deltaTime)
 
     if (beginProperties("##Resolution Settings"))
     {
-        property(RESOLUTION_BASE_LABEL, ImGuiDataType_Float, &params->bakeParams.resolution.base);
-        property(RESOLUTION_BIAS_LABEL, ImGuiDataType_Float, &params->bakeParams.resolution.bias);
-        property(RESOLUTION_MIN_LABEL, ImGuiDataType_U16, &params->bakeParams.resolution.min);
-        property(RESOLUTION_MAX_LABEL, ImGuiDataType_U16, &params->bakeParams.resolution.max);
+        property(RESOLUTION_BASE_LABEL, ImGuiDataType_Float, &params->resolution.base);
+        property(RESOLUTION_BIAS_LABEL, ImGuiDataType_Float, &params->resolution.bias);
+        property(RESOLUTION_MIN_LABEL, ImGuiDataType_U16, &params->resolution.min);
+        property(RESOLUTION_MAX_LABEL, ImGuiDataType_U16, &params->resolution.max);
         endProperties();
     }
 
@@ -136,8 +136,8 @@ void InstanceEditor::update(float deltaTime)
     {
         for (auto& instance : stage->getScene()->instances)
         {
-            uint16_t resolution = nextPowerOfTwo((int)exp2f(params->bakeParams.resolution.bias + logf(getRadius(instance->aabb)) / logf(params->bakeParams.resolution.base)));
-            resolution = std::max(params->bakeParams.resolution.min, std::min(params->bakeParams.resolution.max, resolution));
+            uint16_t resolution = nextPowerOfTwo((int)exp2f(params->resolution.bias + logf(getRadius(instance->aabb)) / logf(params->resolution.base)));
+            resolution = std::max(params->resolution.min, std::min(params->resolution.max, resolution));
 
             instance->setResolution(params->propertyBag, resolution);
         }

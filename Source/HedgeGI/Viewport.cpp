@@ -120,11 +120,11 @@ void Viewport::toneMap()
     toneMapShader.set("uTexture", 0);
     toneMapShader.set("uAvgLuminanceTex", 1);
     toneMapShader.set("uGamma",
-        params->bakeParams.targetEngine == TargetEngine::HE2 ? 1.0f / 2.2f :
+        params->targetEngine == TargetEngine::HE2 ? 1.0f / 2.2f :
         (game == Game::Generations || game == Game::LostWorld) && params->gammaCorrectionFlag ? 1.25f :
         1.0f);
 
-    const bool enableRgbTable = params->bakeParams.targetEngine == TargetEngine::HE2 && params->colorCorrectionFlag && rgbTable != nullptr;
+    const bool enableRgbTable = params->targetEngine == TargetEngine::HE2 && params->colorCorrectionFlag && rgbTable != nullptr;
 
     toneMapShader.set("uEnableRgbTable", enableRgbTable);
 
@@ -153,7 +153,7 @@ void Viewport::notifyBakeThread()
     bakeArgs.bakeWidth = viewportWindow->getBakeWidth();
     bakeArgs.bakeHeight = viewportWindow->getBakeHeight();
     bakeArgs.camera = *static_cast<Camera*>(camera);
-    bakeArgs.bakeParams = params->bakeParams;
+    bakeArgs.bakeParams = *static_cast<BakeParams*>(params);
     bakeArgs.baking = true;
 }
 

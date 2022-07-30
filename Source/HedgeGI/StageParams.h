@@ -11,13 +11,12 @@ enum class BakingFactoryMode
     MetaInstancer
 };
 
-class StageParams final : public Component
+class StageParams final : public Component, public BakeParams
 {
 public:
     float viewportResolutionInvRatio{};
     bool gammaCorrectionFlag{};
     bool colorCorrectionFlag{};
-    BakeParams bakeParams;
 
     BakingFactoryMode mode{};
     std::string outputDirectoryPath;

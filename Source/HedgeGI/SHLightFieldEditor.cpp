@@ -37,7 +37,7 @@ void SHLightFieldEditor::update(float deltaTime)
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
 
-    if (params->bakeParams.targetEngine != TargetEngine::HE2 || !ImGui::CollapsingHeader("Light Fields"))
+    if (params->targetEngine != TargetEngine::HE2 || !ImGui::CollapsingHeader("Light Fields"))
         return;
 
     ImGui::SetNextItemWidth(-1);

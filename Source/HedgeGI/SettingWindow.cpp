@@ -110,15 +110,15 @@ void SettingWindow::update(float deltaTime)
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
 
-    const BakeParams oldBakeParams = params->bakeParams;
+    const BakeParams oldBakeParams = *static_cast<BakeParams*>(params);
 
     if (beginProperties("##Viewport Settings"))
     {
         if ((stage->getGame() == Game::Generations || stage->getGame() == Game::LostWorld) && 
-            params->bakeParams.targetEngine == TargetEngine::HE1)
+            params->targetEngine == TargetEngine::HE1)
             property(GAMMA_CORRECTION_LABEL, params->gammaCorrectionFlag);
 
-        if (params->bakeParams.targetEngine == TargetEngine::HE2)
+        if (params->targetEngine == TargetEngine::HE2)
             property(COLOR_CORRECTION_LABEL, params->colorCorrectionFlag);
 
         property(VIEWPORT_RESOLUTION_LABEL, ImGuiDataType_Float, &params->viewportResolutionInvRatio);
@@ -133,46 +133,46 @@ void SettingWindow::update(float deltaTime)
                 { MODE_COLOR_LABEL, EnvironmentMode::Color },
                 { MODE_TOP_BOTTOM_COLOR_LABEL, EnvironmentMode::TwoColor },
                 { MODE_SKY_LABEL, EnvironmentMode::Sky },
-            }, params->bakeParams.environment.mode);
+            }, params->environment.mode);
 
-        if (params->bakeParams.environment.mode == EnvironmentMode::Color)
+        if (params->environment.mode == EnvironmentMode::Color)
         {
-            if (params->bakeParams.targetEngine == TargetEngine::HE2)
+            if (params->targetEngine == TargetEngine::HE2)
             {
-                if (Color3 environmentColor = params->bakeParams.environment.color.pow(1.0f / 2.2f); property(COLOR_LABEL, environmentColor))
-                    params->bakeParams.environment.color = environmentColor.pow(2.2f);
+                if (Color3 environmentColor = params->environment.color.pow(1.0f / 2.2f); property(COLOR_LABEL, environmentColor))
+                    params->environment.color = environmentColor.pow(2.2f);
 
-                property(COLOR_INTENSITY_LABEL, ImGuiDataType_Float, &params->bakeParams.environment.colorIntensity);
+                property(COLOR_INTENSITY_LABEL, ImGuiDataType_Float, &params->environment.colorIntensity);
             }
 
             else
             {
-                property(COLOR_LABEL, params->bakeParams.environment.color);
+                property(COLOR_LABEL, params->environment.color);
             }
         }
 
-        else if (params->bakeParams.environment.mode == EnvironmentMode::Sky)
+        else if (params->environment.mode == EnvironmentMode::Sky)
         {
-            property(SKY_INTENSITY_LABEL, ImGuiDataType_Float, &params->bakeParams.environment.skyIntensity);
+            property(SKY_INTENSITY_LABEL, ImGuiDataType_Float, &params->environment.skyIntensity);
         }
 
-        else if (params->bakeParams.environment.mode == EnvironmentMode::TwoColor)
+        else if (params->environment.mode == EnvironmentMode::TwoColor)
         {
-            if (params->bakeParams.targetEngine == TargetEngine::HE2)
+            if (params->targetEngine == TargetEngine::HE2)
             {
-                if (Color3 environmentColor = params->bakeParams.environment.color.pow(1.0f / 2.2f); property(TOP_COLOR_LABEL, environmentColor))
-                    params->bakeParams.environment.color = environmentColor.pow(2.2f);
+                if (Color3 environmentColor = params->environment.color.pow(1.0f / 2.2f); property(TOP_COLOR_LABEL, environmentColor))
+                    params->environment.color = environmentColor.pow(2.2f);
 
-                if (Color3 secondaryEnvironmentColor = params->bakeParams.environment.secondaryColor.pow(1.0f / 2.2f); property(BOTTOM_COLOR_LABEL, secondaryEnvironmentColor))
-                    params->bakeParams.environment.secondaryColor = secondaryEnvironmentColor.pow(2.2f);
+                if (Color3 secondaryEnvironmentColor = params->environment.secondaryColor.pow(1.0f / 2.2f); property(BOTTOM_COLOR_LABEL, secondaryEnvironmentColor))
+                    params->environment.secondaryColor = secondaryEnvironmentColor.pow(2.2f);
 
-                property(COLOR_INTENSITY_LABEL, ImGuiDataType_Float, &params->bakeParams.environment.colorIntensity);
+                property(COLOR_INTENSITY_LABEL, ImGuiDataType_Float, &params->environment.colorIntensity);
             }
 
             else
             {
-                property(TOP_COLOR_LABEL, params->bakeParams.environment.color);
-                property(BOTTOM_COLOR_LABEL, params->bakeParams.environment.secondaryColor);
+                property(TOP_COLOR_LABEL, params->environment.color);
+                property(BOTTOM_COLOR_LABEL, params->environment.secondaryColor);
             }
         }
 
@@ -181,30 +181,30 @@ void SettingWindow::update(float deltaTime)
 
     if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen) && beginProperties("##Light"))
     {
-        property(LIGHT_BOUNCE_COUNT_LABEL, ImGuiDataType_U32, &params->bakeParams.light.bounceCount);
-        property(LIGHT_SAMPLE_COUNT_LABEL, ImGuiDataType_U32, &params->bakeParams.light.sampleCount);
-        property(MAX_RUSSIAN_ROULETTE_DEPTH_LABEL, ImGuiDataType_U32, &params->bakeParams.light.maxRussianRouletteDepth);
+        property(LIGHT_BOUNCE_COUNT_LABEL, ImGuiDataType_U32, &params->light.bounceCount);
+        property(LIGHT_SAMPLE_COUNT_LABEL, ImGuiDataType_U32, &params->light.sampleCount);
+        property(MAX_RUSSIAN_ROULETTE_DEPTH_LABEL, ImGuiDataType_U32, &params->light.maxRussianRouletteDepth);
         endProperties();
     }
 
     if (ImGui::CollapsingHeader("Shadow", ImGuiTreeNodeFlags_DefaultOpen) && beginProperties("##Shadow"))
     {
-        property(SHADOW_SAMPLE_COUNT_LABEL, ImGuiDataType_U32, &params->bakeParams.shadow.sampleCount);
-        property(SHADOW_SEARCH_RADIUS_LABEL, ImGuiDataType_Float, &params->bakeParams.shadow.radius);
-        property(SHADOW_BIAS_LABEL, ImGuiDataType_Float, &params->bakeParams.shadow.bias);
+        property(SHADOW_SAMPLE_COUNT_LABEL, ImGuiDataType_U32, &params->shadow.sampleCount);
+        property(SHADOW_SEARCH_RADIUS_LABEL, ImGuiDataType_Float, &params->shadow.radius);
+        property(SHADOW_BIAS_LABEL, ImGuiDataType_Float, &params->shadow.bias);
         endProperties();
     }
 
     if (ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen) && beginProperties("##Material"))
     {
-        property(DIFFUSE_INTENSITY_LABEL, ImGuiDataType_Float, &params->bakeParams.material.diffuseIntensity);
-        property(DIFFUSE_SATURATION_LABEL, ImGuiDataType_Float, &params->bakeParams.material.diffuseSaturation);
-        property(LIGHT_INTENSITY_LABEL, ImGuiDataType_Float, &params->bakeParams.material.lightIntensity);
-        property(EMISSION_INTENSITY_LABEL, ImGuiDataType_Float, &params->bakeParams.material.emissionIntensity);
+        property(DIFFUSE_INTENSITY_LABEL, ImGuiDataType_Float, &params->material.diffuseIntensity);
+        property(DIFFUSE_SATURATION_LABEL, ImGuiDataType_Float, &params->material.diffuseSaturation);
+        property(LIGHT_INTENSITY_LABEL, ImGuiDataType_Float, &params->material.lightIntensity);
+        property(EMISSION_INTENSITY_LABEL, ImGuiDataType_Float, &params->material.emissionIntensity);
         endProperties();
     }
 
     ImGui::End();
 
-    params->dirty |= memcmp(&oldBakeParams, &params->bakeParams, sizeof(BakeParams)) != 0;
+    params->dirty |= memcmp(&oldBakeParams, static_cast<BakeParams*>(params), sizeof(BakeParams)) != 0;
 }

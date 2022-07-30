@@ -80,7 +80,7 @@ void PackService::packResources(PackResourceMode mode)
 
     if (mode == PackResourceMode::LightField)
     {
-        if (params->bakeParams.targetEngine == TargetEngine::HE1)
+        if (params->targetEngine == TargetEngine::HE1)
         {
             const std::string lightFieldFilePath = params->outputDirectoryPath + "/light-field.lft";
             if (!std::filesystem::exists(lightFieldFilePath))
@@ -94,7 +94,7 @@ void PackService::packResources(PackResourceMode mode)
             addOrReplace(archive, HL_NTEXT("light-field.lft"), hl::blob(toNchar(lightFieldFilePath.c_str()).data()));
         }
 
-        else if (params->bakeParams.targetEngine == TargetEngine::HE2)
+        else if (params->targetEngine == TargetEngine::HE2)
         {
             // Save and pack SHLF
             const std::string shlfFileName = stage->getName() + ".shlf";
@@ -214,7 +214,7 @@ void PackService::packUnleashedOrGenerationsGI()
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
 
-    PostRender::process(stage->getDirectoryPath(), params->outputDirectoryPath, stage->getGame(), params->bakeParams.targetEngine);
+    PostRender::process(stage->getDirectoryPath(), params->outputDirectoryPath, stage->getGame(), params->targetEngine);
 }
 
 void PackService::packLostWorldOrForcesGI()

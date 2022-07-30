@@ -165,7 +165,7 @@ void BakingFactoryWindow::update(const float deltaTime)
     {
         if (beginProperties("##Mode Settings"))
         {
-            if (!scene->metaInstancers.empty() && params->bakeParams.targetEngine == TargetEngine::HE1)
+            if (!scene->metaInstancers.empty() && params->targetEngine == TargetEngine::HE1)
             {
                 property("Mode",
                     {
@@ -192,23 +192,23 @@ void BakingFactoryWindow::update(const float deltaTime)
                     { ENGINE_HE1_LABEL, TargetEngine::HE1},
                     { ENGINE_HE2_LABEL, TargetEngine::HE2}
                 },
-                params->bakeParams.targetEngine
+                params->targetEngine
                 );
 
-            if (params->bakeParams.targetEngine != TargetEngine::HE1 && params->mode == BakingFactoryMode::MetaInstancer)
+            if (params->targetEngine != TargetEngine::HE1 && params->mode == BakingFactoryMode::MetaInstancer)
                 params->mode = BakingFactoryMode::GI;
 
             endProperties();
         }
 
-        if (params->mode == BakingFactoryMode::LightField && params->bakeParams.targetEngine == TargetEngine::HE1)
+        if (params->mode == BakingFactoryMode::LightField && params->targetEngine == TargetEngine::HE1)
         {
             ImGui::Separator();
 
             if (beginProperties("##Light Field Settings"))
             {
-                property(MIN_CELL_RADIUS_LABEL, ImGuiDataType_Float, &params->bakeParams.lightField.minCellRadius);
-                property(AABB_SIZE_MULTIPLIER_LABEL, ImGuiDataType_Float, &params->bakeParams.lightField.aabbSizeMultiplier);
+                property(MIN_CELL_RADIUS_LABEL, ImGuiDataType_Float, &params->lightField.minCellRadius);
+                property(AABB_SIZE_MULTIPLIER_LABEL, ImGuiDataType_Float, &params->lightField.aabbSizeMultiplier);
                 property(USE_EXISTING_LIGHT_FIELD_TREE_LABEL, params->useExistingLightField);
 
                 endProperties();
@@ -220,8 +220,8 @@ void BakingFactoryWindow::update(const float deltaTime)
 
             if (beginProperties("##GI Settings"))
             {
-                property(DENOISE_SHADOW_MAP_LABEL, params->bakeParams.postProcess.denoiseShadowMap);
-                property(OPTIMIZE_SEAMS_LABEL, params->bakeParams.postProcess.optimizeSeams);
+                property(DENOISE_SHADOW_MAP_LABEL, params->postProcess.denoiseShadowMap);
+                property(OPTIMIZE_SEAMS_LABEL, params->postProcess.optimizeSeams);
                 property(SKIP_EXISTING_FILES_LABEL, params->skipExistingFiles);
 
                 // Denoiser types need special handling since they might not be available
@@ -242,12 +242,12 @@ void BakingFactoryWindow::update(const float deltaTime)
                     };
 
                     beginProperty("Denoiser Type");
-                    if (ImGui::BeginCombo("##Denoiser Type", labels[(size_t)params->bakeParams.getDenoiserType()]->name))
+                    if (ImGui::BeginCombo("##Denoiser Type", labels[(size_t)params->getDenoiserType()]->name))
                     {
                         for (size_t i = 0; i < _countof(labels); i++)
                         {
                             if (flags[i] && ImGui::Selectable(labels[i]->name))
-                                params->bakeParams.postProcess.denoiserType = (DenoiserType)i;
+                                params->postProcess.denoiserType = (DenoiserType)i;
 
                             tooltip(labels[i]->desc);
                         }
@@ -255,8 +255,8 @@ void BakingFactoryWindow::update(const float deltaTime)
                     }
                 }
 
-                if (property(RESOLUTION_OVERRIDE_LABEL, ImGuiDataType_S16, &params->bakeParams.resolution.override) && params->bakeParams.resolution.override >= 0)
-                    params->bakeParams.resolution.override = (int16_t)nextPowerOfTwo(params->bakeParams.resolution.override);
+                if (property(RESOLUTION_OVERRIDE_LABEL, ImGuiDataType_S16, &params->resolution.override) && params->resolution.override >= 0)
+                    params->resolution.override = (int16_t)nextPowerOfTwo(params->resolution.override);
 
                 if (property(RESOLUTION_SUPERSAMPLE_SCALE, ImGuiDataType_U64, &params->resolutionSuperSampleScale))
                     params->resolutionSuperSampleScale = nextPowerOfTwo(std::max<size_t>(1, params->resolutionSuperSampleScale));
