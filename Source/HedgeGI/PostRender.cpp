@@ -720,6 +720,40 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
         Logger::log(LogType::Normal, "Saved Stage-Add.pfd");
     }
 
+    // Save gi-lim.gil if it's missing.
+    bool found = false;
+
+    for (auto& entry : resourcesArchive)
+    {
+        if (!hl::text::equal(entry.name(), HL_NTEXT("gi-lim.gil")))
+            continue;
+
+        found = true;
+        break;
+    }
+
+    if (!found)
+    {
+        hl::mem_stream stream;
+        hl::off_table offTable;
+
+        hl::hh::mirage::standard::raw_header::start_write(stream);
+        {
+            constexpr bool mip0 = false;
+            constexpr bool mip1 = false;
+            constexpr bool mip2 = true;
+
+            stream.write_obj(mip0);
+            stream.write_obj(mip1);
+            stream.write_obj(mip2);
+            stream.pad(4);
+        }
+
+        hl::hh::mirage::standard::raw_header::finish_write(0, sizeof(hl::hh::mirage::standard::raw_header), 0, offTable, stream, "");
+
+        resourcesArchive.push_back(hl::archive_entry::make_regular_file(HL_NTEXT("gi-lim.gil"), stream.get_size(), stream.get_data_ptr()));
+    }
+
     hl::hh::ar::save(resourcesArchive, getFullPath(nResourcesFilePath).data()); // Use getFullPath as a workaround for HedgeLib extension bug
 
     Logger::logFormatted(LogType::Normal, "Saved %s", getFileName(resourcesFilePath).c_str());
