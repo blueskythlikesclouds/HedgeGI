@@ -389,6 +389,9 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     newMesh->triangleCount = (uint32_t)triangles.size();
     newMesh->triangles = std::make_unique<Triangle[]>(triangles.size());
     std::copy(triangles.begin(), triangles.end(), newMesh->triangles.get());
+    
+    newMesh->vertexCount = (uint32_t) meshopt_optimizeVertexFetch(
+        newMesh->vertices.get(), (unsigned*) newMesh->triangles.get(), newMesh->triangleCount * 3, newMesh->vertices.get(), newMesh->vertexCount, sizeof(Vertex));
 
     for (auto& material : scene->materials)
     {

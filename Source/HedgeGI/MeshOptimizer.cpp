@@ -52,7 +52,7 @@ void MeshOptimizer::process(hl::hh::mirage::terrain_model& model)
 
         meshopt_optimizeVertexCacheStrip(indices.data(), indices.data(), indices.size(), mesh.vertexCount);
         meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), (const float*)mesh.vertices.get(), mesh.vertexCount, mesh.vertexSize, 1.05f);
-        meshopt_optimizeVertexFetch(mesh.vertices.get(), indices.data(), indices.size(), mesh.vertices.get(), mesh.vertexCount, mesh.vertexSize);
+        mesh.vertexCount = (hl::u32) meshopt_optimizeVertexFetch(mesh.vertices.get(), indices.data(), indices.size(), mesh.vertices.get(), mesh.vertexCount, mesh.vertexSize);
 
         std::vector<unsigned> strips;
         strips.resize(meshopt_stripifyBound(indices.size()));
