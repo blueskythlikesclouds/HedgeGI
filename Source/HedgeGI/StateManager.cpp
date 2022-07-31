@@ -10,6 +10,7 @@
 #include "StateIdle.h"
 #include "StateLoadStage.h"
 #include "StateProcess.h"
+#include "StateProcessStage.h"
 
 StateMachine<Document>& StateManager::getStateMachine()
 {
@@ -77,21 +78,8 @@ void StateManager::processStage(const ProcModelFunc function, bool clearLogs)
 {
     const std::string directoryPath = FileDialog::openFolder(L"Enter into a stage directory.");
 
-    if (directoryPath.empty())
-        return;
-
-    process([=]
-        {
-            ModelProcessor::processStage(directoryPath, function);
-
-            const auto stage = get<Stage>();
-
-            // Reload stage if we processed the currently open one
-            if (stage && std::filesystem::canonical(directoryPath) == std::filesystem::canonical(stage->getDirectoryPath()))
-                loadStage(directoryPath);
-            else
-                get<AppWindow>()->alert();
-        }, clearLogs);
+    if (!directoryPath.empty())
+        stateMachine.pushState(std::make_unique<StateProcessStage>(directoryPath, function, clearLogs));
 }
 
 void StateManager::initialize()

@@ -526,6 +526,7 @@
     <ClCompile Include="SettingWindow.cpp" />
     <ClCompile Include="StageParams.cpp" />
     <ClCompile Include="StateEditMaterial.cpp" />
+    <ClCompile Include="StateProcessStage.cpp" />
     <ClCompile Include="UIComponent.cpp" />
     <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="BitmapHelper.cpp" />
@@ -621,6 +622,7 @@
     <ClInclude Include="SettingWindow.h" />
     <ClInclude Include="StageParams.h" />
     <ClInclude Include="StateEditMaterial.h" />
+    <ClInclude Include="StateProcessStage.h" />
     <ClInclude Include="UIComponent.h" />
     <ClInclude Include="StateIdle.h" />
     <ClInclude Include="Buffer.h" />

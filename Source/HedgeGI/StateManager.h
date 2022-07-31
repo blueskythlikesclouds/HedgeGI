@@ -1,9 +1,8 @@
 ﻿#pragma once
 
 #include "Component.h"
+#include "ModelProcessor.h"
 #include "StateMachine.h"
-
-typedef std::function<void(hl::hh::mirage::terrain_model&)> ProcModelFunc;
 
 class StateManager final : public Component 
 {

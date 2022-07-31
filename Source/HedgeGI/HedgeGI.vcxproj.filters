@@ -400,6 +400,9 @@
     <ClCompile Include="XCompression.cpp">
       <Filter>Compression</Filter>
     </ClCompile>
+    <ClCompile Include="StateProcessStage.cpp">
+      <Filter>States</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Pch.h" />
@@ -700,6 +703,9 @@
     </ClInclude>
     <ClInclude Include="XCompression.h">
       <Filter>Compression</Filter>
+    </ClInclude>
+    <ClInclude Include="StateProcessStage.h">
+      <Filter>States</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
