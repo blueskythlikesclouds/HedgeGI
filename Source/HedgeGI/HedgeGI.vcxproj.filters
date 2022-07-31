@@ -830,5 +830,8 @@
     <None Include="Im3d.glsl">
       <Filter>Resources\Shaders\Im3d</Filter>
     </None>
+    <None Include="hl_hh_model.inl">
+      <Filter>HedgehogEngine</Filter>
+    </None>
   </ItemGroup>
 </Project>

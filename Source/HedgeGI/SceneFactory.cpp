@@ -413,41 +413,112 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     return newMesh;
 }
 
-std::unique_ptr<Model> SceneFactory::createModel(hl::hh::mirage::raw_skeletal_model_v5* model)
+void SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, const MeshType type, const Affine3& transformation, std::vector<const Mesh*>& meshes)
 {
-    std::unique_ptr<Model> newModel = std::make_unique<Model>();
+    std::unique_ptr<Mesh> newMesh = createMesh(mesh, transformation);
+    newMesh->type = type;
 
-    auto addMesh = [&](hl::hh::mirage::raw_mesh* srcMesh, const MeshType type)
-    {
-        std::unique_ptr<Mesh> mesh = createMesh(srcMesh, Affine3::Identity());
-        mesh->type = type;
+    meshes.push_back(newMesh.get());
 
-        newModel->meshes.push_back(mesh.get());
-
-        std::lock_guard lock(criticalSection);
-        scene->meshes.push_back(std::move(mesh));
-    };
-
-    for (auto& meshGroup : model->meshGroups)
-    {
-        for (auto& solid : meshGroup->opaq)
-            addMesh(solid.get(), MeshType::Opaque);
-
-        for (auto& trans : meshGroup->trans)
-            addMesh(trans.get(), MeshType::Transparent);
-
-        for (auto& punch : meshGroup->punch)
-            addMesh(punch.get(), MeshType::Punch);
-    }
-
-    return newModel;
+    std::lock_guard lock(criticalSection);
+    scene->meshes.push_back(std::move(newMesh));
 }
 
-std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, hl::hh::mirage::raw_terrain_model_v5* model)
+void SceneFactory::createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group>>* meshGroups, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+{
+    for (auto& meshGroup : *meshGroups)
+    {
+        for (auto& opaq : meshGroup->opaq)
+            createMesh(opaq.get(), MeshType::Opaque, transformation, meshes);
+
+        for (auto& trans : meshGroup->trans)
+            createMesh(trans.get(), MeshType::Transparent, transformation, meshes);
+
+        for (auto& punch : meshGroup->punch)
+            createMesh(punch.get(), MeshType::Punch, transformation, meshes);
+
+        for (const auto& specialMeshGroup : meshGroup->special)
+        {
+            for (size_t i = 0; i < specialMeshGroup.meshCount; i++)
+                createMesh(specialMeshGroup.meshes[i].get(), MeshType::Special, transformation, meshes);
+        }
+    }
+}
+
+void SceneFactory::createMeshGroup(hl::hh::mirage::raw_mesh_slot* meshGroup, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+{
+    for (auto& opaq : meshGroup[0]) // opaq
+        createMesh(opaq.get(), MeshType::Opaque, transformation, meshes);
+
+    for (auto& trans : meshGroup[1]) // trans
+        createMesh(trans.get(), MeshType::Transparent, transformation, meshes);
+
+    for (auto& punch : meshGroup[2]) // punch
+        createMesh(punch.get(), MeshType::Punch, transformation, meshes);
+}
+
+#include "hl_hh_model.inl"
+
+bool SceneFactory::createModel(void* rawModel, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+{
+    // Check marker to ensure data doesn't get corrupted due to repeating fix calls.
+    uint32_t* marker = (uint32_t*)rawModel + 2;
+
+    if (*marker != ~0)
+        hl::hh::mirage::fix(rawModel);
+
+    hl::u32 version;
+    void* data = hl::hh::mirage::get_data(rawModel, &version);
+
+    if (hl::hh::mirage::has_sample_chunk_header_fixed(rawModel))
+    {
+        const auto header = (hl::hh::mirage::sample_chunk::raw_header*)rawModel;
+        const auto node = header->get_node("DisableC");
+
+        if (node != nullptr && node->value != 0)
+        {
+            *marker = ~0;
+            return false; // Ignore model if it's for shadow casting.
+        }
+
+        version = 5; // Version number is not reliable here. Default to 5.
+    }
+
+    if (version == 5)
+    {
+        const auto meshGroups = reinterpret_cast<hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group>>*>(data);
+        if (*marker != ~0)
+        {
+            meshGroups->endian_swap<false>();
+            hl::hh::mirage::in_swap_recursive(*meshGroups);
+        }
+
+        createMeshGroups(meshGroups, transformation, meshes);
+    }
+    else
+    {
+        const auto meshGroup = reinterpret_cast<hl::hh::mirage::raw_mesh_slot*>(data);
+        if (*marker != ~0)
+        {
+            meshGroup[0].endian_swap<false>();
+            meshGroup[1].endian_swap<false>();
+            meshGroup[2].endian_swap<false>();
+
+            hl::hh::mirage::in_swap_recursive(meshGroup[0]); // opaq
+            hl::hh::mirage::in_swap_recursive(meshGroup[1]); // trans
+            hl::hh::mirage::in_swap_recursive(meshGroup[2]); // punch
+        }
+
+        createMeshGroup(meshGroup, transformation, meshes);
+    }
+
+    *marker = ~0;
+    return true;
+}
+
+std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, void* rawModel)
 {
     std::unique_ptr<Instance> newInstance = std::make_unique<Instance>();
-
-    newInstance->name = instance ? instance->instanceName.get() : model->name.get();
 
     Matrix4 transformationMatrix;
 
@@ -469,34 +540,11 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terra
     Affine3 transformationAffine;
     transformationAffine = transformationMatrix;
 
-    auto addMesh = [&](hl::hh::mirage::raw_mesh* srcMesh, const MeshType type)
-    {
-        std::unique_ptr<Mesh> mesh = createMesh(srcMesh, transformationAffine);
-        mesh->type = type;
+    if (!createModel(rawModel, transformationAffine, newInstance->meshes))
+        return nullptr;
 
-        newInstance->meshes.push_back(mesh.get());
-
-        std::lock_guard lock(criticalSection);
-        scene->meshes.push_back(std::move(mesh));
-    };
-
-    for (auto& meshGroup : model->meshGroups)
-    {
-        for (auto& solid : meshGroup->opaq)
-            addMesh(solid.get(), MeshType::Opaque);
-
-        for (auto& trans : meshGroup->trans)
-            addMesh(trans.get(), MeshType::Transparent);
-
-        for (auto& punch : meshGroup->punch)
-            addMesh(punch.get(), MeshType::Punch);
-
-        for (const auto& specialMeshGroup : meshGroup->special)
-        {
-            for (size_t i = 0; i < specialMeshGroup.meshCount; i++)
-                addMesh(specialMeshGroup.meshes[i].get(), MeshType::Special);
-        }
-    }
+    if (instance)
+        newInstance->name = instance->instanceName.get();
 
     newInstance->buildAABB();
     return newInstance;
@@ -645,22 +693,9 @@ void SceneFactory::loadResources(const hl::archive& archive)
         {
             group.run([&]
             {
-                void* data = (void*)entry.file_data();
+                std::unique_ptr<Model> newModel = std::make_unique<Model>();
+                createModel((void*)entry.file_data(), Affine3::Identity(), newModel->meshes);
 
-                hl::hh::mirage::fix(data);
-
-                hl::u32 version;
-                auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_skeletal_model_v5>(data, &version);
-
-                if (!hl::hh::mirage::has_sample_chunk_header_fixed(data) && version != 5)
-                {
-                    Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
-                    return;
-                }
-
-                model->fix();
-
-                std::unique_ptr<Model> newModel = createModel(model);
                 newModel->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
                 std::lock_guard lock(criticalSection);
@@ -704,53 +739,23 @@ void SceneFactory::loadResources(const hl::archive& archive)
 
 void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
 {
-    tbb::task_group group;
+    struct Model
+    {
+        std::string name;
+        void* data;
+        bool handled;
+    };
 
-    std::vector<std::pair<hl::hh::mirage::raw_terrain_model_v5*, bool>> models;
-    CriticalSection critSect;
+    std::vector<Model> models;
 
     for (auto& archive : archives)
     {
         for (auto& entry : archive)
         {
-            if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-model")))
-                continue;
-
-            group.run([&]
-            {
-                void* data = (void*)entry.file_data();
-
-                hl::hh::mirage::fix(data);
-
-                const bool hasSampleChunkHeader = hl::hh::mirage::has_sample_chunk_header_fixed(data);
-
-                if (hasSampleChunkHeader)
-                {
-                    const auto header = (hl::hh::mirage::sample_chunk::raw_header*)data;
-                    const auto node = header->get_node("DisableC");
-
-                    if (node != nullptr && node->value != 0)
-                        return;
-                }
-
-                hl::u32 version;
-                auto model = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_model_v5>(data, &version);
-
-                if (!hasSampleChunkHeader && version != 5)
-                {
-                    Logger::logFormatted(LogType::Error, "Failed to load %s, unsupported version %d", toUtf8(entry.name()).data(), version);
-                    return;
-                }
-
-                model->fix();
-
-                std::lock_guard lock(critSect);
-                models.push_back(std::make_pair(model, false));
-            });
+            if (hl::text::strstr(entry.name(), HL_NTEXT(".terrain-model")))
+                models.push_back({ getFileNameWithoutExtension(toUtf8(entry.name()).data()), (void*)entry.file_data(), false });
         }
     }
-
-    group.wait();
 
     for (auto& archive : archives)
     {
@@ -759,51 +764,47 @@ void SceneFactory::loadTerrain(const std::vector<hl::archive>& archives)
             if (!hl::text::strstr(entry.name(), HL_NTEXT(".terrain-instanceinfo")))
                 continue;
 
-            group.run([&]
+            void* data = (void*)entry.file_data();
+
+            hl::hh::mirage::fix(data);
+
+            auto instance = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_instance_info_v0>(data);
+            instance->fix();
+
+            for (auto& model : models)
             {
-                void* data = (void*)entry.file_data();
+                if (model.name != instance->modelName.get())
+                    continue;
 
-                hl::hh::mirage::fix(data);
+                model.handled = true;
 
-                auto instance = hl::hh::mirage::get_data<hl::hh::mirage::raw_terrain_instance_info_v0>(data);
-                instance->fix();
-
-                for (auto& pair : models)
+                std::unique_ptr<Instance> newInstance = createInstance(instance, model.data);
+                if (newInstance)
                 {
-                    if (strcmp(pair.first->name.get(), instance->modelName.get()) != 0)
-                        continue;
-
-                    pair.second = true;
-
-                    std::unique_ptr<Instance> newInstance = createInstance(instance, pair.first);
-
                     std::lock_guard lock(criticalSection);
                     scene->instances.push_back(std::move(newInstance));
-
-                    break;
                 }
-            });
+
+                break;
+            }
         }
     }
-
-    group.wait();
 
     // Load models that aren't bound to any instances
     for (auto& model : models)
     {
-        if (model.second)
+        if (model.handled)
             continue;
 
-        group.run([&]
-        {
-            std::unique_ptr<Instance> newInstance = createInstance(nullptr, model.first);
+        std::unique_ptr<Instance> newInstance = createInstance(nullptr, model.data);
+        if (!newInstance)
+            continue;
 
-            std::lock_guard lock(criticalSection);
-            scene->instances.push_back(std::move(newInstance));
-        });
+        newInstance->name = std::move(model.name);
+
+        std::lock_guard lock(criticalSection);
+        scene->instances.push_back(std::move(newInstance));
     }
-
-    group.wait();
 }
 
 void SceneFactory::loadResolutions(const hl::archive& archive) const

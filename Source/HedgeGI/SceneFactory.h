@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+enum class MeshType;
 class Bitmap;
 class Material;
 class Mesh;
@@ -18,10 +19,17 @@ private:
     CriticalSection criticalSection;
 
     std::unique_ptr<Bitmap> createBitmap(const uint8_t* data, size_t length) const;
-    template<typename T> std::unique_ptr<Material> createMaterial(T* material, const hl::archive& archive) const;
+
+    template<typename T>
+    std::unique_ptr<Material> createMaterial(T* material, const hl::archive& archive) const;
     std::unique_ptr<Mesh> createMesh(hl::hh::mirage::raw_mesh* mesh, const Affine3& transformation) const;
-    std::unique_ptr<Model> createModel(hl::hh::mirage::raw_skeletal_model_v5* model);
-    std::unique_ptr<Instance> createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, hl::hh::mirage::raw_terrain_model_v5* model);
+
+    void createMesh(hl::hh::mirage::raw_mesh* mesh, MeshType type, const Affine3& transformation, std::vector<const Mesh*>& meshes);
+    void createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group>>* meshGroups, const Affine3& transformation, std::vector<const Mesh*>& meshes);
+    void createMeshGroup(hl::hh::mirage::raw_mesh_slot* meshGroup, const Affine3& transformation, std::vector<const Mesh*>& meshes);
+    bool createModel(void* rawModel, const Affine3& transformation, std::vector<const Mesh*>& meshes);
+
+    std::unique_ptr<Instance> createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, void* rawModel);
     std::unique_ptr<Light> createLight(hl::hh::mirage::raw_light* light) const;
     std::unique_ptr<SHLightField> createSHLightField(hl::hh::needle::raw_sh_light_field_node* shlf) const;
 
