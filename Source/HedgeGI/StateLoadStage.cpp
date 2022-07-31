@@ -10,6 +10,7 @@
 #include "StageParams.h"
 #include "StateEditStage.h"
 #include "StateMachine.h"
+#include "LogListener.h"
 
 StateLoadStage::StateLoadStage(const std::string& directoryPath) : directoryPath(directoryPath)
 {
@@ -31,6 +32,7 @@ void StateLoadStage::enter()
     });
 
     getContext()->get<ImGuiPresenter>()->pushBackgroundColor({ 0.11f, 0.11f, 0.11f, 1.0f });
+    getContext()->get<LogListener>()->clear();
 }
 
 void StateLoadStage::update(float deltaTime)

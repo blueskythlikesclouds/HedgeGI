@@ -9,11 +9,6 @@ StateEditStage::StateEditStage(Document&& document) : document(std::move(documen
 {
 }
 
-void StateEditStage::enter()
-{
-    getContext()->get<LogListener>()->clear();
-}
-
 void StateEditStage::update(const float deltaTime)
 {
     if (getContext()->get<AppWindow>()->isFocused())

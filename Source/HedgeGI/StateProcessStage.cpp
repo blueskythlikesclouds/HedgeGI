@@ -3,6 +3,7 @@
 #include "AppWindow.h"
 #include "Stage.h"
 #include "StateManager.h"
+#include "LogListener.h"
 
 StateProcessStage::StateProcessStage(const std::string& directoryPath, ProcModelFunc function, const bool clearLogs)
     : StateProcess([=]
@@ -24,4 +25,6 @@ void StateProcessStage::leave()
         state->loadStage(directoryPath);
     else
         getContext()->get<AppWindow>()->alert();
+
+    getContext()->get<LogListener>()->clear();
 }

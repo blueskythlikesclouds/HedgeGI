@@ -10,7 +10,6 @@ class StateEditStage : public State<Document>
 public:
     StateEditStage(Document&& document);
 
-    void enter() override;
     void update(float deltaTime) override;
     void leave() override;
 };
