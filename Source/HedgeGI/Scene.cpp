@@ -28,8 +28,8 @@ void Scene::buildAABB()
 {
     aabb.setEmpty();
 
-    for (auto& mesh : meshes)
-        aabb.extend(mesh->aabb);
+    for (auto& instance : instances)
+        aabb.extend(instance->aabb);
 }
 
 RTCScene Scene::createRTCScene()
