@@ -1,8 +1,11 @@
 ﻿#include "InstanceEditor.h"
+
+#include "FileDialog.h"
+#include "Instance.h"
+#include "Logger.h"
+#include "Math.h"
 #include "Stage.h"
 #include "StageParams.h"
-#include "Instance.h"
-#include "Math.h"
 
 const char* const INSTANCE_SEARCH_DESC = "Type in an instance name to search for.";
 
@@ -41,6 +44,13 @@ const char* const RESTORE_ORIGINAL_RESOLUTIONS_DESC =
     "Sets the resolution of every instance to their original resolutions contained in stage files.\n\n"
     "This is useful if you want to bake global illumination for a stage that already contains it.\n\n"
     "This is the default behavior when opening a stage in HedgeGI for the first time.";
+
+const char* const LOAD_RENDER_LIST_DESC =
+    "Loads a render list file containing the resolution of every instance in the scene.\n\n"
+    "This type of file can be saved through GI Atlas Converter in Pre-Render mode.";
+
+const char* const SAVE_RENDER_LIST_DESC =
+    "Saves a render list file containing the resolution of every instance in the scene.";
 
 void InstanceEditor::update(float deltaTime)
 {
@@ -144,4 +154,60 @@ void InstanceEditor::update(float deltaTime)
     }
 
     tooltip(COMPUTE_NEW_RESOLUTIONS_DESC);
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Load", { buttonWidth / 2.0f, 0.0f }))
+    {
+        std::string filePath = FileDialog::openFile(
+            TEXT("Render List File (*.txt)\0*.txt\0All Files (*.*)\0*.*\0"), TEXT("Select a render list file to load."));
+
+        if (!filePath.empty())
+        {
+            std::unordered_map<std::string, size_t> resolutions;
+            std::fstream stream(filePath, std::ios::in);
+
+            while (!stream.eof())
+            {
+                size_t resolution = 0;
+                std::string name;
+
+                stream >> resolution >> name;
+
+                if (resolution > 0 && !name.empty())
+                    resolutions[name] = resolution;
+            }
+
+            for (auto& instance : stage->getScene()->instances)
+            {
+                const auto& pair = resolutions.find(instance->name);
+                if (pair != resolutions.end())
+                    instance->setResolution(params->propertyBag, (uint16_t)nextPowerOfTwo(pair->second));
+            }
+
+            Logger::logFormatted(LogType::Normal, "Loaded %d instance resolutions from %s", resolutions.size(), getFileName(filePath).c_str());
+        }
+    }
+
+    tooltip(LOAD_RENDER_LIST_DESC);
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Save", { buttonWidth / 2.0f, 0.0f }))
+    {
+        std::string filePath = FileDialog::saveFile(
+            TEXT("Render List File (*.txt)\0*.txt\0All Files (*.*)\0*.*\0"), TEXT("Select a render list file to save to."));
+
+        if (!filePath.empty())
+        {
+            std::fstream stream(filePath, std::ios::out);
+
+            for (auto& instance : stage->getScene()->instances)
+                stream << instance->getResolution(params->propertyBag) << " " << instance->name << std::endl;
+
+            Logger::logFormatted(LogType::Normal, "Saved %d instance resolutions to %s", stage->getScene()->instances.size(), getFileName(filePath).c_str());
+        }
+    }
+
+    tooltip(SAVE_RENDER_LIST_DESC);
 }
