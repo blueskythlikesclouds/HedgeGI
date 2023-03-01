@@ -58,8 +58,8 @@ void CameraController::update(const float deltaTime)
     if (!input->tappedMouseButtons[GLFW_MOUSE_BUTTON_RIGHT] && input->heldMouseButtons[GLFW_MOUSE_BUTTON_RIGHT] &&
         (input->cursorX != input->history.cursorX || input->cursorY != input->history.cursorY))
     {
-        const float pitch = (float)(input->cursorY - input->history.cursorY) * 0.25f * -newDeltaTime;
-        const float yaw = (float)(input->cursorX - input->history.cursorX) * 0.25f * -newDeltaTime;
+        const float pitch = (float)(input->cursorY - input->history.cursorY) * -0.004f;
+        const float yaw = (float)(input->cursorX - input->history.cursorX) * -0.004f;
 
         const Eigen::AngleAxisf x(pitch, rotation * Eigen::Vector3f::UnitX());
         const Eigen::AngleAxisf y(yaw, Eigen::Vector3f::UnitY());
