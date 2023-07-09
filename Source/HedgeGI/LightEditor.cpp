@@ -129,14 +129,26 @@ void LightEditor::update(float deltaTime)
     if (ImGui::Button("Add"))
     {
         std::unique_ptr<Light> light = std::make_unique<Light>();
-        light->type = LightType::Point;
-        light->position = get<CameraController>()->getNewObjectPosition();
-        light->color = Color3::Ones();
-        light->range = Vector4(0, 0, 0, 3);
 
-        char name[16];
-        sprintf(name, "Omni%03d", (int)stage->getScene()->lights.size());
-        light->name = name;
+        if (stage->getScene()->getLightBVH().getSunLight() == nullptr)
+        {
+            light->type = LightType::Directional;
+            light->position = -Vector3::UnitY();
+            light->color = Color3::Ones();
+            light->name = "Direct01";
+        }
+        else
+        {
+            std::unique_ptr<Light> light = std::make_unique<Light>();
+            light->type = LightType::Point;
+            light->position = get<CameraController>()->getNewObjectPosition();
+            light->color = Color3::Ones();
+            light->range = Vector4(0, 0, 0, 3);
+
+            char name[16];
+            sprintf(name, "Omni%03d", (int)stage->getScene()->lights.size());
+            light->name = name;
+        }
 
         selection = light.get();
         stage->getScene()->lights.push_back(std::move(light));

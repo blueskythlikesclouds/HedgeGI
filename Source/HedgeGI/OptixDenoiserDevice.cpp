@@ -33,8 +33,8 @@ const bool OptixDenoiserDevice::available = []()
     const OptixDenoiserOptions options = {0, 0};
     optixDenoiserCreate(context, OPTIX_DENOISER_MODEL_KIND_HDR, &options, &denoiser);
 
-    std::atexit([] { optixDenoiserDestroy(denoiser); });
-    std::atexit([] { optixDeviceContextDestroy(context); });
+    std::atexit([] { if (denoiser != nullptr) optixDenoiserDestroy(denoiser); });
+    std::atexit([] { if (context != nullptr) optixDeviceContextDestroy(context); });
     std::atexit([] { cudaFree(nullptr); });
 
     return true;
