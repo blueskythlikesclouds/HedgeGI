@@ -61,7 +61,12 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 
         const Vector2 hitUV = barycentricLerp(a.uv, b.uv, c.uv, query.hit.u, query.hit.v);
 
-        Color4 diffuse = mesh.material->textures.diffuse->getColor<tracingFromEye>(hitUV);
+        Color4 diffuse;
+
+        if (mesh.material->textures.diffuse != nullptr)
+            diffuse = mesh.material->textures.diffuse->getColor<tracingFromEye>(hitUV);
+        else
+            diffuse = mesh.material->parameters.diffuse;
 
         if (mesh.material->skyType == 3) // Sky3
         {
