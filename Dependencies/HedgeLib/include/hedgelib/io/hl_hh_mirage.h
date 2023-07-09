@@ -109,15 +109,9 @@ struct raw_header
         hl::endian_swap<swapOffsets>(fileName);
     }
 
-    const_off_table_handle offsets() const noexcept
-    {
-        return const_off_table_handle(offTable.get() + 1, *offTable);
-    }
+    HL_API const_off_table_handle offsets() const noexcept;
 
-    off_table_handle offsets() noexcept
-    {
-        return off_table_handle(offTable.get() + 1, *offTable);
-    }
+    HL_API off_table_handle offsets() noexcept;
 
     HL_API void fix();
 
@@ -501,7 +495,7 @@ HL_API void offsets_write_no_sort(std::size_t basePos,
 HL_API void offsets_write(std::size_t basePos,
     off_table& offTable, stream& stream);
 
-class writer : public writer_base
+class writer : public internal::in_writer_base
 {
     struct sample_chunk_node
     {
@@ -531,7 +525,7 @@ class writer : public writer_base
     };
 
     std::vector<sample_chunk_node> m_nodes;
-    hl::off_table m_offTable;
+    off_table m_offsets;
     std::size_t m_headerPos;
     std::size_t m_basePos;
     std::size_t m_curUnfinishedNodeIndex = SIZE_MAX;
@@ -539,14 +533,9 @@ class writer : public writer_base
     u32 m_dataVersion = 0U;
 
 public:
-    inline const hl::off_table& off_table() const noexcept
+    inline const off_table& offsets() const noexcept
     {
-        return m_offTable;
-    }
-
-    inline hl::off_table& off_table() noexcept
-    {
-        return m_offTable;
+        return m_offsets;
     }
 
     inline std::size_t header_pos() const noexcept
@@ -558,8 +547,6 @@ public:
     {
         return m_basePos;
     }
-
-    HL_API void fix_offset(std::size_t pos);
 
     HL_API void start(header_type headerType = header_type::standard);
 
@@ -591,6 +578,8 @@ public:
     }
 
     HL_API void start_data(u32 version);
+
+    HL_API void fix_offset(std::size_t pos);
 
     HL_API void finish_data();
 

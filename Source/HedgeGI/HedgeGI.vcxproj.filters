@@ -313,12 +313,6 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="App.cpp" />
-    <ClCompile Include="MaterialWindow.cpp">
-      <Filter>Components\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="StateEditMaterial.cpp">
-      <Filter>States</Filter>
-    </ClCompile>
     <ClCompile Include="MetaInstancerBaker.cpp">
       <Filter>Baker\Subclasses</Filter>
     </ClCompile>
@@ -683,12 +677,6 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="App.h" />
-    <ClInclude Include="MaterialWindow.h">
-      <Filter>Components\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="StateEditMaterial.h">
-      <Filter>States</Filter>
-    </ClInclude>
     <ClInclude Include="MetaInstancerBaker.h">
       <Filter>Baker\Subclasses</Filter>
     </ClInclude>

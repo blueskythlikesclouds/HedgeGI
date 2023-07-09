@@ -92,13 +92,12 @@ void LightField::read(void* rawData)
 
     cells.resize(HL_SWAP_U32(header->cells.count));
 
-    for (size_t i = 0; i < cells.size(); i++)
+    for (uint32_t i = 0; i < cells.size(); i++)
     {
-        const LightFieldCell& srcCell = header->cells.get()[i];
         LightFieldCell& dstCell = cells[i];
 
-        dstCell.type = (LightFieldCellType)HL_SWAP_U32(srcCell.type);
-        dstCell.index = HL_SWAP_U32(srcCell.index);
+        dstCell.type = (LightFieldCellType)HL_SWAP_U32(header->cells[i].type);
+        dstCell.index = HL_SWAP_U32(header->cells[i].index);
     }
 
     // We never need probes or indices, so skip parsing them.
@@ -108,9 +107,9 @@ void LightField::write(hl::stream& stream, hl::off_table& offTable) const
 {
     LightFieldHeader header {};
 
-    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, cells.data));
-    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, probes.data));
-    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, indices.data));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, cells.dataPtr));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, probes.dataPtr));
+    offTable.push_back(sizeof(hl::hh::mirage::standard::raw_header) + offsetof(LightFieldHeader, indices.dataPtr));
 
     for (size_t i = 0; i < 3; i++)
     {
@@ -126,11 +125,11 @@ void LightField::write(hl::stream& stream, hl::off_table& offTable) const
     const size_t indicesOffset = probesOffset + sizeof(LightFieldProbe) * probes.size();
 
     header.cells.count = (hl::u32)cells.size();
-    header.cells.data = (hl::u32)cellsOffset;
+    header.cells.dataPtr = (hl::u32)cellsOffset;
     header.probes.count = (hl::u32)probes.size();
-    header.probes.data = (hl::u32)probesOffset;
+    header.probes.dataPtr = (hl::u32)probesOffset;
     header.indices.count = (hl::u32)indices.size();
-    header.indices.data = (hl::u32)indicesOffset;
+    header.indices.dataPtr = (hl::u32)indicesOffset;
 
     hl::endian_swap(header.cells);
     hl::endian_swap(header.probes);

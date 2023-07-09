@@ -13,18 +13,21 @@ class Instance;
 class Light;
 class SHLightField;
 
+#define RAY_MASK_OPAQUE        (1 << 0)
+#define RAY_MASK_TRANS         (1 << 1)
+#define RAY_MASK_PUNCH_THROUGH (1 << 2)
+#define RAY_MASK_SKY           (1 << 3)
+
 struct RaytracingContext
 {
     const class Scene* scene {};
     RTCScene rtcScene {};
-    RTCScene skyRtcScene {};
     const LightBVH* lightBVH;
 };
 
 class Scene
 {
     RTCScene rtcScene {};
-    RTCScene skyRtcScene {};
     LightBVH lightBVH {};
 
 public:
@@ -49,7 +52,6 @@ public:
     void buildAABB();
 
     RTCScene createRTCScene();
-    RTCScene createSkyRTCScene();
     const LightBVH* createLightBVH(bool force = false);
     RaytracingContext getRaytracingContext();
 

@@ -23,8 +23,6 @@ public:
 
     void packResources(enum class PackResourceMode mode, bool clearLogs = true);
 
-    void editMaterial();
-
     void clean(bool clearLogs = true);
 
     void initialize() override;

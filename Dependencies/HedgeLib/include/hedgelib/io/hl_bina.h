@@ -16,6 +16,8 @@ struct ver
     u8 _minor;
     u8 rev;
 
+    inline ver() noexcept = default;
+
     constexpr ver(char _major, char _minor, char rev) noexcept :
         _major(_major),
         _minor(_minor),
@@ -90,19 +92,8 @@ struct pac_pack_meta
         return reinterpret_cast<u8*>(off_table() + offCount);
     }
 
-    inline endian_flag guess_endianness(const void* rawData, std::size_t dataSize) const noexcept
-    {
-        // If offCount is greater than the largest possible amount of
-        // offsets in the file, the endianness needs to be swapped.
-        const u32* eof = ptradd<u32>(rawData, dataSize);
-
-        return (offCount > static_cast<u32>(eof - off_table())) ?
-#ifdef HL_IS_BIG_ENDIAN
-            endian_flag::little : endian_flag::big;
-#else
-            endian_flag::big : endian_flag::little;
-#endif
-    }
+    HL_API endian_flag guess_endianness(
+        const void* rawData, std::size_t dataSize) const noexcept;
 
     inline endian_flag guess_endianness(const blob& rawData) const noexcept
     {
@@ -221,8 +212,8 @@ public:
     }
 
     inline off_table_handle(const u8* offTable, u32 offTableSize) noexcept :
-        m_offTableBeg(offTable), m_offTableEnd(in_get_real_off_table_end(
-        offTable, offTableSize)) {}
+        m_offTableBeg(offTable),
+        m_offTableEnd(in_get_real_off_table_end(offTable, offTableSize)) {}
 };
 
 HL_API void offsets_fix32(off_table_handle offTable,
@@ -231,19 +222,16 @@ HL_API void offsets_fix32(off_table_handle offTable,
 HL_API void offsets_fix64(off_table_handle offTable,
     const endian_flag endianFlag, void* base);
 
-HL_API void offsets_write_no_sort_no_pad(std::size_t dataPos,
+HL_API void offsets_copy32(off_table_handle srcOffTable,
+    const void* srcBase, void* dstBase);
+
+HL_API void offsets_copy64(off_table_handle srcOffTable,
+    const void* srcBase, void* dstBase);
+
+HL_API void offsets_write_no_sort(std::size_t dataPos,
     const off_table& offTable, stream& stream);
 
-HL_API void offsets_write_no_sort32(std::size_t dataPos,
-    const off_table& offTable, stream& stream);
-
-HL_API void offsets_write_no_sort64(std::size_t dataPos,
-    const off_table& offTable, stream& stream);
-
-HL_API void offsets_write32(std::size_t dataPos,
-    off_table& offTable, stream& stream);
-
-HL_API void offsets_write64(std::size_t dataPos,
+HL_API void offsets_write(std::size_t dataPos,
     off_table& offTable, stream& stream);
 
 namespace v1
@@ -333,6 +321,7 @@ namespace v2
 constexpr ver ver_200 = ver('2', '0', '0');
 constexpr ver ver_210 = ver('2', '1', '0');
 
+// TODO: Remove this?
 enum class raw_block_type : u32
 {
     /** @brief This block contains data. See block_data_header. */
@@ -543,8 +532,10 @@ struct raw_header
     u32 fileSize;
     /** @brief How many blocks are in the file. */
     u16 blockCount;
+    /** @brief Set internally by the game; always 0 in actual files. */
+    u8 status;
     /** @brief Included so garbage data doesn't get writtten. */
-    u16 padding;
+    u8 padding;
 
     template<bool swapOffsets = true>
     inline void endian_swap() noexcept
@@ -685,6 +676,233 @@ inline T* get_data(void* rawData)
         return static_cast<T*>(rawData);
     }
 }
+
+class writer32 : public internal::in_writer_base
+{
+protected:
+    str_table m_strings;
+    off_table m_offsets;
+    std::size_t m_headerPos;
+    std::size_t m_basePos;
+    bina::endian_flag m_endianFlag;
+    u16 m_blockCount = 0;
+    bool m_isWritingDataBlock = false;
+
+    template<typename T>
+    void in_write_arr_data_swapped(std::size_t count, const T* arr)
+    {
+        // Swap up to a sensible amount of objects, write them,
+        // then repeat until [count] objects have been written.
+        constexpr std::size_t in_max_arr_count =
+            ((sizeof(T) > 32) ? 64 : 256);
+
+        T tmp[in_max_arr_count];
+
+        while (count)
+        {
+            const auto minCount = std::min<>(count, count_of(tmp));
+            for (std::size_t i = 0; i < minCount; ++i, ++arr)
+            {
+                tmp[i] = *arr;
+                hl::endian_swap<true>(tmp[i]);
+            }
+
+            m_stream->write_arr(minCount, tmp);
+            count -= minCount;
+        }
+    }
+
+public:
+    inline const str_table& strings() const noexcept
+    {
+        return m_strings;
+    }
+
+    inline const off_table& offsets() const noexcept
+    {
+        return m_offsets;
+    }
+
+    inline std::size_t header_pos() const noexcept
+    {
+        return m_headerPos;
+    }
+
+    inline std::size_t base_pos() const noexcept
+    {
+        return m_basePos;
+    }
+
+    inline bina::endian_flag endian_flag() const noexcept
+    {
+        return m_endianFlag;
+    }
+
+    HL_API void start(bina::endian_flag endianFlag, ver version = ver_200);
+
+    HL_API void start_data_block();
+
+    HL_API void add_string(std::string str, std::size_t offPos);
+
+    template<typename T>
+    inline void swap_and_write_obj(T& obj)
+    {
+        if constexpr (sizeof(T) > 1)
+        {
+            if (needs_swap(m_endianFlag))
+            {
+                hl::endian_swap<true>(obj);
+            }
+        }
+
+        m_stream->write_obj(obj);
+    }
+
+    template<typename T>
+    inline void swap_and_write_obj(T& obj, std::size_t alignment)
+    {
+        pad((alignment) ? alignment : alignof(T));
+        swap_and_write_obj(obj);
+    }
+
+    template<typename T>
+    void swap_and_write_arr(std::size_t count, T* arr)
+    {
+        if constexpr (sizeof(T) > 1)
+        {
+            if (needs_swap(m_endianFlag))
+            {
+                for (std::size_t i = 0; i < count; ++i)
+                {
+                    hl::endian_swap<true>(arr[i]);
+                }
+            }
+        }
+
+        m_stream->write_arr(count, arr);
+    }
+
+    template<typename T, std::size_t count>
+    inline void swap_and_write_arr(const T(&arr)[count])
+    {
+        swap_and_write_arr(count, arr);
+    }
+
+    template<typename T>
+    void swap_and_write_arr(std::size_t count, T* arr, std::size_t alignment)
+    {
+        pad((alignment) ? alignment : alignof(T));
+        swap_and_write_arr(count, arr);
+    }
+
+    template<typename T, std::size_t count>
+    void swap_and_write_arr(const T(&arr)[count], std::size_t alignment)
+    {
+        pad((alignment) ? alignment : alignof(T));
+        swap_and_write_arr(count, arr);
+    }
+
+    template<typename T>
+    void write_obj(const T& obj)
+    {
+        if constexpr (sizeof(T) > 1)
+        {
+            if (needs_swap(m_endianFlag))
+            {
+                T tmp(obj);
+                hl::endian_swap<true>(tmp);
+                m_stream->write_obj(tmp);
+                return;
+            }
+        }
+
+        m_stream->write_obj(obj);
+    }
+
+    template<typename T>
+    void write_obj(const T& obj, std::size_t alignment)
+    {
+        if constexpr (sizeof(T) > 1)
+        {
+            if (needs_swap(m_endianFlag))
+            {
+                T tmp(obj);
+                hl::endian_swap<true>(tmp);
+                m_stream->write_obj(tmp, alignment);
+                return;
+            }
+        }
+
+        m_stream->write_obj(obj, alignment);
+    }
+
+    template<typename T>
+    inline void write_arr(std::size_t count, const T* arr)
+    {
+        if constexpr (sizeof(T) > 1)
+        {
+            if (needs_swap(m_endianFlag))
+            {
+                in_write_arr_data_swapped(count, arr);
+                return;
+            }
+        }
+
+        m_stream->write_arr(count, arr);
+    }
+
+    template<typename T, std::size_t count>
+    inline void write_arr(const T(&arr)[count])
+    {
+        write_arr(count, arr);
+    }
+
+    template<typename T>
+    void write_arr(std::size_t count, const T* arr, std::size_t alignment)
+    {
+        pad((alignment) ? alignment : alignof(T));
+        write_arr(count, arr);
+    }
+
+    template<typename T, std::size_t count>
+    inline void write_arr(const T(&arr)[count], std::size_t alignment)
+    {
+        write_arr(count, arr, alignment);
+    }
+
+    HL_API std::size_t write_str(const char* str);
+
+    HL_API std::size_t write_str(const std::string& str);
+
+    HL_API void fix_offset(std::size_t pos);
+
+    HL_API void finish_data_block();
+
+    HL_API void finish();
+
+    HL_API writer32(hl::stream& stream);
+};
+
+class writer64 : public writer32
+{
+public:
+    inline void start(bina::endian_flag endianFlag, ver version = ver_210)
+    {
+        writer32::start(endianFlag, version);
+    }
+
+    HL_API std::size_t write_str(const char* str);
+
+    HL_API std::size_t write_str(const std::string& str);
+
+    HL_API void fix_offset(std::size_t pos);
+
+    HL_API void finish_data_block();
+
+    HL_API void finish();
+
+    using writer32::writer32;
+};
 } // v2
 
 inline bool has_v1_header(const void* rawData)

@@ -14,9 +14,6 @@ Scene::~Scene()
 {
     if (rtcScene != nullptr)
         rtcReleaseScene(rtcScene);
-
-    if (skyRtcScene != nullptr)
-        rtcReleaseScene(skyRtcScene);
 }
 
 const LightBVH& Scene::getLightBVH() const
@@ -40,73 +37,23 @@ RTCScene Scene::createRTCScene()
     rtcScene = rtcNewScene(RaytracingDevice::get());
     for (size_t i = 0; i < meshes.size(); i++)
     {
-        bool found = false;
-
-        for (auto& instance : instances)
-        {
-            for (auto& mesh : instance->meshes)
-            {
-                if (mesh != meshes[i].get())
-                    continue;
-
-                found = true;
-                break;
-            }
-
-            if (found) break;
-        }
-
-        if (!found || (meshes[i]->material && meshes[i]->material->parameters.additive) || meshes[i]->type == MeshType::Special)
+        const auto& mesh = meshes[i];
+        
+        if ((mesh->material && mesh->material->parameters.additive) || mesh->type == MeshType::Special)
             continue;
 
-        const RTCGeometry rtcGeometry = meshes[i]->createRTCGeometry();
+        const RTCGeometry rtcGeometry = mesh->createRTCGeometry();
+
         rtcAttachGeometryByID(rtcScene, rtcGeometry, (uint32_t)i);
         rtcReleaseGeometry(rtcGeometry);
     }
 
     rtcSetSceneBuildQuality(rtcScene, RTC_BUILD_QUALITY_HIGH);
+    rtcSetSceneFlags(rtcScene, RTC_SCENE_FLAG_COMPACT | RTC_SCENE_FLAG_FILTER_FUNCTION_IN_ARGUMENTS);
+
     rtcCommitScene(rtcScene);
+
     return rtcScene;
-}
-
-RTCScene Scene::createSkyRTCScene()
-{
-    if (skyRtcScene != nullptr)
-        return skyRtcScene;
-
-    skyRtcScene = rtcNewScene(RaytracingDevice::get());
-    for (size_t i = 0; i < meshes.size(); i++)
-    {
-        if (meshes[i]->material == nullptr || meshes[i]->material->type != MaterialType::Sky || !meshes[i]->material->textures.diffuse)
-            continue;
-
-        bool found = false;
-
-        for (auto& model : models)
-        {
-            for (auto& mesh : model->meshes)
-            {
-                if (mesh != meshes[i].get())
-                    continue;
-
-                found = true;
-                break;
-            }
-
-            if (found) break;
-        }
-
-        if (!found)
-            continue;
-
-        const RTCGeometry rtcGeometry = meshes[i]->createRTCGeometry();
-        rtcAttachGeometryByID(skyRtcScene, rtcGeometry, (uint32_t)i);
-        rtcReleaseGeometry(rtcGeometry);
-    }
-
-    rtcSetSceneBuildQuality(skyRtcScene, RTC_BUILD_QUALITY_HIGH);
-    rtcCommitScene(skyRtcScene);
-    return skyRtcScene;
 }
 
 const LightBVH* Scene::createLightBVH(const bool force)
@@ -119,7 +66,7 @@ const LightBVH* Scene::createLightBVH(const bool force)
 
 RaytracingContext Scene::getRaytracingContext()
 {
-    return { this, createRTCScene(), createSkyRTCScene(), createLightBVH() };
+    return { this, createRTCScene(), createLightBVH() };
 }
 
 void Scene::sortAndUnify()

@@ -22,11 +22,11 @@ private:
 
     template<typename T>
     std::unique_ptr<Material> createMaterial(T* material, const hl::archive& archive) const;
-    std::unique_ptr<Mesh> createMesh(hl::hh::mirage::raw_mesh* mesh, const Affine3& transformation) const;
+    std::unique_ptr<Mesh> createMesh(hl::hh::mirage::raw_mesh_r1* mesh, const Affine3& transformation) const;
 
-    void createMesh(hl::hh::mirage::raw_mesh* mesh, MeshType type, const Affine3& transformation, std::vector<const Mesh*>& meshes);
-    void createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group>>* meshGroups, const Affine3& transformation, std::vector<const Mesh*>& meshes);
-    void createMeshGroup(hl::hh::mirage::raw_mesh_slot* meshGroup, const Affine3& transformation, std::vector<const Mesh*>& meshes);
+    void createMesh(hl::hh::mirage::raw_mesh_r1* mesh, MeshType type, const Affine3& transformation, std::vector<const Mesh*>& meshes);
+    void createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group_r1>>* meshGroups, const Affine3& transformation, std::vector<const Mesh*>& meshes);
+    void createMeshGroup(hl::hh::mirage::raw_mesh_slot_r1* meshGroup, const Affine3& transformation, std::vector<const Mesh*>& meshes);
     bool createModel(void* rawModel, const Affine3& transformation, std::vector<const Mesh*>& meshes);
 
     std::unique_ptr<Instance> createInstance(hl::hh::mirage::raw_terrain_instance_info_v0* instance, void* rawModel);

@@ -64,7 +64,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\include;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;..\..\Dependencies\tinyxml2;..\..\Dependencies\oneTBB\include;..\..\Dependencies\mspack;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\include;..\..\Dependencies\Embree\include\embree4;..\..\Dependencies\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;..\..\Dependencies\tinyxml2;..\..\Dependencies\oneTBB\include;..\..\Dependencies\mspack;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <StringPooling>true</StringPooling>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
@@ -83,8 +83,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib\Release;..\..\Dependencies\HedgeLib\lib\Release;..\..\Dependencies\oneTBB\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree3.lib;embree_sse42.lib;embree_avx.lib;embree_avx2.lib;lexers.lib;math.lib;simd.lib;sys.lib;tasking.lib;tbb12.lib;common.lib;dnnl.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib;..\..\Dependencies\HedgeLib\lib;..\..\Dependencies\oneTBB\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree4.lib;embree_sse42.lib;embree_avx.lib;embree_avx2.lib;lexers.lib;math.lib;simd.lib;sys.lib;tasking.lib;tbb12.lib;common.lib;dnnl.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
@@ -97,7 +97,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>Pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>Pch.h</ForcedIncludeFiles>
-      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\include;..\..\Dependencies\Embree\include\embree3;..\..\Dependencies\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;..\..\Dependencies\tinyxml2;..\..\Dependencies\oneTBB\include;..\..\Dependencies\mspack;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\include;..\..\Dependencies\Embree\include\embree4;..\..\Dependencies\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;..\..\Dependencies\tinyxml2;..\..\Dependencies\oneTBB\include;..\..\Dependencies\mspack;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -111,8 +111,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib\Release;..\..\Dependencies\HedgeLib\lib\Release;..\..\Dependencies\oneTBB\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree3.lib;embree_sse42.lib;embree_avx.lib;embree_avx2.lib;lexers.lib;math.lib;simd.lib;sys.lib;tasking.lib;tbb12.lib;common.lib;dnnl.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib;..\..\Dependencies\HedgeLib\lib;..\..\Dependencies\oneTBB\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree4.lib;embree_sse42.lib;embree_avx.lib;embree_avx2.lib;lexers.lib;math.lib;simd.lib;sys.lib;tasking.lib;tbb12.lib;common.lib;dnnl.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration />
     </Link>
     <PostBuildEvent />
@@ -508,7 +508,6 @@
     <ClCompile Include="BakeService.cpp" />
     <ClCompile Include="BakeParams.cpp" />
     <ClCompile Include="ImageUtil.cpp" />
-    <ClCompile Include="MaterialWindow.cpp" />
     <ClCompile Include="MetaInstancerBaker.cpp" />
     <ClCompile Include="SnapToClosestTriangle.cpp" />
     <ClCompile Include="StateBakeStage.cpp" />
@@ -525,7 +524,6 @@
     <ClCompile Include="SceneWindow.cpp" />
     <ClCompile Include="SettingWindow.cpp" />
     <ClCompile Include="StageParams.cpp" />
-    <ClCompile Include="StateEditMaterial.cpp" />
     <ClCompile Include="StateProcessStage.cpp" />
     <ClCompile Include="UIComponent.cpp" />
     <ClCompile Include="Buffer.cpp" />
@@ -604,7 +602,6 @@
     <ClInclude Include="BakeParams.h" />
     <ClInclude Include="Frustum.h" />
     <ClInclude Include="ImageUtil.h" />
-    <ClInclude Include="MaterialWindow.h" />
     <ClInclude Include="MetaInstancerBaker.h" />
     <ClInclude Include="SnapToClosestTriangle.h" />
     <ClInclude Include="StateBakeStage.h" />
@@ -621,7 +618,6 @@
     <ClInclude Include="SceneWindow.h" />
     <ClInclude Include="SettingWindow.h" />
     <ClInclude Include="StageParams.h" />
-    <ClInclude Include="StateEditMaterial.h" />
     <ClInclude Include="StateProcessStage.h" />
     <ClInclude Include="UIComponent.h" />
     <ClInclude Include="StateIdle.h" />

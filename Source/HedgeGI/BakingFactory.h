@@ -49,19 +49,15 @@ public:
     static bool rayCast(const RaytracingContext& raytracingContext, const Vector3& position, const Vector3& direction, TargetEngine targetEngine, Vector3& hitPosition);
 };
 
-struct IntersectContext : RTCIntersectContext
+struct IntersectContext : RTCRayQueryContext
 {
     const RaytracingContext& raytracingContext;
     Random& random;
 
-    void init()
-    {
-        rtcInitIntersectContext(this);
-    }
-
     IntersectContext(const RaytracingContext& raytracingContext, Random& random)
-        : RTCIntersectContext(), raytracingContext(raytracingContext), random(random)
+        : raytracingContext(raytracingContext), random(random)
     {
+        rtcInitRayQueryContext(this);
     }
 };
 
@@ -137,7 +133,15 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
     if ((TBakePoint::FLAGS & BAKE_POINT_FLAGS_SHADOW) == 0)
         return 1.0f;
 
+    RTCOccludedArguments occludedArgs;
+    rtcInitOccludedArguments(&occludedArgs);
+
     IntersectContext context(raytracingContext, random);
+    occludedArgs.flags = RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER;
+    occludedArgs.context = &context;
+    occludedArgs.filter = bakeParams.targetEngine == TargetEngine::HE2 ?
+        intersectContextFilter<TargetEngine::HE2, true> :
+        intersectContextFilter<TargetEngine::HE1, true>;
 
     size_t shadowSum = 0;
 
@@ -162,18 +166,14 @@ float BakingFactory::sampleShadow(const RaytracingContext& raytracingContext,
             rayDirection = direction;
         }
 
-        context.init();
-        context.filter = bakeParams.targetEngine == TargetEngine::HE2 ?
-            intersectContextFilter<TargetEngine::HE2, true> :
-            intersectContextFilter<TargetEngine::HE1, true>;
-
         RTCRay ray {};
+
         setRayOrigin(ray, position, bakeParams.shadow.bias);
         setRayDirection(ray, -rayDirection);
-
         ray.tfar = distance;
+        ray.mask = RAY_MASK_OPAQUE | RAY_MASK_PUNCH_THROUGH;
 
-        rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
+        rtcOccluded1(raytracingContext.rtcScene, &ray, &occludedArgs);
 
         if (ray.tfar < 0)
             ++shadowSum;

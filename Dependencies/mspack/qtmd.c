@@ -1,5 +1,5 @@
 /* This file is part of libmspack.
- * (C) 2003-2004 Stuart Caie.
+ * (C) 2003-2023 Stuart Caie.
  *
  * The Quantum method was created by David Stafford, adapted by Microsoft
  * Corporation.
@@ -254,20 +254,18 @@ struct qtmd_stream *qtmd_init(struct mspack_system *system,
 }
 
 int qtmd_decompress(struct qtmd_stream *qtm, off_t out_bytes) {
+  DECLARE_BIT_VARS;
   unsigned int frame_todo, frame_end, window_posn, match_offset, range;
-  unsigned char *window, *i_ptr, *i_end, *runsrc, *rundest;
+  unsigned char *window, *runsrc, *rundest;
   int i, j, selector, extra, sym, match_length;
   unsigned short H, L, C, symf;
-
-  register unsigned int bit_buffer;
-  register unsigned char bits_left;
 
   /* easy answers */
   if (!qtm || (out_bytes < 0)) return MSPACK_ERR_ARGS;
   if (qtm->error) return qtm->error;
 
   /* flush out any stored-up bytes before we begin */
-  i = qtm->o_end - qtm->o_ptr;
+  i = (int)(qtm->o_end - qtm->o_ptr);
   if ((off_t) i > out_bytes) i = (int) out_bytes;
   if (i) {
     if (qtm->sys->write(qtm->output, qtm->o_ptr, i) != i) {
@@ -297,7 +295,7 @@ int qtmd_decompress(struct qtmd_stream *qtm, off_t out_bytes) {
 
     /* decode more, up to the number of bytes needed, the frame boundary,
      * or the window boundary, whichever comes first */
-    frame_end = window_posn + (out_bytes - (qtm->o_end - qtm->o_ptr));
+    frame_end = window_posn + (int)(out_bytes - (qtm->o_end - qtm->o_ptr));
     if ((window_posn + frame_todo) < frame_end) {
       frame_end = window_posn + frame_todo;
     }
@@ -363,7 +361,7 @@ int qtmd_decompress(struct qtmd_stream *qtm, off_t out_bytes) {
           while (i--) *rundest++ = window[j++ & (qtm->window_size - 1)];
 
           /* flush currently stored data */
-          i = (&window[qtm->window_size] - qtm->o_ptr);
+          i = (int)(&window[qtm->window_size] - qtm->o_ptr);
 
           /* this should not happen, but if it does then this code
            * can't handle the situation (can't flush up to the end of
@@ -445,7 +443,7 @@ int qtmd_decompress(struct qtmd_stream *qtm, off_t out_bytes) {
     /* window wrap? */
     if (window_posn == qtm->window_size) {
       /* flush all currently stored data */
-      i = (qtm->o_end - qtm->o_ptr);
+      i = (int)(qtm->o_end - qtm->o_ptr);
       /* break out if we have more than enough to finish this request */
       if (i >= out_bytes) break;
       if (qtm->sys->write(qtm->output, qtm->o_ptr, i) != i) {

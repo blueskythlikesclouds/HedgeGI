@@ -1,7 +1,9 @@
 ﻿#include "Mesh.h"
 
+#include "Material.h"
 #include "Math.h"
 #include "RaytracingDevice.h"
+#include "Scene.h"
 
 Matrix3 Vertex::getTangentToWorldMatrix() const
 {
@@ -29,7 +31,20 @@ RTCGeometry Mesh::createRTCGeometry() const
     rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, vertices.get(), 0, sizeof(Vertex), vertexCount);
     rtcSetSharedGeometryBuffer(rtcGeometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, triangles.get(), 0, sizeof(Triangle), triangleCount);
 
+    unsigned geometryMask = RAY_MASK_OPAQUE;
+
+    if (material != nullptr && material->type == MaterialType::Sky)
+        geometryMask = RAY_MASK_SKY;
+
+    else if (type == MeshType::Transparent)
+        geometryMask = RAY_MASK_TRANS;
+
+    else if (type == MeshType::Punch)
+        geometryMask = RAY_MASK_PUNCH_THROUGH;
+
+    rtcSetGeometryMask(rtcGeometry, geometryMask);
     rtcCommitGeometry(rtcGeometry);
+
     return rtcGeometry;
 }
 

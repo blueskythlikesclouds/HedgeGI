@@ -161,12 +161,12 @@ void UV2Mapper::process(hl::hh::mirage::terrain_model& model)
 
                 switch (element.format)
                 {
-                case (hl::u32)hl::hh::mirage::raw_vertex_format::float2:
+                case hl::hh::mirage::raw_vertex_format::float2:
                     ((float*)vtx)[0] = x;
                     ((float*)vtx)[1] = y;
                     break;
 
-                case (hl::u32)hl::hh::mirage::raw_vertex_format::float16_2:
+                case hl::hh::mirage::raw_vertex_format::float16_2:
                     ((unsigned short*)vtx)[0] = meshopt_quantizeHalf(x);
                     ((unsigned short*)vtx)[1] = meshopt_quantizeHalf(y);
                     break;

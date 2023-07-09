@@ -22,11 +22,11 @@
 /// @author NVIDIA Corporation
 /// @brief  OptiX public API header
 
-#ifndef __optix_optix_function_table_h__
-#define __optix_optix_function_table_h__
+#ifndef OPTIX_OPTIX_FUNCTION_TABLE_H
+#define OPTIX_OPTIX_FUNCTION_TABLE_H
 
 /// The OptiX ABI version.
-#define OPTIX_ABI_VERSION 60
+#define OPTIX_ABI_VERSION 84
 
 #ifndef OPTIX_DEFINE_ABI_VERSION_ONLY
 
@@ -104,26 +104,26 @@ typedef struct OptixFunctionTable
     /// \name Modules
     //@ {
 
-    /// See ::optixModuleCreateFromPTX().
-    OptixResult ( *optixModuleCreateFromPTX )( OptixDeviceContext                 context,
-                                               const OptixModuleCompileOptions*   moduleCompileOptions,
-                                               const OptixPipelineCompileOptions* pipelineCompileOptions,
-                                               const char*                        PTX,
-                                               size_t                             PTXsize,
-                                               char*                              logString,
-                                               size_t*                            logStringSize,
-                                               OptixModule*                       module );
+    /// See ::optixModuleCreate().
+    OptixResult ( *optixModuleCreate )( OptixDeviceContext                 context,
+                                        const OptixModuleCompileOptions*   moduleCompileOptions,
+                                        const OptixPipelineCompileOptions* pipelineCompileOptions,
+                                        const char*                        input,
+                                        size_t                             inputSize,
+                                        char*                              logString,
+                                        size_t*                            logStringSize,
+                                        OptixModule*                       module );
 
-    /// See ::optixModuleCreateFromPTXWithTasks().
-    OptixResult ( *optixModuleCreateFromPTXWithTasks )( OptixDeviceContext                 context,
-                                                        const OptixModuleCompileOptions*   moduleCompileOptions,
-                                                        const OptixPipelineCompileOptions* pipelineCompileOptions,
-                                                        const char*                        PTX,
-                                                        size_t                             PTXsize,
-                                                        char*                              logString,
-                                                        size_t*                            logStringSize,
-                                                        OptixModule*                       module,
-                                                        OptixTask*                         firstTask );
+    /// See ::optixModuleCreateWithTasks().
+    OptixResult ( *optixModuleCreateWithTasks )( OptixDeviceContext                 context,
+                                                 const OptixModuleCompileOptions*   moduleCompileOptions,
+                                                 const OptixPipelineCompileOptions* pipelineCompileOptions,
+                                                 const char*                        input,
+                                                 size_t                             inputSize,
+                                                 char*                              logString,
+                                                 size_t*                            logStringSize,
+                                                 OptixModule*                       module,
+                                                 OptixTask*                         firstTask );
 
     /// See ::optixModuleGetCompilationState().
     OptixResult ( *optixModuleGetCompilationState )( OptixModule module, OptixModuleCompileState* state );
@@ -164,7 +164,7 @@ typedef struct OptixFunctionTable
     OptixResult ( *optixProgramGroupDestroy )( OptixProgramGroup programGroup );
 
     /// See ::optixProgramGroupGetStackSize().
-    OptixResult ( *optixProgramGroupGetStackSize )( OptixProgramGroup programGroup, OptixStackSizes* stackSizes );
+    OptixResult ( *optixProgramGroupGetStackSize )( OptixProgramGroup programGroup, OptixStackSizes* stackSizes, OptixPipeline pipeline );
 
     //@ }
     /// \name Pipeline
@@ -216,23 +216,23 @@ typedef struct OptixFunctionTable
                                       unsigned int                  numEmittedProperties );
 
     /// See ::optixAccelGetRelocationInfo().
-    OptixResult ( *optixAccelGetRelocationInfo )( OptixDeviceContext context, OptixTraversableHandle handle, OptixAccelRelocationInfo* info );
+    OptixResult ( *optixAccelGetRelocationInfo )( OptixDeviceContext context, OptixTraversableHandle handle, OptixRelocationInfo* info );
 
 
-    /// See ::optixAccelCheckRelocationCompatibility().
-    OptixResult ( *optixAccelCheckRelocationCompatibility )( OptixDeviceContext              context,
-                                                             const OptixAccelRelocationInfo* info,
-                                                             int*                            compatible );
+    /// See ::optixCheckRelocationCompatibility().
+    OptixResult ( *optixCheckRelocationCompatibility )( OptixDeviceContext         context,
+                                                        const OptixRelocationInfo* info,
+                                                        int*                       compatible );
 
     /// See ::optixAccelRelocate().
-    OptixResult ( *optixAccelRelocate )( OptixDeviceContext              context,
-                                         CUstream                        stream,
-                                         const OptixAccelRelocationInfo* info,
-                                         CUdeviceptr                     instanceTraversableHandles,
-                                         size_t                          numInstanceTraversableHandles,
-                                         CUdeviceptr                     targetAccel,
-                                         size_t                          targetAccelSizeInBytes,
-                                         OptixTraversableHandle*         targetHandle );
+    OptixResult ( *optixAccelRelocate )( OptixDeviceContext         context,
+                                         CUstream                   stream,
+                                         const OptixRelocationInfo* info,
+                                         const OptixRelocateInput*  relocateInputs,
+                                         size_t                     numRelocateInputs,
+                                         CUdeviceptr                targetAccel,
+                                         size_t                     targetAccelSizeInBytes,
+                                         OptixTraversableHandle*    targetHandle );
 
 
     /// See ::optixAccelCompact().
@@ -243,14 +243,50 @@ typedef struct OptixFunctionTable
                                         size_t                  outputBufferSizeInBytes,
                                         OptixTraversableHandle* outputHandle );
 
+    OptixResult ( *optixAccelEmitProperty )( OptixDeviceContext        context,
+                                             CUstream                  stream,
+                                             OptixTraversableHandle    handle,
+                                             const OptixAccelEmitDesc* emittedProperty );
+
     /// See ::optixConvertPointerToTraversableHandle().
     OptixResult ( *optixConvertPointerToTraversableHandle )( OptixDeviceContext      onDevice,
                                                              CUdeviceptr             pointer,
                                                              OptixTraversableType    traversableType,
                                                              OptixTraversableHandle* traversableHandle );
 
-    void ( *reserved1 )( void );
-    void ( *reserved2 )( void );
+    /// See ::optixOpacityMicromapArrayComputeMemoryUsage().
+    OptixResult ( *optixOpacityMicromapArrayComputeMemoryUsage )( OptixDeviceContext                         context,
+                                                                  const OptixOpacityMicromapArrayBuildInput* buildInput,
+                                                                  OptixMicromapBufferSizes*                 bufferSizes );
+
+    /// See ::optixOpacityMicromapArrayBuild().
+    OptixResult ( *optixOpacityMicromapArrayBuild )( OptixDeviceContext                         context,
+                                                     CUstream                                   stream,
+                                                     const OptixOpacityMicromapArrayBuildInput* buildInput,
+                                                     const OptixMicromapBuffers*               buffers );
+
+    /// See ::optixOpacityMicromapArrayGetRelocationInfo().
+    OptixResult ( *optixOpacityMicromapArrayGetRelocationInfo )( OptixDeviceContext   context,
+                                                                 CUdeviceptr          opacityMicromapArray,
+                                                                 OptixRelocationInfo* info );
+
+    /// See ::optixOpacityMicromapArrayRelocate().
+    OptixResult ( *optixOpacityMicromapArrayRelocate )( OptixDeviceContext         context,
+                                                        CUstream                   stream,
+                                                        const OptixRelocationInfo* info,
+                                                        CUdeviceptr                targetOpacityMicromapArray,
+                                                        size_t                     targetOpacityMicromapArraySizeInBytes );
+
+    /// See ::optixDisplacementMicromapArrayComputeMemoryUsage().
+    OptixResult ( *optixDisplacementMicromapArrayComputeMemoryUsage )( OptixDeviceContext context,
+                                                                       const OptixDisplacementMicromapArrayBuildInput* buildInput,
+                                                                       OptixMicromapBufferSizes* bufferSizes );
+
+    /// See ::optixDisplacementMicromapArrayBuild().
+    OptixResult ( *optixDisplacementMicromapArrayBuild )( OptixDeviceContext                              context,
+                                                          CUstream                                        stream,
+                                                          const OptixDisplacementMicromapArrayBuildInput* buildInput,
+                                                          const OptixMicromapBuffers*                     buffers );
 
     //@ }
     /// \name Launch
@@ -331,7 +367,7 @@ typedef struct OptixFunctionTable
 
 } OptixFunctionTable;
 
-/*@}*/  // end group optix_function_table
+/**@}*/  // end group optix_function_table
 
 #ifdef __cplusplus
 }
@@ -339,4 +375,4 @@ typedef struct OptixFunctionTable
 
 #endif /* OPTIX_DEFINE_ABI_VERSION_ONLY */
 
-#endif /* __optix_optix_function_table_h__ */
+#endif /* OPTIX_OPTIX_FUNCTION_TABLE_H */

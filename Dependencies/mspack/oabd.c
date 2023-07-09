@@ -79,7 +79,7 @@ static int oabd_sys_read (struct mspack_file *base_file, void *buf, int size)
   int bytes_read;
 
   if ((size_t)size > file->available)
-    size = file->available;
+    size = (int)file->available;
 
   bytes_read = file->orig_sys->read(file->orig_file, buf, size);
   if (bytes_read < 0)

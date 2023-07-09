@@ -2,9 +2,9 @@
 
 // Define IM3D_CONFIG "myfilename.h" from your build system if you do not want to modify im3d_config.h directly.
 #ifdef IM3D_CONFIG
-#include IM3D_CONFIG
+	#include IM3D_CONFIG
 #else
-#include "im3d_config.h"
+	#include "im3d_config.h"
 #endif
 
 #define IM3D_VERSION "1.16"
@@ -145,6 +145,8 @@ IM3D_API void DrawCylinder(const Vec3& _start, const Vec3& _end, float _radius, 
 IM3D_API void DrawCapsule(const Vec3& _start, const Vec3& _end, float _radius, int _detail = -1);
 IM3D_API void DrawPrism(const Vec3& _start, const Vec3& _end, float _radius, int _sides);
 IM3D_API void DrawArrow(const Vec3& _start, const Vec3& _end, float _headLength = -1.0f, float _headThickness = -1.0f);
+IM3D_API void DrawCone(const Vec3& _origin, const Vec3& _normal,float height, float _radius, int _detail);
+IM3D_API void DrawConeFilled(const Vec3& _origin, const Vec3& _normal,float height, float _radius, int _detail);
 
 // Add text. See TextFlags_ enum for _textFlags. _size is a hint to the application-side text rendering.
 IM3D_API void Text(const Vec3& _position, U32 _textFlags, const char* _text, ...); // use the current draw state for size/color

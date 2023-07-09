@@ -11,7 +11,7 @@ void VertexColorRemover::process(hl::hh::mirage::terrain_model& model)
 
             switch (element.format)
             {
-            case (hl::u32)hl::hh::mirage::raw_vertex_format::float4:
+            case hl::hh::mirage::raw_vertex_format::float4:
 
                 for (size_t i = 0; i < mesh.vertexCount; i++)
                 {
@@ -25,7 +25,7 @@ void VertexColorRemover::process(hl::hh::mirage::terrain_model& model)
 
                 break;
 
-            case (hl::u32)hl::hh::mirage::raw_vertex_format::ubyte4_norm:
+            case hl::hh::mirage::raw_vertex_format::ubyte4_norm:
 
                 for (size_t i = 0; i < mesh.vertexCount; i++)
                 {

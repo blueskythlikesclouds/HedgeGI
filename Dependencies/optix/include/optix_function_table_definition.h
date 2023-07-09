@@ -22,8 +22,8 @@
 /// @author NVIDIA Corporation
 /// @brief  OptiX public API header
 
-#ifndef __optix_optix_function_table_definition_h__
-#define __optix_optix_function_table_definition_h__
+#ifndef OPTIX_OPTIX_FUNCTION_TABLE_DEFINITION_H
+#define OPTIX_OPTIX_FUNCTION_TABLE_DEFINITION_H
 
 #include "optix_function_table.h"
 
@@ -40,10 +40,10 @@ extern "C" {
 /// unit.
 OptixFunctionTable g_optixFunctionTable;
 
-/*@}*/  // end group optix_function_table
+/**@}*/  // end group optix_function_table
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  // __optix_optix_function_table_definition_h__
+#endif  // OPTIX_OPTIX_FUNCTION_TABLE_DEFINITION_H

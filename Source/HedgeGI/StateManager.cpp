@@ -6,7 +6,6 @@
 #include "PackService.h"
 #include "Stage.h"
 #include "StateBakeStage.h"
-#include "StateEditMaterial.h"
 #include "StateIdle.h"
 #include "StateLoadStage.h"
 #include "StateProcess.h"
@@ -53,11 +52,6 @@ void StateManager::packResources(PackResourceMode mode, const bool clearLogs)
             get<PackService>()->packResources(mode);
             get<AppWindow>()->alert();
         }, clearLogs);
-}
-
-void StateManager::editMaterial()
-{
-    stateMachine.setState(std::make_unique<StateEditMaterial>());
 }
 
 void StateManager::clean(const bool clearLogs)

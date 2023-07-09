@@ -29,8 +29,6 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
 
         return color;
     }
-    
-    RTCIntersectContext context {};
 
     std::array<Color4, 8> colors {};
     std::array<bool, 8> additive {};
@@ -39,18 +37,17 @@ Color3 BakingFactory::sampleSky(const RaytracingContext& raytracingContext, cons
     int i;
     for (i = 0; i < colors.size(); i++)
     {
-        context = {};
-        rtcInitIntersectContext(&context);
-
         RTCRayHit query {};
+
         setRayOrigin(query.ray, position, 0.001f);
         setRayDirection(query.ray, direction);
-
         query.ray.tfar = INFINITY;
+        query.ray.mask = RAY_MASK_SKY;
+
         query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
-        rtcIntersect1(raytracingContext.skyRtcScene, &context, &query);
+        rtcIntersect1(raytracingContext.rtcScene, &query);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
             break;
 
@@ -121,14 +118,28 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 {
     TraceResult result {};
 
-    IntersectContext context(raytracingContext, random);
+    RTCIntersectArguments intersectArgs;
+    rtcInitIntersectArguments(&intersectArgs);
 
-    // Setup the Embree ray
+    IntersectContext context(raytracingContext, random);
+    intersectArgs.flags = RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER;
+    intersectArgs.context = &context;
+    intersectArgs.filter = intersectContextFilter<targetEngine, tracingFromEye>;
+
+    RTCOccludedArguments occludedArgs;
+    rtcInitOccludedArguments(&occludedArgs);
+
+    occludedArgs.flags = RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER;
+    occludedArgs.context = &context;
+    occludedArgs.filter = intersectContextFilter<targetEngine, tracingFromEye>;
+
     RTCRayHit query{};
+
     setRayOrigin(query.ray, position, 0.001f);
     setRayDirection(query.ray, direction);
-
     query.ray.tfar = INFINITY;
+    query.ray.mask = RAY_MASK_OPAQUE | RAY_MASK_TRANS | RAY_MASK_PUNCH_THROUGH;
+
     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
@@ -141,13 +152,7 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
     {
         const Vector3& rayNormal = *(const Vector3*)&query.ray.dir_x; // Can safely do this as W is going to be 0
 
-        context.init();
-        context.filter = intersectContextFilter<targetEngine, tracingFromEye>;
-
-        if (tracingFromEye && i == 0)
-            context.flags = RTC_INTERSECT_CONTEXT_FLAG_COHERENT;
-
-        rtcIntersect1(raytracingContext.rtcScene, &context, &query);
+        rtcIntersect1(raytracingContext.rtcScene, &query, &intersectArgs);
         if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
         {
             radiance.head<3>() += throughput.head<3>() * sampleSky<targetEngine, tracingFromEye>(raytracingContext, rayNormal, bakeParams, i);
@@ -422,16 +427,14 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                         shadowDirection = -lightDirection;
                     }
 
-                    context.init();
-                    context.filter = intersectContextFilter<targetEngine, tracingFromEye>;
-
                     RTCRay ray {};
+
                     setRayOrigin(ray, hitPosition, bakeParams.shadow.bias);
                     setRayDirection(ray, shadowDirection);
-
                     ray.tfar = light->type == LightType::Point ? (light->position - hitPosition).norm() : INFINITY;
+                    ray.mask = RAY_MASK_OPAQUE | RAY_MASK_PUNCH_THROUGH;
 
-                    rtcOccluded1(raytracingContext.rtcScene, &context, &ray);
+                    rtcOccluded1(raytracingContext.rtcScene, &ray, &occludedArgs);
 
                     if (ray.tfar < 0)
                         continue;
@@ -556,8 +559,9 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
 
         setRayOrigin(query.ray, hitPosition, 0.001f);
         setRayDirection(query.ray, hitDirection);
-
         query.ray.tfar = INFINITY;
+        query.ray.mask = RAY_MASK_OPAQUE | RAY_MASK_TRANS | RAY_MASK_PUNCH_THROUGH;
+
         query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
         query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
     }
@@ -657,24 +661,27 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, const Bitma
 bool BakingFactory::rayCast(const RaytracingContext& raytracingContext, const Vector3& position,
     const Vector3& direction, const TargetEngine targetEngine, Vector3& hitPosition)
 {
-    IntersectContext context(raytracingContext, Random::get());
+    RTCIntersectArguments intersectArgs;
+    rtcInitIntersectArguments(&intersectArgs);
 
-    context.init();
-    context.filter = targetEngine == TargetEngine::HE2 ?
+    IntersectContext context(raytracingContext, Random::get());
+    intersectArgs.flags = static_cast<RTCRayQueryFlags>(RTC_RAY_QUERY_FLAG_INVOKE_ARGUMENT_FILTER | RTC_RAY_QUERY_FLAG_COHERENT);
+    intersectArgs.context = &context;
+    intersectArgs.filter = targetEngine == TargetEngine::HE2 ?
         intersectContextFilter<TargetEngine::HE2, true> :
         intersectContextFilter<TargetEngine::HE1, true>;
 
-    context.flags = RTC_INTERSECT_CONTEXT_FLAG_COHERENT;
-
     RTCRayHit query{};
+
     setRayOrigin(query.ray, position, 0.001f);
     setRayDirection(query.ray, direction);
-
     query.ray.tfar = INFINITY;
+    query.ray.mask = RAY_MASK_OPAQUE | RAY_MASK_PUNCH_THROUGH;
+
     query.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     query.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 
-    rtcIntersect1(raytracingContext.rtcScene, &context, &query);
+    rtcIntersect1(raytracingContext.rtcScene, &query, &intersectArgs);
 
     if (query.hit.geomID == RTC_INVALID_GEOMETRY_ID)
         return false;

@@ -1,6 +1,7 @@
 #ifndef HL_HH_MODEL_H_INCLUDED
 #define HL_HH_MODEL_H_INCLUDED
 #include "../hl_scene.h"
+#include "../hl_resource.h"
 #include "../io/hl_hh_mirage.h"
 #include <unordered_set>
 
@@ -10,6 +11,7 @@ namespace hh
 {
 namespace mirage
 {
+class material;
 class skeletal_model;
 class terrain_model;
 struct node;
@@ -139,8 +141,7 @@ struct raw_vertex_element
 {
     u16 stream;
     u16 offset;
-    /** @brief See hl::hh::mirage::raw_vertex_format. */
-    u32 format;
+    raw_vertex_format format;
     raw_vertex_method method;
     raw_vertex_type type;
     u8 index;
@@ -155,12 +156,13 @@ struct raw_vertex_element
     }
 
     HL_API void convert_to_vec4(const void* vtx, vec4& vec) const;
+
     HL_API void convert_to_ivec4(const void* vtx, ivec4& ivec) const;
 };
 
 HL_STATIC_ASSERT_SIZE(raw_vertex_element, 12);
 
-struct raw_mesh
+struct raw_mesh_r1
 {
     off32<char> materialName;
     arr32<u16> faces;
@@ -185,93 +187,121 @@ struct raw_mesh
     }
 };
 
-HL_STATIC_ASSERT_SIZE(raw_mesh, 0x2C);
+HL_STATIC_ASSERT_SIZE(raw_mesh_r1, 0x2C);
 
-using raw_mesh_slot = arr32<off32<raw_mesh>>;
-
-HL_STATIC_ASSERT_SIZE(raw_mesh_slot, 8);
-
-struct raw_special_meshes
+struct raw_mesh_r2
 {
-    u32 count;
-    off32<off32<char>> types;               // char* types[count]
-    off32<off32<u32>> meshCounts;           // u32* meshCounts[count]
-    off32<off32<off32<raw_mesh>>> meshes;   // raw_mesh** meshes[count]
+    off32<char> materialName;
+    arr32<u16> faces;
+    u32 vertexCount;
+    u32 vertexSize;
+    off32<void> vertices;
+    off32<raw_vertex_element> vertexElements;
+    arr32<u16> boneNodeIndices;
+    arr32<off32<raw_texture_unit>> textureUnits;
 
     template<bool swapOffsets = true>
     void endian_swap() noexcept
     {
-        hl::endian_swap(count);
-        hl::endian_swap<swapOffsets>(types);
-        hl::endian_swap<swapOffsets>(meshCounts);
-        hl::endian_swap<swapOffsets>(meshes);
+        hl::endian_swap<swapOffsets>(materialName);
+        hl::endian_swap<swapOffsets>(faces);
+        hl::endian_swap(vertexCount);
+        hl::endian_swap(vertexSize);
+        hl::endian_swap<swapOffsets>(vertices);
+        hl::endian_swap<swapOffsets>(vertexElements);
+        hl::endian_swap<swapOffsets>(boneNodeIndices);
+        hl::endian_swap<swapOffsets>(textureUnits);
     }
+};
 
-    struct const_wrapper
+HL_STATIC_ASSERT_SIZE(raw_mesh_r2, 0x2C);
+
+template<typename RawMeshType>
+using raw_mesh_slot = arr32<off32<RawMeshType>>;
+
+using raw_mesh_slot_r1 = raw_mesh_slot<raw_mesh_r1>;
+HL_STATIC_ASSERT_SIZE(raw_mesh_slot_r1, 8);
+
+using raw_mesh_slot_r2 = raw_mesh_slot<raw_mesh_r2>;
+HL_STATIC_ASSERT_SIZE(raw_mesh_slot_r2, 8);
+
+template<typename RawMeshType>
+struct raw_special_meshes
+{
+    struct const_slot_wrapper
     {
         const char* type;
-        const off32<raw_mesh>* meshes;
+        const off32<RawMeshType>* meshes;
         u32 meshCount;
 
-        const raw_mesh* begin() const noexcept
+        inline const off32<RawMeshType>* begin() const noexcept
         {
-            return meshes->get();
+            return meshes;
         }
 
-        const raw_mesh* end() const noexcept
+        inline const off32<RawMeshType>* end() const noexcept
         {
-            return &((*meshes)[meshCount]);
+            return (meshes + meshCount);
         }
 
-        const raw_mesh& operator[](std::size_t i) const noexcept
+        inline const off32<RawMeshType>& operator[](std::size_t i) const noexcept
         {
-            return ((*meshes)[i]);
+            return meshes[i];
         }
 
-        const_wrapper(const char* type, u32 meshCount,
-            const off32<raw_mesh>* meshes) noexcept : type(type),
-            meshes(meshes), meshCount(meshCount) {}
+        const_slot_wrapper(const char* type, u32 meshCount,
+            const off32<RawMeshType>* meshes) noexcept :
+            type(type),
+            meshes(meshes),
+            meshCount(meshCount) {}
     };
 
-    struct wrapper
+    struct slot_wrapper
     {
         char* type;
-        off32<raw_mesh>* meshes;
+        off32<RawMeshType>* meshes;
         u32 meshCount;
 
-        const raw_mesh* begin() const noexcept
+        inline const off32<RawMeshType>* begin() const noexcept
         {
-            return meshes->get();
+            return meshes;
         }
 
-        raw_mesh* begin() noexcept
+        inline off32<RawMeshType>* begin() noexcept
         {
-            return meshes->get();
+            return meshes;
         }
 
-        const raw_mesh* end() const noexcept
+        inline const off32<RawMeshType>* end() const noexcept
         {
-            return &((*meshes)[meshCount]);
+            return (meshes + meshCount);
         }
 
-        raw_mesh* end() noexcept
+        inline off32<RawMeshType>* end() noexcept
         {
-            return &((*meshes)[meshCount]);
+            return (meshes + meshCount);
         }
 
-        const raw_mesh& operator[](std::size_t i) const noexcept
+        inline const off32<RawMeshType>& operator[](std::size_t i) const noexcept
         {
-            return ((*meshes)[i]);
+            return meshes[i];
         }
 
-        raw_mesh& operator[](std::size_t i) noexcept
+        inline off32<RawMeshType>& operator[](std::size_t i) noexcept
         {
-            return ((*meshes)[i]);
+            return meshes[i];
         }
 
-        wrapper(char* type, u32 meshCount,
-            off32<raw_mesh>* meshes) noexcept : type(type),
-            meshes(meshes), meshCount(meshCount) {}
+        explicit operator const_slot_wrapper() const noexcept
+        {
+            return const_slot_wrapper(type, meshes, meshCount);
+        }
+
+        slot_wrapper(char* type, u32 meshCount,
+            off32<RawMeshType>* meshes) noexcept :
+            type(type),
+            meshes(meshes),
+            meshCount(meshCount) {}
     };
 
     class const_iterator
@@ -281,7 +311,7 @@ struct raw_special_meshes
         u32 m_curIndex = 0;
 
     public:
-        const_wrapper operator*() const noexcept
+        const_slot_wrapper operator*() const noexcept
         {
             return (*m_slot)[m_curIndex];
         }
@@ -309,20 +339,35 @@ struct raw_special_meshes
             return (m_slot != other.m_slot || m_curIndex != other.m_curIndex);
         }
 
-        const_iterator(const raw_special_meshes* slot,
-            u32 index) noexcept : m_slot(slot), m_curIndex(index) {}
+        const_iterator(const raw_special_meshes* slot, u32 index) noexcept :
+            m_slot(slot),
+            m_curIndex(index) {}
     };
 
     struct iterator : public const_iterator
     {
-        wrapper operator*() noexcept
+        slot_wrapper operator*() const noexcept
         {
-            return (*const_cast<raw_special_meshes*>(m_slot))[m_curIndex];
+            return (*const_cast<raw_special_meshes*>(this->m_slot))[this->m_curIndex];
         }
 
         iterator(raw_special_meshes* slot, u32 index) noexcept :
             const_iterator(slot, index) {}
     };
+
+    u32 count;
+    off32<off32<char>> types;
+    off32<off32<u32>> meshCounts;
+    off32<off32<off32<RawMeshType>>> meshes;
+
+    template<bool swapOffsets = true>
+    void endian_swap() noexcept
+    {
+        hl::endian_swap(count);
+        hl::endian_swap<swapOffsets>(types);
+        hl::endian_swap<swapOffsets>(meshCounts);
+        hl::endian_swap<swapOffsets>(meshes);
+    }
 
     const_iterator begin() const noexcept
     {
@@ -344,27 +389,32 @@ struct raw_special_meshes
         return iterator(this, count);
     }
 
-    const_wrapper operator[](std::size_t i) const noexcept
+    const_slot_wrapper operator[](std::size_t i) const noexcept
     {
-        return const_wrapper(types[i].get(),
+        return const_slot_wrapper(types[i].get(),
             *meshCounts[i], meshes[i].get());
     }
 
-    wrapper operator[](std::size_t i) noexcept
+    slot_wrapper operator[](std::size_t i) noexcept
     {
-        return wrapper(types[i].get(),
+        return slot_wrapper(types[i].get(),
             *meshCounts[i], meshes[i].get());
     }
 };
 
-HL_STATIC_ASSERT_SIZE(raw_special_meshes, 16);
+using raw_special_meshes_r1 = raw_special_meshes<raw_mesh_r1>;
+HL_STATIC_ASSERT_SIZE(raw_special_meshes_r1, 16);
 
+using raw_special_meshes_r2 = raw_special_meshes<raw_mesh_r2>;
+HL_STATIC_ASSERT_SIZE(raw_special_meshes_r2, 16);
+
+template<typename RawMeshType>
 struct raw_mesh_group
 {
-    raw_mesh_slot opaq;
-    raw_mesh_slot trans;
-    raw_mesh_slot punch;
-    raw_special_meshes special;
+    raw_mesh_slot<RawMeshType> opaq;
+    raw_mesh_slot<RawMeshType> trans;
+    raw_mesh_slot<RawMeshType> punch;
+    raw_special_meshes<RawMeshType> special;
 
     template<bool swapOffsets = true>
     void endian_swap() noexcept
@@ -386,7 +436,11 @@ struct raw_mesh_group
     }
 };
 
-HL_STATIC_ASSERT_SIZE(raw_mesh_group, 0x28);
+using raw_mesh_group_r1 = raw_mesh_group<raw_mesh_r1>;
+HL_STATIC_ASSERT_SIZE(raw_mesh_group_r1, 0x28);
+
+using raw_mesh_group_r2 = raw_mesh_group<raw_mesh_r2>;
+HL_STATIC_ASSERT_SIZE(raw_mesh_group_r2, 0x28);
 
 struct raw_node
 {
@@ -403,6 +457,23 @@ struct raw_node
 
 HL_STATIC_ASSERT_SIZE(raw_node, 8);
 
+struct raw_terrain_model_v5r1
+{
+    arr32<off32<raw_mesh_group_r1>> meshGroups;
+    off32<char> name;
+
+    template<bool swapOffsets = true>
+    void endian_swap() noexcept
+    {
+        hl::endian_swap<swapOffsets>(meshGroups);
+        hl::endian_swap<swapOffsets>(name);
+    }
+
+    HL_API void fix();
+};
+
+HL_STATIC_ASSERT_SIZE(raw_terrain_model_v5r1, 12);
+
 enum class raw_terrain_model_flags : u32
 {
     none = 0,
@@ -414,51 +485,38 @@ enum class raw_terrain_model_flags : u32
     is_instanced = 1
 };
 
-struct raw_terrain_model_v5
+HL_ENUM_CLASS_DEF_BITWISE_OPS(raw_terrain_model_flags)
+
+struct raw_terrain_model_v5r2
 {
-    arr32<off32<raw_mesh_group>> meshGroups;
+    arr32<off32<raw_mesh_group_r1>> meshGroups;
     off32<char> name;
-
-    /**
-        @brief See hl::hh::mirage::raw_terrain_model_flags.
-        
-        NOTE: This value is NOT present in Sonic Unleashed!!!
-        It is only present in "revision 2" of the v5 format, used from
-        Sonic Generations onwards. Attempting to use it in data from any
-        lower revision will cause your code to read unrelated memory!!!
-
-        Use is_revision2() to automagically determine if this value is available.
-    */
-    u32 rev2_flags;
-
-    HL_API bool is_revision2() const;
-
-    template<bool swapOffsets = true>
-    void endian_swap(bool isRevision2) noexcept
-    {
-        hl::endian_swap<swapOffsets>(meshGroups);
-        hl::endian_swap<swapOffsets>(name);
-        
-        if (isRevision2)
-        {
-            hl::endian_swap(rev2_flags);
-        }
-    }
+    raw_terrain_model_flags flags;
 
     template<bool swapOffsets = true>
     void endian_swap() noexcept
     {
-        endian_swap<swapOffsets>(is_revision2());
+        hl::endian_swap<swapOffsets>(meshGroups);
+        hl::endian_swap<swapOffsets>(name);
+        hl::endian_swap(flags);
+    }
+
+    inline bool is_instanced() const noexcept
+    {
+        return ((flags & raw_terrain_model_flags::is_instanced) !=
+            raw_terrain_model_flags::none);
     }
 
     HL_API void fix();
 };
 
-HL_STATIC_ASSERT_SIZE(raw_terrain_model_v5, 16);
+HL_STATIC_ASSERT_SIZE(raw_terrain_model_v5r2, 16);
+
+HL_API u32 get_terrain_model_v5_revision(const void* rawData);
 
 struct raw_skeletal_model_v2
 {
-    raw_mesh_slot meshes;
+    raw_mesh_slot_r1 meshes;
     arr32<void> unknown1; // TODO
     arr32<void> unknown2; // TODO
     u32 nodeCount;
@@ -487,7 +545,7 @@ HL_STATIC_ASSERT_SIZE(raw_skeletal_model_v2, 0x2C);
 
 struct raw_skeletal_model_v4
 {
-    arr32<off32<raw_mesh_group>> meshGroups;
+    arr32<off32<raw_mesh_group_r1>> meshGroups;
     arr32<void> unknown1; // TODO
     arr32<void> unknown2; // TODO
     arr32<void> unknown3; // TODO
@@ -516,11 +574,12 @@ HL_STATIC_ASSERT_SIZE(raw_skeletal_model_v4, 0x30);
 
 struct raw_skeletal_model_v5
 {
-    arr32<off32<raw_mesh_group>> meshGroups;
-    arr32<void> unknown1; // TODO
+    arr32<off32<raw_mesh_group_r1>> meshGroups;
+    arr32<void> unknown1; // TODO: Sajid says these are morphers. Implement those.
     u32 nodeCount;
     off32<off32<raw_node>> nodes;
     off32<matrix4x4> nodeMatrices;
+    /** @brief Bounding box for the model. */
     off32<aabb> bounds;
 
     template<bool swapOffsets = true>
@@ -539,6 +598,34 @@ struct raw_skeletal_model_v5
 
 HL_STATIC_ASSERT_SIZE(raw_skeletal_model_v5, 0x20);
 
+struct raw_skeletal_model_v6
+{
+    arr32<off32<raw_mesh_group_r2>> meshGroups;
+    arr32<void> unknown1; // TODO: Sajid says these are morphers. Implement those.
+    u32 nodeCount;
+    off32<off32<raw_node>> nodes;
+    off32<matrix4x4> nodeMatrices;
+    /** @brief Bounding box for the model. */
+    off32<aabb> bounds;
+
+    template<bool swapOffsets = true>
+    void endian_swap() noexcept
+    {
+        hl::endian_swap<swapOffsets>(meshGroups);
+        hl::endian_swap<swapOffsets>(unknown1);
+        hl::endian_swap(nodeCount);
+        hl::endian_swap<swapOffsets>(nodes);
+        hl::endian_swap<swapOffsets>(nodeMatrices);
+        hl::endian_swap<swapOffsets>(bounds);
+    }
+
+    HL_API void fix();
+};
+
+HL_STATIC_ASSERT_SIZE(raw_skeletal_model_v6, 0x20);
+
+using topology_type = raw_topology_type;
+
 struct texture_unit
 {
     std::string name;
@@ -546,56 +633,59 @@ struct texture_unit
 
     HL_API void write(writer& writer) const;
 
-    texture_unit() = default;
-    texture_unit(const char* name, u8 index = 0) :
-        name(name), index(index) {}
+    texture_unit() noexcept = default;
 
-    texture_unit(const std::string& name, u8 index = 0) :
-        name(name), index(index) {}
-
-    texture_unit(std::string&& name, u8 index = 0) :
-        name(std::move(name)), index(index) {}
+    texture_unit(std::string name, u8 index = 0) noexcept :
+        name(std::move(name)),
+        index(index) {}
 
     HL_API texture_unit(const raw_texture_unit& rawTexUnit);
 };
 
 struct mesh
 {
-    std::string materialName;
+    res_ref<mirage::material> material;
     std::vector<u16> faces;
     std::vector<raw_vertex_element> vertexElements;
     std::unique_ptr<u8[]> vertices;
     u32 vertexCount;
     u32 vertexSize;
-    std::vector<u8> boneNodeIndices;
+    std::vector<u16> boneNodeIndices;
     std::vector<texture_unit> textureUnits;
 
     HL_API hl::mesh& add_to_node(hl::node& node,
-        raw_topology_type topType = raw_topology_type::triangle_strip,
+        topology_type topType = topology_type::triangle_strip,
         const std::vector<mirage::node>* hhNodes = nullptr,
         bool includeLibGensTags = true,
         const char* libGensLayerName = nullptr) const;
 
-    HL_API void write(writer& writer) const;
+    HL_API void write(writer& writer, u32 revision = 1) const;
 
     mesh() = default;
-    HL_API mesh(const raw_mesh& rawMesh);
+
+    HL_API mesh(const raw_mesh_r1& rawMesh);
+
+    HL_API mesh(const raw_mesh_r2& rawMesh);
 };
 
 struct mesh_slot : public std::vector<mesh>
 {
-    HL_API void get_unique_material_names(std::unordered_set<std::string>& uniqueMatNames) const;
+    HL_API void get_unique_material_names(
+        std::unordered_set<std::string>& uniqueMatNames) const;
 
     HL_API void add_to_node(hl::node& node,
-        raw_topology_type topType = raw_topology_type::triangle_strip,
+        topology_type topType = topology_type::triangle_strip,
         const std::vector<mirage::node>* hhNodes = nullptr,
         bool includeLibGensTags = true,
         const char* libGensLayerName = nullptr) const;
 
-    HL_API void write(writer& writer) const;
+    HL_API void write(writer& writer, u32 revision = 1) const;
 
-    mesh_slot() = default;
-    HL_API mesh_slot(const raw_mesh_slot& rawSlot);
+    mesh_slot() noexcept = default;
+
+    HL_API mesh_slot(const raw_mesh_slot_r1& rawSlot);
+
+    HL_API mesh_slot(const raw_mesh_slot_r2& rawSlot);
 };
 
 struct special_mesh_slot : public mesh_slot
@@ -603,7 +693,7 @@ struct special_mesh_slot : public mesh_slot
     std::string type;
 
     inline void add_to_node(hl::node& node,
-        raw_topology_type topType = raw_topology_type::triangle_strip,
+        topology_type topType = topology_type::triangle_strip,
         const std::vector<mirage::node>* hhNodes = nullptr,
         bool includeLibGensTags = true) const
     {
@@ -611,18 +701,23 @@ struct special_mesh_slot : public mesh_slot
             hhNodes, includeLibGensTags, type.c_str());
     }
 
-    // TODO: Write function!!!
+    special_mesh_slot(std::string type) noexcept :
+        type(std::move(type)) {}
 
-    special_mesh_slot(const char* type) : type(type) {}
-    special_mesh_slot(const std::string& type) : type(type) {}
-    special_mesh_slot(std::string&& type) : type(std::move(type)) {}
-    HL_API special_mesh_slot(const raw_special_meshes::const_wrapper& rawSpecialSlot);
+    HL_API special_mesh_slot(
+        const raw_special_meshes_r1::const_slot_wrapper& rawSpecialSlot);
+
+    HL_API special_mesh_slot(
+        const raw_special_meshes_r2::const_slot_wrapper& rawSpecialSlot);
 };
 
 struct special_meshes : public std::vector<special_mesh_slot>
 {
-    special_meshes() = default;
-    HL_API special_meshes(const raw_special_meshes& rawSpecial);
+    special_meshes() noexcept = default;
+
+    HL_API special_meshes(const raw_special_meshes_r1& rawSpecial);
+
+    HL_API special_meshes(const raw_special_meshes_r2& rawSpecial);
 };
 
 struct mesh_group
@@ -633,29 +728,36 @@ struct mesh_group
     mesh_slot punch;
     special_meshes special;
 
-    HL_API void get_unique_material_names(std::unordered_set<std::string>& uniqueMatNames) const;
+    HL_API void get_unique_material_names(
+        std::unordered_set<std::string>& uniqueMatNames) const;
 
     HL_API void add_to_node(hl::node& node,
-        raw_topology_type topType = raw_topology_type::triangle_strip,
+        topology_type topType = topology_type::triangle_strip,
         const std::vector<mirage::node>* hhNodes = nullptr,
         bool includeLibGensTags = true) const;
 
-    HL_API void write(writer& writer, u32 revision = 2) const;
+    HL_API void write(writer& writer, u32 revision = 1,
+        bool allowNullOffsets = true) const;
 
-    mesh_group() = default;
-    mesh_group(const char* name) : name(name) {}
-    mesh_group(const std::string& name) : name(name) {}
-    mesh_group(std::string&& name) : name(std::move(name)) {}
+    mesh_group() noexcept = default;
 
-    HL_API mesh_group(const raw_mesh_group& rawGroup);
-    HL_API mesh_group(const raw_mesh_slot& rawSlot);
+    mesh_group(std::string name) noexcept :
+        name(std::move(name)) {}
+
+    HL_API mesh_group(const raw_mesh_group_r1& rawGroup);
+
+    HL_API mesh_group(const raw_mesh_group_r2& rawGroup);
+
+    HL_API mesh_group(const raw_mesh_slot_r1& rawSlot);
+
+    HL_API mesh_group(const raw_mesh_slot_r2& rawSlot);
 };
 
 struct node
 {
     std::string name;
     std::vector<sample_chunk::property> scaParams;
-    matrix4x4 matrix = matrix4x4::identity;
+    matrix4x4 matrix = matrix4x4::identity();
     long parentIndex = -1;
 
     HL_API hl::node& add_to_node(hl::node& parentNode,
@@ -669,29 +771,29 @@ struct node
 
     HL_API void write(writer& writer) const;
 
-    node() = default;
+    node() noexcept = default;
     
-    node(const char* name, long parentIndex = -1) :
-        name(name), parentIndex(parentIndex) {}
-
-    node(const std::string& name, long parentIndex = -1) :
-        name(name), parentIndex(parentIndex) {}
-
-    node(std::string&& name, long parentIndex = -1) :
-        name(std::move(name)), parentIndex(parentIndex) {}
+    node(std::string name, long parentIndex = -1) noexcept :
+        name(std::move(name)),
+        parentIndex(parentIndex) {}
 
     node(const raw_node& rawNode, const matrix4x4& matrix) :
-        name(rawNode.name.get()), parentIndex(rawNode.parentIndex),
+        name(rawNode.name.get()),
+        parentIndex(rawNode.parentIndex),
         matrix(matrix) {}
 };
 
-class model
+class model : public res_base
 {
 protected:
     HL_API bool in_has_per_node_params(std::size_t nodeCount,
         const node* nodes) const noexcept;
 
-    HL_API void in_parse_mesh_groups(const arr32<off32<raw_mesh_group>>& rawMeshGroups);
+    HL_API void in_parse_mesh_groups(
+        const arr32<off32<raw_mesh_group_r1>>& rawMeshGroups);
+
+    HL_API void in_parse_mesh_groups(
+        const arr32<off32<raw_mesh_group_r2>>& rawMeshGroups);
 
     HL_API void in_parse_sample_chunk_nodes(const void* rawData,
         std::size_t nodeCount, node* nodes);
@@ -699,7 +801,11 @@ protected:
     HL_API void in_write_sample_chunk_nodes(std::size_t nodeCount,
         const node* nodes, writer& writer) const;
 
-    model() = default;
+    model() noexcept :
+        res_base("default_model") {}
+
+    model(std::string name) noexcept :
+        res_base(std::move(name)) {}
 
 public:
     using const_iterator = std::vector<mesh_group>::const_iterator;
@@ -732,17 +838,18 @@ public:
             const model*>(this)->get_param(name));
     }
 
-    HL_API raw_topology_type get_topology_type() const;
+    HL_API topology_type get_topology_type() const;
 
-    HL_API void get_unique_material_names(std::unordered_set<std::string>& uniqueMatNames) const;
+    HL_API void get_unique_material_names(
+        std::unordered_set<std::string>& uniqueMatNames) const;
 
     HL_API std::unordered_set<std::string> get_unique_material_names() const;
 
     HL_API void import_materials(const nchar* materialDir, scene& scene,
-        bool merge = true, bool includeLibGensTags = true);
+        bool merge = true, bool includeLibGensTags = true) const;
 
     inline void import_materials(const nstring& materialDir, scene& scene,
-        bool merge = true, bool includeLibGensTags = true)
+        bool merge = true, bool includeLibGensTags = true) const
     {
         import_materials(materialDir.c_str(), scene, merge, includeLibGensTags);
     }
@@ -780,13 +887,21 @@ public:
 
 class terrain_model : public model
 {
-    HL_API header_type in_get_default_header_type() const;
+    void in_parse(const raw_terrain_model_v5r1& rawMdl);
+
+    void in_parse(const raw_terrain_model_v5r2& rawMdl);
+
+    void in_parse(const void* rawData);
+
+    void in_load(const nchar* filePath);
+
+    void in_clear() noexcept;
 
 public:
     node rootNode;
-    bool isInstanced;
+    bool isInstanced = false;
 
-    inline constexpr static nchar ext[] = HL_NTEXT(".terrain-model");
+    inline constexpr static nchar extension[] = HL_NTEXT(".terrain-model");
 
     HL_API static void fix(void* rawData);
 
@@ -800,6 +915,8 @@ public:
         return (has_per_model_params() || has_per_node_params());
     }
 
+    HL_API header_type get_default_header_type() const;
+
     HL_API void add_to_node(hl::node& parentNode, bool includeLibGensTags = true) const;
 
     void add_to_scene(scene& scene, bool includeLibGensTags = true) const
@@ -807,8 +924,7 @@ public:
         add_to_node(scene.root_node(), includeLibGensTags);
     }
 
-    HL_API void parse(const raw_terrain_model_v5& rawMdl);
-    HL_API void parse(const void* rawData);
+    HL_API void parse(const void* rawData, std::string name);
 
     HL_API void load(const nchar* filePath);
 
@@ -818,13 +934,7 @@ public:
     }
 
     HL_API void write(writer& writer, header_type headerType,
-        u32 version = 5, u32 revision = 2, const char* fileName = nullptr) const;
-
-    inline void write(writer& writer, header_type headerType,
-        u32 version, u32 revision, const std::string& fileName) const
-    {
-        write(writer, headerType, version, revision, fileName.c_str());
-    }
+        u32 version = 5, u32 revision = 2) const;
 
     HL_API void save(stream& stream, header_type headerType,
         u32 version = 5, u32 revision = 2, const char* fileName = nullptr) const;
@@ -844,16 +954,17 @@ public:
         save(filePath.c_str(), headerType, version, revision);
     }
 
-    HL_API void save(const nchar* filePath, header_type headerType,
-        u32 version = 5) const;
+    HL_API void save(const nchar* filePath,
+        header_type headerType, u32 version = 5) const;
 
-    inline void save(const nstring& filePath, header_type headerType,
-        u32 version = 5) const
+    inline void save(const nstring& filePath,
+        header_type headerType, u32 version = 5) const
     {
         save(filePath.c_str(), headerType, version);
     }
 
     HL_API void save(stream& stream) const;
+
     HL_API void save(const nchar* filePath) const;
 
     inline void save(const nstring& filePath) const
@@ -861,16 +972,11 @@ public:
         save(filePath.c_str());
     }
 
-    terrain_model() = default;
-    terrain_model(const void* rawData)
-    {
-        parse(rawData);
-    }
+    terrain_model() noexcept = default;
 
-    terrain_model(const nchar* filePath)
-    {
-        load(filePath);
-    }
+    HL_API terrain_model(const void* rawData, std::string name);
+
+    HL_API terrain_model(const nchar* filePath);
 
     inline terrain_model(const nstring& filePath) :
         terrain_model(filePath.c_str()) {}
@@ -878,7 +984,19 @@ public:
 
 class skeletal_model : public model
 {
-    HL_API header_type in_get_default_header_type() const;
+    void in_parse(const raw_skeletal_model_v2& rawMdl);
+
+    void in_parse(const raw_skeletal_model_v4& rawMdl);
+
+    void in_parse(const raw_skeletal_model_v5& rawMdl);
+
+    void in_parse(const raw_skeletal_model_v6& rawMdl);
+
+    void in_parse(const void* rawData);
+
+    void in_load(const nchar* filePath);
+
+    void in_clear() noexcept;
 
 public:
     // TODO: unknown1
@@ -888,7 +1006,7 @@ public:
     // TODO: Should bounds be a field, or just computed automatically at write time?
     // TODO: the other unknown3
 
-    inline constexpr static nchar ext[] = HL_NTEXT(".model");
+    inline constexpr static nchar extension[] = HL_NTEXT(".model");
 
     HL_API static void fix(void* rawData);
 
@@ -899,6 +1017,8 @@ public:
         return (has_per_model_params() || has_per_node_params());
     }
 
+    HL_API header_type get_default_header_type() const;
+
     HL_API void add_to_node(hl::node& parentNode, bool includeLibGensTags = true) const;
 
     inline void add_to_scene(scene& scene, bool includeLibGensTags = true) const
@@ -906,10 +1026,7 @@ public:
         add_to_node(scene.root_node(), includeLibGensTags);
     }
 
-    HL_API void parse(const raw_skeletal_model_v2& rawMdl);
-    HL_API void parse(const raw_skeletal_model_v4& rawMdl);
-    HL_API void parse(const raw_skeletal_model_v5& rawMdl);
-    HL_API void parse(const void* rawData);
+    HL_API void parse(const void* rawData, std::string name);
 
     HL_API void load(const nchar* filePath);
 
@@ -919,13 +1036,7 @@ public:
     }
 
     HL_API void write(writer& writer, header_type headerType,
-        u32 version = 5, const char* fileName = nullptr) const;
-
-    inline void write(writer& writer, header_type headerType,
-        u32 version, const std::string& fileName) const
-    {
-        write(writer, headerType, version, fileName.c_str());
-    }
+        u32 version = 5) const;
 
     HL_API void save(stream& stream, header_type headerType,
         u32 version = 5, const char* fileName = nullptr) const;
@@ -936,14 +1047,17 @@ public:
         save(stream, headerType, version, fileName.c_str());
     }
 
-    HL_API void save(const nchar* filePath, header_type headerType, u32 version = 5) const;
+    HL_API void save(const nchar* filePath,
+        header_type headerType, u32 version = 5) const;
 
-    inline void save(const nstring& filePath, header_type headerType, u32 version = 5) const
+    inline void save(const nstring& filePath,
+        header_type headerType, u32 version = 5) const
     {
         save(filePath.c_str(), headerType, version);
     }
 
     HL_API void save(stream& stream) const;
+
     HL_API void save(const nchar* filePath) const;
 
     inline void save(const nstring& filePath) const
@@ -951,16 +1065,11 @@ public:
         save(filePath.c_str());
     }
 
-    skeletal_model() = default;
-    skeletal_model(const void* rawData)
-    {
-        parse(rawData);
-    }
+    skeletal_model() noexcept = default;
 
-    skeletal_model(const nchar* filePath)
-    {
-        load(filePath);
-    }
+    HL_API skeletal_model(const void* rawData, std::string name);
+
+    HL_API skeletal_model(const nchar* filePath);
 
     inline skeletal_model(const nstring& filePath) :
         skeletal_model(filePath.c_str()) {}

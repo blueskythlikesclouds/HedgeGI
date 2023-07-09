@@ -18,7 +18,7 @@ bool ModelProcessor::processArchive(hl::archive& archive, ProcModelFunc function
         Logger::logFormatted(LogType::Normal, "Processing %s...", toUtf8(entry.name()).data());
 
         hl::hh::mirage::terrain_model::fix(entry.file_data());
-        hl::hh::mirage::terrain_model model(entry.file_data());
+        hl::hh::mirage::terrain_model model(entry.file_data(), "");
 
         function(model);
 

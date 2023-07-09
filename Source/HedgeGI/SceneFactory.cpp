@@ -223,7 +223,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(T* material, const hl::ar
                 *marker = ~0;
             }
 
-            for (auto& texName : texset->textureEntryNames)
+            for (auto& texName : texset->texEntryNames)
             {
                 const auto texFileName = toNchar((std::string(texName.get()) + ".texture").c_str());
 
@@ -263,7 +263,7 @@ std::unique_ptr<Material> SceneFactory::createMaterial(T* material, const hl::ar
     return newMaterial;
 }
 
-std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, const Affine3& transformation) const
+std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh, const Affine3& transformation) const
 {
     std::unique_ptr<Mesh> newMesh = std::make_unique<Mesh>();
 
@@ -274,7 +274,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     {
         auto element = &mesh->vertexElements[0];
 
-        while (element->format != (hl::u32)hl::hh::mirage::raw_vertex_format::last_entry)
+        while (element->format != hl::hh::mirage::raw_vertex_format::last_entry)
         {
             Vertex& vertex = newMesh->vertices[i];
 
@@ -413,7 +413,7 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, c
     return newMesh;
 }
 
-void SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, const MeshType type, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+void SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh, const MeshType type, const Affine3& transformation, std::vector<const Mesh*>& meshes)
 {
     std::unique_ptr<Mesh> newMesh = createMesh(mesh, transformation);
     newMesh->type = type;
@@ -424,7 +424,7 @@ void SceneFactory::createMesh(hl::hh::mirage::raw_mesh* mesh, const MeshType typ
     scene->meshes.push_back(std::move(newMesh));
 }
 
-void SceneFactory::createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group>>* meshGroups, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+void SceneFactory::createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group_r1>>* meshGroups, const Affine3& transformation, std::vector<const Mesh*>& meshes)
 {
     for (auto& meshGroup : *meshGroups)
     {
@@ -445,7 +445,7 @@ void SceneFactory::createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh
     }
 }
 
-void SceneFactory::createMeshGroup(hl::hh::mirage::raw_mesh_slot* meshGroup, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+void SceneFactory::createMeshGroup(hl::hh::mirage::raw_mesh_slot_r1* meshGroup, const Affine3& transformation, std::vector<const Mesh*>& meshes)
 {
     for (auto& opaq : meshGroup[0]) // opaq
         createMesh(opaq.get(), MeshType::Opaque, transformation, meshes);
@@ -486,7 +486,7 @@ bool SceneFactory::createModel(void* rawModel, const Affine3& transformation, st
 
     if (version == 5)
     {
-        const auto meshGroups = reinterpret_cast<hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group>>*>(data);
+        const auto meshGroups = reinterpret_cast<hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group_r1>>*>(data);
         if (*marker != ~0)
         {
             meshGroups->endian_swap<false>();
@@ -497,7 +497,7 @@ bool SceneFactory::createModel(void* rawModel, const Affine3& transformation, st
     }
     else
     {
-        const auto meshGroup = reinterpret_cast<hl::hh::mirage::raw_mesh_slot*>(data);
+        const auto meshGroup = reinterpret_cast<hl::hh::mirage::raw_mesh_slot_r1*>(data);
         if (*marker != ~0)
         {
             meshGroup[0].endian_swap<false>();
