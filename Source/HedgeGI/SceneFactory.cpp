@@ -12,6 +12,8 @@
 #include "Scene.h"
 #include "SHLightField.h"
 #include "Utilities.h"
+#include "FxSceneData.h"
+#include "NeedleFxSceneData.h"
 
 std::unique_ptr<Bitmap> SceneFactory::createBitmap(const uint8_t* data, const size_t length) const
 {
@@ -708,11 +710,7 @@ void SceneFactory::loadResources(const hl::archive& archive)
 
         else if (hl::text::strstr(entry.name(), HL_NTEXT(".shlf")))
         {
-            void* data = (void*)entry.file_data();
-
-            hl::bina::fix64(data, entry.size());
-
-            auto shlf = hl::bina::get_data<hl::hh::needle::raw_sh_light_field>(data);
+            auto shlf = hl::bina::fix64<hl::hh::needle::raw_sh_light_field>((void*)entry.file_data(), entry.size());
 
             for (size_t i = 0; i < shlf->count; i++)
                 scene->shLightFields.push_back(std::move(createSHLightField(&shlf->entries[i])));
@@ -910,19 +908,13 @@ void SceneFactory::loadSceneEffect(const hl::archive& archive) const
 
         if (hl::text::equal(entry.name(), hhdName.data()))
         {
-            hl::bina::fix32((void*)entry.file_data(), entry.size());
-
-            if (const auto data = hl::bina::get_data<sonic2013::FxSceneData>(entry.file_data()); data)
-                scene->effect.load(*data);
-
+            scene->effect.load(*entry.file_data<sonic2013::FxSceneData>());
             break;
         }
 
         if (hl::text::equal(entry.name(), rflName.data()))
         {
-            hl::bina::fix64((void*)entry.file_data(), entry.size());
-
-            if (const auto data = hl::bina::get_data<wars::NeedleFxSceneData>(entry.file_data()); data)
+            if (const auto data = hl::bina::fix64<wars::NeedleFxSceneData>((void*)entry.file_data(), entry.size()); data)
                 scene->effect.load(*data);
 
             break;

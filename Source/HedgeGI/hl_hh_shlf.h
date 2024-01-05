@@ -17,5 +17,9 @@ namespace hl::hh::needle
         u8 unknown[0x90];
         u32 count;
         off64<raw_sh_light_field_node> entries;
+
+        void fix(bina::endian_flag flag)
+        {
+        }
     };
 }

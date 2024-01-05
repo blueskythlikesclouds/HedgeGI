@@ -33,13 +33,13 @@ enum class endian_flag : u8
 };
 
 /**
-    @brief  Returns whether data in a BINA file with the given endian flag
-            needs to be endian-swapped or not.
-
-    @param flag     The endian flag to check.
-    @return         Whether data in a BINA file with the given flag needs to be swapped.
+ * @brief Returns whether data in a BINA file with the given
+ * endian flag needs to be endian-swapped or not.
+ *
+ * @param flag The endian flag to check.
+ * @return Whether data in a BINA file with the given flag needs to be swapped.
 */
-constexpr bool needs_swap(const endian_flag flag) noexcept
+constexpr bool needs_swap(endian_flag flag) noexcept
 {
 #ifdef HL_IS_BIG_ENDIAN
     return (flag == endian_flag::little);
@@ -48,7 +48,24 @@ constexpr bool needs_swap(const endian_flag flag) noexcept
 #endif
 }
 
+/**
+ * @brief Get the "opposite" of the given endian flag.
+ * 
+ * If flag is endian_flag::little, returns endian_flag::big.
+ * If flag is endian_flag::big, returns endian_flag::little.
+ *
+ * @param flag The endian flag to swap.
+ * @return The "opposite" of the given endian flag.
+ */
+constexpr endian_flag get_swapped_endian_flag(endian_flag flag) noexcept
+{
+    return (flag == endian_flag::big) ?
+        endian_flag::little :
+        endian_flag::big;
+}
+
 bool has_v1_header(const void* rawData);
+
 bool has_v2_header(const void* rawData);
 
 struct pac_pack_meta
@@ -157,48 +174,36 @@ protected:
 public:
     class iterator
     {
-        const u8* m_curOffTablePtr = nullptr;
-        u32 m_curRelOffPos = 0;
-
-        HL_API u32 in_get_cur_rel_off_pos() const noexcept;
-        HL_API const u8* in_get_next_off_table_ptr() const noexcept;
+        const u8* m_ptr;
 
     public:
-        HL_API bool next() noexcept;
+        HL_API bool next();
 
-        inline iterator& operator++() noexcept
-        {
-            next();
-            return *this;
-        }
+        HL_API iterator& operator++();
 
-        inline iterator operator++(int) noexcept
+        inline iterator operator++(int)
         {
             iterator tmpCopy(*this);
             operator++();
             return tmpCopy;
         }
 
-        inline u32 operator*() const noexcept
-        {
-            return m_curRelOffPos;
-        }
+        HL_API u32 operator*() const;
 
         inline bool operator==(const iterator& other) const noexcept
         {
-            return (m_curOffTablePtr == other.m_curOffTablePtr);
+            return (m_ptr == other.m_ptr);
         }
 
         inline bool operator!=(const iterator& other) const noexcept
         {
-            return (m_curOffTablePtr != other.m_curOffTablePtr);
+            return (m_ptr != other.m_ptr);
         }
 
         inline iterator() noexcept = default;
 
-        inline iterator(const u8* offTable) noexcept :
-            m_curOffTablePtr(offTable),
-            m_curRelOffPos(in_get_cur_rel_off_pos()) {}
+        inline iterator(const u8* ptr) noexcept :
+            m_ptr(ptr) {}
     };
 
     inline iterator begin() const noexcept
@@ -211,9 +216,7 @@ public:
         return iterator(m_offTableEnd);
     }
 
-    inline off_table_handle(const u8* offTable, u32 offTableSize) noexcept :
-        m_offTableBeg(offTable),
-        m_offTableEnd(in_get_real_off_table_end(offTable, offTableSize)) {}
+    HL_API off_table_handle(const u8* offTable, u32 offTableSize) noexcept;
 };
 
 HL_API void offsets_fix32(off_table_handle offTable,
@@ -236,12 +239,20 @@ HL_API void offsets_write(std::size_t dataPos,
 
 namespace v1
 {
+enum class raw_header_status : u8
+{
+    none = 0,
+    is_fixed = 1,
+};
+
+HL_ENUM_CLASS_DEF_BITWISE_OPS(raw_header_status)
+
 struct raw_header
 {
     /** @brief The size of the entire file, including this header. */
     u32 fileSize;
-    /** @brief The non-absolute offset to the offset table. */
-    off32<u8> offTable;
+    /** @brief The size of the data contained within this file. */
+    u32 dataSize;
     /** @brief The size of the offset table. */
     u32 offTableSize;
     /** @brief Seems to just be padding. */
@@ -252,28 +263,32 @@ struct raw_header
     u16 unknown2;
     /** @brief Major version number. */
     u8 version;
-    /** @brief 'B' for Big Endian, 'L' for Little Endian. See hl::bina::endian_flag. */
-    u8 endianFlag;
+    /** @brief 'B' for Big Endian, 'L' for Little Endian. */
+    endian_flag endianFlag;
     /** @brief "BINA" signature. */
     u32 signature;
+    /** @brief Set internally by the game; always 0 in actual files. */
+    raw_header_status status;
     /** @brief Included so garbage data doesn't get writtten. */
-    u32 padding;
+    u8 padding[3];
 
     template<bool swapOffsets = true>
     inline void endian_swap() noexcept
     {
         hl::endian_swap(fileSize);
-        hl::endian_swap<swapOffsets>(offTable);
+        hl::endian_swap(dataSize);
         hl::endian_swap(offTableSize);
         hl::endian_swap(unknown1);
         hl::endian_swap(unknownFlag1);
         hl::endian_swap(unknownFlag2);
         hl::endian_swap(unknown2);
+
+        endianFlag = get_swapped_endian_flag(endianFlag);
     }
 
-    inline bina::endian_flag endian_flag() const noexcept
+    inline bool is_fixed() const noexcept
     {
-        return static_cast<bina::endian_flag>(endianFlag);
+        return ((status & raw_header_status::is_fixed) != raw_header_status::none);
     }
 
     template<typename T = void>
@@ -288,6 +303,16 @@ struct raw_header
         return reinterpret_cast<T*>(this + 1);
     }
 
+    inline const u8* off_table() const noexcept
+    {
+        return ptradd(data(), dataSize);
+    }
+
+    inline u8* off_table() noexcept
+    {
+        return ptradd(data(), dataSize);
+    }
+
     HL_API off_table_handle offsets() const noexcept;
 
     HL_API void fix();
@@ -295,11 +320,7 @@ struct raw_header
 
 HL_STATIC_ASSERT_SIZE(raw_header, 0x20);
 
-inline void fix(void* rawData)
-{
-    raw_header* headerPtr = static_cast<raw_header*>(rawData);
-    headerPtr->fix();
-}
+HL_API endian_flag fix_container(void* rawData);
 
 template<typename T = void>
 inline const T* get_data(const void* rawData)
@@ -314,6 +335,19 @@ inline T* get_data(void* rawData)
     raw_header* headerPtr = static_cast<raw_header*>(rawData);
     return headerPtr->data<T>();
 }
+
+template<typename DataType, typename... Args>
+DataType* fix(void* rawData, Args&&... args)
+{
+    // Fix BINA container.
+    const auto oldEndianFlag = fix_container(rawData);
+
+    // Fix data in BINA container.
+    const auto data = get_data<DataType>(rawData);
+    data->fix(oldEndianFlag, std::forward<Args>(args)...);
+
+    return data;
+}
 } // v1
 
 namespace v2
@@ -324,19 +358,19 @@ constexpr ver ver_210 = ver('2', '1', '0');
 // TODO: Remove this?
 enum class raw_block_type : u32
 {
-    /** @brief This block contains data. See block_data_header. */
+    /** @brief This block contains data. See raw_block_header. */
     data = make_sig("DATA"),
 
     /**
-       @brief Unknown block type. It's never used to our knowledge;
-       we only know about it because Lost World Wii U checks for it.
+     * @brief Unknown block type. It's never used to our knowledge;
+     * we only know about it because Lost World Wii U checks for it.
     */
-    imag = make_sig("IMAG")
+    imag = make_sig("IMAG"),
 };
 
 struct raw_block_header
 {
-    /** @brief Used to determine what type of block this is. See hl::bina::v2::block_type. */
+    /** @brief Used to determine what type of block this is. See hl::bina::v2::raw_block_type. */
     u32 signature;
     /** @brief The complete size of the block, including this header. */
     u32 size;
@@ -360,14 +394,14 @@ struct raw_block_header
 
 HL_STATIC_ASSERT_SIZE(raw_block_header, 8);
 
-struct raw_block_data_header
+struct raw_data_block_header
 {
-    /** @brief Used to determine what type of block this is. See hl::bina::v2::block_type. */
+    /** @brief Used to determine what type of block this is. See hl::bina::v2::raw_block_type. */
     u32 signature;
     /** @brief The complete size of the block, including this header. */
     u32 size;
-    /** @brief Offset to the beginning of the string table. */
-    off32<char> strTable;
+    /** @brief The size of the data contained within this block. */
+    u32 dataSize;
     /** @brief The size of the string table in bytes, including padding. */
     u32 strTableSize;
     /** @brief The size of the offset table in bytes, including padding. */
@@ -381,7 +415,7 @@ struct raw_block_data_header
     inline void endian_swap() noexcept
     {
         hl::endian_swap(size);
-        hl::endian_swap<swapOffsets>(strTable);
+        hl::endian_swap(dataSize);
         hl::endian_swap(strTableSize);
         hl::endian_swap(offTableSize);
         hl::endian_swap(relativeDataOffset);
@@ -411,14 +445,24 @@ struct raw_block_data_header
 
     // TODO: Add string iterators.
 
+    inline const char* str_table() const noexcept
+    {
+        return ptradd<char>(data(), dataSize);
+    }
+
+    inline char* str_table() noexcept
+    {
+        return ptradd<char>(data(), dataSize);
+    }
+
     inline const u8* off_table() const noexcept
     {
-        return ptradd(strTable.get(), strTableSize);
+        return ptradd(str_table(), strTableSize);
     }
 
     inline u8* off_table() noexcept
     {
-        return ptradd(strTable.get(), strTableSize);
+        return ptradd(str_table(), strTableSize);
     }
 
     inline off_table_handle offsets() const noexcept
@@ -446,7 +490,7 @@ struct raw_block_data_header
         hl::off_table& offTable, stream& stream);
 };
 
-HL_STATIC_ASSERT_SIZE(raw_block_data_header, 0x18);
+HL_STATIC_ASSERT_SIZE(raw_data_block_header, 0x18);
 
 class const_block_iterator
 {
@@ -520,20 +564,28 @@ public:
         m_blockCount(blockCount) {}
 };
 
+enum class raw_header_status : u8
+{
+    none = 0,
+    is_fixed = 1,
+};
+
+HL_ENUM_CLASS_DEF_BITWISE_OPS(raw_header_status)
+
 struct raw_header
 {
     /** @brief "BINA" signature. */
     u32 signature;
     /** @brief Version number. */
     ver version;
-    /** @brief 'B' for Big Endian, 'L' for Little Endian. See hl::bina::endian_flag. */
-    u8 endianFlag;
+    /** @brief 'B' for Big Endian, 'L' for Little Endian. */
+    endian_flag endianFlag;
     /** @brief The size of the entire file, including this header. */
     u32 fileSize;
     /** @brief How many blocks are in the file. */
     u16 blockCount;
     /** @brief Set internally by the game; always 0 in actual files. */
-    u8 status;
+    raw_header_status status;
     /** @brief Included so garbage data doesn't get writtten. */
     u8 padding;
 
@@ -542,11 +594,13 @@ struct raw_header
     {
         hl::endian_swap(fileSize);
         hl::endian_swap(blockCount);
+        
+        endianFlag = get_swapped_endian_flag(endianFlag);
     }
 
-    inline bina::endian_flag endian_flag() const noexcept
+    inline bool is_fixed() const noexcept
     {
-        return static_cast<bina::endian_flag>(endianFlag);
+        return ((status & raw_header_status::is_fixed) != raw_header_status::none);
     }
 
     inline const raw_block_header* first_block() const noexcept
@@ -577,15 +631,15 @@ struct raw_header
             const raw_header*>(this)->get_block(type));
     }
 
-    inline const raw_block_data_header* get_data_block() const noexcept
+    inline const raw_data_block_header* get_data_block() const noexcept
     {
-        return reinterpret_cast<const raw_block_data_header*>(
+        return reinterpret_cast<const raw_data_block_header*>(
             get_block(raw_block_type::data));
     }
 
-    inline raw_block_data_header* get_data_block() noexcept
+    inline raw_data_block_header* get_data_block() noexcept
     {
-        return reinterpret_cast<raw_block_data_header*>(
+        return reinterpret_cast<raw_data_block_header*>(
             get_block(raw_block_type::data));
     }
 
@@ -593,7 +647,7 @@ struct raw_header
     inline const T* get_data() const noexcept
     {
         // Get data block, if any.
-        const raw_block_data_header* dataBlock = get_data_block();
+        const raw_data_block_header* dataBlock = get_data_block();
         if (!dataBlock) return nullptr;
 
         // Get data.
@@ -604,7 +658,7 @@ struct raw_header
     inline T* get_data() noexcept
     {
         // Get data block, if any.
-        raw_block_data_header* dataBlock = get_data_block();
+        raw_data_block_header* dataBlock = get_data_block();
         if (!dataBlock) return nullptr;
 
         // Get data.
@@ -624,57 +678,68 @@ struct raw_header
 
 HL_STATIC_ASSERT_SIZE(raw_header, 16);
 
-HL_API void fix32(void* rawData, std::size_t dataSize);
+HL_API endian_flag fix_container32(void* rawData);
 
-inline void fix32(blob& rawData)
+HL_API endian_flag fix_container64(void* rawData);
+
+inline const raw_data_block_header* get_data_block(const void* rawData)
 {
-    fix32(rawData.data(), rawData.size());
+    const auto headerPtr = static_cast<const raw_header*>(rawData);
+    return headerPtr->get_data_block();
 }
 
-HL_API void fix64(void* rawData, std::size_t dataSize);
-
-inline void fix64(blob& rawData)
+inline raw_data_block_header* get_data_block(void* rawData)
 {
-    fix64(rawData.data(), rawData.size());
-}
-
-HL_API const raw_block_data_header* get_data_block(const void* rawData);
-
-inline raw_block_data_header* get_data_block(void* rawData)
-{
-    return const_cast<raw_block_data_header*>(
-        get_data_block(const_cast<const void*>(rawData)));
+    const auto headerPtr = static_cast<raw_header*>(rawData);
+    return headerPtr->get_data_block();
 }
 
 template<typename T = void>
 inline const T* get_data(const void* rawData)
 {
-    if (has_v2_header(rawData))
-    {
-        const auto headerPtr = static_cast<const raw_header*>(rawData);
-        return headerPtr->get_data<T>();
-    }
-    else
-    {
-        return static_cast<const T*>(rawData);
-    }
+    const auto headerPtr = static_cast<const raw_header*>(rawData);
+    return headerPtr->get_data<T>();
 }
 
 template<typename T = void>
 inline T* get_data(void* rawData)
 {
-    // BINA V2
-    if (has_v2_header(rawData))
+    const auto headerPtr = static_cast<raw_header*>(rawData);
+    return headerPtr->get_data<T>();
+}
+
+template<typename DataType, typename... Args>
+DataType* fix32(void* rawData, Args&&... args)
+{
+    // Fix BINA container.
+    const auto oldEndianFlag = fix_container32(rawData);
+
+    // Fix data in BINA container, if any.
+    const auto data = get_data<DataType>(rawData);
+
+    if (data)
     {
-        const auto headerPtr = static_cast<raw_header*>(rawData);
-        return headerPtr->get_data<T>();
+        data->fix(oldEndianFlag, std::forward<Args>(args)...);
     }
 
-    // PACPACK_METADATA
-    else
+    return data;
+}
+
+template<typename DataType, typename... Args>
+DataType* fix64(void* rawData, Args&&... args)
+{
+    // Fix BINA container.
+    const auto oldEndianFlag = fix_container64(rawData);
+
+    // Fix data in BINA container, if any.
+    const auto data = get_data<DataType>(rawData);
+
+    if (data)
     {
-        return static_cast<T*>(rawData);
+        data->fix(oldEndianFlag, std::forward<Args>(args)...);
     }
+
+    return data;
 }
 
 class writer32 : public internal::in_writer_base
@@ -743,6 +808,11 @@ public:
     HL_API void start_data_block();
 
     HL_API void add_string(std::string str, std::size_t offPos);
+
+    inline void add_offset(std::size_t offPos)
+    {
+        m_offsets.push_back(offPos);
+    }
 
     template<typename T>
     inline void swap_and_write_obj(T& obj)
@@ -937,18 +1007,18 @@ inline bool has_v2_header(const blob& rawData)
     return has_v2_header(rawData.data(), rawData.size());
 }
 
-HL_API void fix32(void* rawData, std::size_t dataSize);
+HL_API endian_flag fix_container32(void* rawData, std::size_t dataSize);
 
-inline void fix32(blob& rawData)
+inline endian_flag fix_container32(blob& rawData)
 {
-    fix32(rawData.data(), rawData.size());
+    fix_container32(rawData.data(), rawData.size());
 }
 
-HL_API void fix64(void* rawData, std::size_t dataSize);
+HL_API endian_flag fix_container64(void* rawData, std::size_t dataSize);
 
-inline void fix64(blob& rawData)
+inline endian_flag fix_container64(blob& rawData)
 {
-    fix64(rawData.data(), rawData.size());
+    fix_container64(rawData.data(), rawData.size());
 }
 
 template<typename T = void>
@@ -964,7 +1034,7 @@ inline const T* get_data(const void* rawData)
     }
     else
     {
-        return static_cast<const T*>(rawData);
+        throw invalid_data_exception();
     }
 }
 
@@ -973,6 +1043,54 @@ inline T* get_data(void* rawData)
 {
     return const_cast<T*>(get_data<T>(
         const_cast<const void*>(rawData)));
+}
+
+template<typename DataType, typename... Args>
+DataType* fix32(void* rawData, std::size_t dataSize, Args&&... args)
+{
+    // Fix BINA container.
+    const auto oldEndianFlag = fix_container32(rawData, dataSize);
+
+    // Fix data if BINA container, if any.
+    const auto data = get_data<DataType>(rawData);
+
+    if (data)
+    {
+        data->fix(oldEndianFlag, std::forward<Args>(args)...);
+    }
+
+    return data;
+}
+
+template<typename DataType, typename... Args>
+inline DataType* fix32(blob& rawData, Args&&... args)
+{
+    return fix32<DataType>(rawData.data(), rawData.size(),
+        std::forward<Args>(args)...);
+}
+
+template<typename DataType, typename... Args>
+DataType* fix64(void* rawData, std::size_t dataSize, Args&&... args)
+{
+    // Fix BINA container.
+    const auto oldEndianFlag = fix_container64(rawData, dataSize);
+
+    // Fix data in BINA container, if any.
+    const auto data = get_data<DataType>(rawData);
+
+    if (data)
+    {
+        data->fix(oldEndianFlag, std::forward<Args>(args)...);
+    }
+
+    return data;
+}
+
+template<typename DataType, typename... Args>
+inline DataType* fix64(blob& rawData, Args&&... args)
+{
+    return fix64<DataType>(rawData.data(), rawData.size(),
+        std::forward<Args>(args)...);
 }
 } // bina
 } // hl

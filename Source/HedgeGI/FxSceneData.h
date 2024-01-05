@@ -288,5 +288,9 @@ namespace sonic2013
     {
         FxSceneConfig config{};
         FxParameter items[4]{};
+
+        void fix(hl::bina::endian_flag flag)
+        {
+        }
     };
 }

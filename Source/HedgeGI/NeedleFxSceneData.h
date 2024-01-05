@@ -649,5 +649,9 @@ namespace wars
         NeedleFxSceneConfig config;
         NeedleFxParameter items[16];
         StageConfig stageConfig;
+
+        void fix(hl::bina::endian_flag flag)
+        {
+        }
     };
 };
