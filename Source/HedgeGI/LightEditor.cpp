@@ -97,6 +97,44 @@ LightEditor::LightEditor() : lightBulb(ResRawData_LightBulb)
 {
 }
 
+static void makeName(const Scene& scene, const char* originalName, char* destName, size_t destNameSize)
+{
+    char prefix[0x100];
+    strcpy_s(prefix, originalName);
+    size_t length = strlen(prefix);
+    size_t index = 0;
+    size_t digits = 1;
+    while (length > 0 && std::isdigit(prefix[length - 1]))
+    {
+        --length;
+        index += (prefix[length] - '0') * digits;
+        digits *= 10;
+        prefix[length] = '\0';
+    }
+    if (digits == 1)
+        index = scene.lights.size();
+
+    while (true)
+    {
+        sprintf_s(destName, destNameSize, "%s%03lld", prefix, index);
+
+        bool found = false;
+        for (auto& light : scene.lights)
+        {
+            if (light->name == destName)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            break;
+
+        ++index;
+    }
+}
+
 void LightEditor::update(float deltaTime)
 {
     if (!ImGui::CollapsingHeader("Lights"))
@@ -144,8 +182,8 @@ void LightEditor::update(float deltaTime)
             light->color = Color3::Ones();
             light->range = Vector4(0, 0, 0, 3);
 
-            char name[16];
-            sprintf(name, "Omni%03d", (int)stage->getScene()->lights.size());
+            char name[0x100];
+            ::makeName(*stage->getScene(), "Omni", name, sizeof(name));
             light->name = name;
         }
 
@@ -164,8 +202,8 @@ void LightEditor::update(float deltaTime)
         {
             std::unique_ptr<Light> light = std::make_unique<Light>(*selection);
 
-            char name[16];
-            sprintf(name, "Omni%03d", (int)stage->getScene()->lights.size());
+            char name[0x100];
+            ::makeName(*stage->getScene(), light->name.c_str(), name, sizeof(name));
             light->name = name;
 
             selection = light.get();
@@ -187,13 +225,19 @@ void LightEditor::update(float deltaTime)
                 if ((*it).get() != selection)
                     continue;
 
-                stage->getScene()->lights.erase(it);
+                it = stage->getScene()->lights.erase(it);
+
+                if (it != stage->getScene()->lights.end())
+                    selection = it->get();
+                else if (!stage->getScene()->lights.empty())
+                    selection = stage->getScene()->lights.back().get();
+                else
+                    selection = nullptr;
+
                 params->dirtyBVH = true;
 
                 break;
             }
-
-            selection = nullptr;
         }
     }
 
