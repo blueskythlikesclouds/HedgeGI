@@ -1,6 +1,6 @@
 ﻿#include "UV2Mapper.h"
 
-void UV2Mapper::process(hl::hh::mirage::terrain_model& model)
+void UV2Mapper::process(hl::hh::mirage::model& model)
 {
     size_t meshCount = 0;
     for (auto& meshGroup : model.meshGroups)

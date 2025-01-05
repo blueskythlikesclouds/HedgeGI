@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-typedef std::function<void(hl::hh::mirage::terrain_model&)> ProcModelFunc;
+typedef std::function<void(hl::hh::mirage::model&)> ProcModelFunc;
 
 class ModelProcessor
 {

@@ -17,13 +17,49 @@ bool ModelProcessor::processArchive(hl::archive& archive, ProcModelFunc function
 
         Logger::logFormatted(LogType::Normal, "Processing %s...", toUtf8(entry.name()).data());
 
-        hl::hh::mirage::terrain_model::fix(entry.file_data());
-        hl::hh::mirage::terrain_model model(entry.file_data(), "");
-
-        function(model);
-
         hl::mem_stream stream;
-        model.save(stream);
+
+        // Try to detect .model files renamed to .terrain-model.
+        bool mightBeModel = false;
+        uint8_t* data = entry.file_data<uint8_t>();
+        if ((HL_SWAP_U32(*data) & 0x80000000) != 0)
+        {
+            data += 0x10;
+
+            while (memcmp(data + 0x8, "Contexts", 0x8) != 0)
+                data += 0x10;
+
+            data += 0x10;
+
+            uint32_t offset = HL_SWAP_U32(*reinterpret_cast<uint32_t*>(data + 0x4)) + 0x10;
+            mightBeModel = (offset - (data - entry.file_data<uint8_t>())) > 0x10;
+        }
+        else
+        {
+            mightBeModel = HL_SWAP_U32(*reinterpret_cast<uint32_t*>(data + 0x1C)) > 0x10;
+        }
+
+        if (mightBeModel)
+        {
+            Logger::logFormatted(LogType::Warning, "Detected \"%s\" to be renamed from a .model file", toUtf8(entry.name()).data());
+
+            hl::hh::mirage::skeletal_model::fix(entry.file_data());
+            hl::hh::mirage::skeletal_model model(entry.file_data(), "");
+
+            function(model);
+
+            model.save(stream);
+        }
+        else
+        {
+            hl::hh::mirage::terrain_model::fix(entry.file_data());
+            hl::hh::mirage::terrain_model model(entry.file_data(), "");
+
+            function(model);
+
+            model.save(stream);
+        }
+
 
         entry = hl::archive_entry::make_regular_file(entry.name(), stream.get_size(), stream.get_data_ptr());
         any = true;

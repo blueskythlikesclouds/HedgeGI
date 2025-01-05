@@ -1,6 +1,6 @@
 ﻿#include "MeshOptimizer.h"
 
-void MeshOptimizer::process(hl::hh::mirage::terrain_model& model)
+void MeshOptimizer::process(hl::hh::mirage::model& model)
 {
     std::vector<unsigned> indices;
 

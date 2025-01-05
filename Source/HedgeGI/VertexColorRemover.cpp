@@ -1,6 +1,6 @@
 ﻿#include "VertexColorRemover.h"
 
-void VertexColorRemover::process(hl::hh::mirage::terrain_model& model)
+void VertexColorRemover::process(hl::hh::mirage::model& model)
 {
     auto processMesh = [](hl::hh::mirage::mesh& mesh)
     {
