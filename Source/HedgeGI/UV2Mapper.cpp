@@ -1,4 +1,5 @@
 ﻿#include "UV2Mapper.h"
+#include "Logger.h"
 
 void UV2Mapper::process(hl::hh::mirage::model& model)
 {
@@ -26,8 +27,14 @@ void UV2Mapper::process(hl::hh::mirage::model& model)
     auto addMesh = [&](const hl::hh::mirage::mesh& mesh)
     {
         positions.clear();
+        positions.resize(mesh.vertexCount);
+
         normals.clear();
+        normals.resize(mesh.vertexCount);
+
         texCoords.clear();
+        texCoords.resize(mesh.vertexCount);
+
         indices.clear();
 
         for (auto& element : mesh.vertexElements)
@@ -56,11 +63,7 @@ void UV2Mapper::process(hl::hh::mirage::model& model)
             }
 
             for (size_t i = 0; i < mesh.vertexCount; i++)
-            {
-                hl::vec4 value;
-                element.convert_to_vec4(&mesh.vertices[i * mesh.vertexSize + element.offset], value);
-                vec->push_back(value);
-            }
+                element.convert_to_vec4(&mesh.vertices[i * mesh.vertexSize + element.offset], vec->at(i));
         }
 
         hl::u16 f1 = mesh.faces[0];
@@ -142,38 +145,87 @@ void UV2Mapper::process(hl::hh::mirage::model& model)
     {
         // Vertices
         mesh.vertexCount = atlasMesh.vertexCount;
+        uint32_t originalVertexSize = mesh.vertexSize;
+
+        // Find the UV2 slot. If we cannot find it, we'll have to create it.
+        int32_t texCoordOffset = -1;
+        auto texCoordFormat = hl::hh::mirage::raw_vertex_format::float2;
+
+        for (auto& element : mesh.vertexElements)
+        {
+            if (element.type == hl::hh::mirage::raw_vertex_type::texcoord && element.index == 1)
+            {
+                texCoordOffset = element.offset;
+                texCoordFormat = element.format;
+                break;
+            }
+        }
+
+        if (texCoordOffset == -1)
+        {
+            // Find any UV slot and pick the format from it.
+            for (auto& element : mesh.vertexElements)
+            {
+                if (element.type == hl::hh::mirage::raw_vertex_type::texcoord && element.format == hl::hh::mirage::raw_vertex_format::float16_2)
+                {
+                    texCoordFormat = element.format;
+                    break;
+                }
+            }
+
+            // Add the UV slot.
+            texCoordOffset = int32_t(mesh.vertexSize);
+            mesh.vertexElements.emplace_back(hl::hh::mirage::raw_vertex_element
+                {   0, // stream
+                    hl::u16(texCoordOffset), // offset
+                    texCoordFormat, // format
+                    hl::hh::mirage::raw_vertex_method::normal, // method
+                    hl::hh::mirage::raw_vertex_type::texcoord, // type
+                    1, // index
+                    0 // padding
+                });
+
+            switch (texCoordFormat)
+            {
+            case hl::hh::mirage::raw_vertex_format::float2:
+                mesh.vertexSize += (sizeof(float) * 2);
+                break;
+
+            case hl::hh::mirage::raw_vertex_format::float16_2:
+                mesh.vertexSize += (sizeof(uint16_t) * 2);
+                break;
+
+            default:
+                assert(false && "Unrecognized vertex format.");
+                break;
+            }
+
+            Logger::logFormatted(LogType::Warning, "Added lightmap UV slot for mesh with material \"%s\"", mesh.material.name().c_str());
+        }
+
         std::unique_ptr<hl::u8[]> vertices = std::make_unique<hl::u8[]>(atlasMesh.vertexCount * mesh.vertexSize);
 
         for (size_t i = 0; i < atlasMesh.vertexCount; i++)
         {
             const xatlas::Vertex& vertex = atlasMesh.vertexArray[i];
-            memcpy(&vertices[i * mesh.vertexSize], &mesh.vertices[vertex.xref * mesh.vertexSize], mesh.vertexSize);
+            memcpy(&vertices[i * mesh.vertexSize], &mesh.vertices[vertex.xref * originalVertexSize], originalVertexSize);
 
             const float x = vertex.uv[0] / (float)atlas->width;
             const float y = vertex.uv[1] / (float)atlas->height;
 
-            for (auto& element : mesh.vertexElements)
+            void* vtx = &vertices[i * mesh.vertexSize + texCoordOffset];
+            
+            switch (texCoordFormat)
             {
-                if (element.type != hl::hh::mirage::raw_vertex_type::texcoord || element.index != 1)
-                    continue;
-
-                void* vtx = &vertices[i * mesh.vertexSize + element.offset];
-
-                switch (element.format)
-                {
-                case hl::hh::mirage::raw_vertex_format::float2:
-                    ((float*)vtx)[0] = x;
-                    ((float*)vtx)[1] = y;
-                    break;
-
-                case hl::hh::mirage::raw_vertex_format::float16_2:
-                    ((unsigned short*)vtx)[0] = meshopt_quantizeHalf(x);
-                    ((unsigned short*)vtx)[1] = meshopt_quantizeHalf(y);
-                    break;
-
-                default:
-                    continue;
-                }
+            case hl::hh::mirage::raw_vertex_format::float2:
+                ((float*)vtx)[0] = x;
+                ((float*)vtx)[1] = y;
+                break;
+            
+            case hl::hh::mirage::raw_vertex_format::float16_2:
+                ((unsigned short*)vtx)[0] = meshopt_quantizeHalf(x);
+                ((unsigned short*)vtx)[1] = meshopt_quantizeHalf(y);
+                break;            
             }
         }
 
