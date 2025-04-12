@@ -66,6 +66,10 @@ const Label OPTIMIZE_SEAMS_LABEL = { "Optimize Seams",
 const Label SKIP_EXISTING_FILES_LABEL = { "Skip Existing Files",
     "Skips instances that already have their resulting images in the output directory." };
 
+const Label SAVE_AS_BC7_LABEL = { "Save As BC7",
+    "Saves lightmap atlases using the higher-quality BC7 compression.\n\n" 
+    "This will only work in games that support handling said format, such as Unleashed Recompiled or Generations with the D3D11 mod." };
+
 const Label DENOISER_NONE_LABEL = { "None",
     "Disables denoising. This is going to cause resulting images to look really noisy." };
 
@@ -223,6 +227,9 @@ void BakingFactoryWindow::update(const float deltaTime)
                 property(DENOISE_SHADOW_MAP_LABEL, params->postProcess.denoiseShadowMap);
                 property(OPTIMIZE_SEAMS_LABEL, params->postProcess.optimizeSeams);
                 property(SKIP_EXISTING_FILES_LABEL, params->skipExistingFiles);
+
+                if(params->targetEngine == TargetEngine::HE1)
+                    property(SAVE_AS_BC7_LABEL, params->saveAsBc7);
 
                 // Denoiser types need special handling since they might not be available
                 if (OptixDenoiserDevice::available || OidnDenoiserDevice::available)

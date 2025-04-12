@@ -205,7 +205,7 @@ void PostRender::createAtlasesRecursively(std::list<Texture>& textures, std::vec
 }
 
 hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, TargetEngine targetEngine,
-    hl::hh::mirage::raw_gi_texture_group* group, hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo)
+    hl::hh::mirage::raw_gi_texture_group* group, hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo, bool preferBC7)
 {
     const std::string levelSuffix = "-level" + std::to_string(group->level);
 
@@ -485,14 +485,29 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
         {
             std::unique_ptr<DirectX::ScratchImage> tmpImage = std::make_unique<DirectX::ScratchImage>();
 
-            DirectX::Compress(
-                atlasImage->GetImages(),
-                atlasImage->GetImageCount(),
-                atlasImage->GetMetadata(),
-                isBc4 ? DXGI_FORMAT_BC4_UNORM : DXGI_FORMAT_BC3_UNORM,
-                DirectX::TEX_COMPRESS_PARALLEL,
-                DirectX::TEX_THRESHOLD_DEFAULT,
-                *tmpImage);
+            if (!isBc4 && preferBC7)
+            {
+                const auto lock = D3D11Device::lock();
+
+                DirectX::Compress(
+                    D3D11Device::get(),
+                    atlasImage->GetImages(),
+                    atlasImage->GetImageCount(),
+                    atlasImage->GetMetadata(),
+                    DXGI_FORMAT_BC7_UNORM,
+                    DirectX::TEX_COMPRESS_PARALLEL,
+                    DirectX::TEX_THRESHOLD_DEFAULT,
+                    *tmpImage);
+            }
+            else
+                DirectX::Compress(
+                    atlasImage->GetImages(),
+                    atlasImage->GetImageCount(),
+                    atlasImage->GetMetadata(),
+                    isBc4 ? DXGI_FORMAT_BC4_UNORM : DXGI_FORMAT_BC3_UNORM,
+                    DirectX::TEX_COMPRESS_PARALLEL,
+                    DirectX::TEX_THRESHOLD_DEFAULT,
+                    *tmpImage);
 
             atlasImage.swap(tmpImage);
         }
@@ -568,7 +583,7 @@ std::vector<PostRender::Atlas> PostRender::createAtlases(std::list<Texture>& tex
     return atlases;
 }
 
-void PostRender::process(const std::string& stageDirectoryPath, const std::string& inputDirectoryPath, Game game, TargetEngine targetEngine)
+void PostRender::process(const std::string& stageDirectoryPath, const std::string& inputDirectoryPath, Game game, TargetEngine targetEngine, bool preferBC7)
 {
     const std::string stageName = getFileName(stageDirectoryPath);
 
@@ -654,7 +669,7 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
 
             hl::u32 memorySize = 0;
             {
-                const hl::archive archive = createArchive(inputDirectoryPath, targetEngine, group.get(), groupInfo);
+                const hl::archive archive = createArchive(inputDirectoryPath, targetEngine, group.get(), groupInfo, preferBC7);
 
                 for (auto& entry : archive)
                     memorySize += (hl::u32)entry.size();

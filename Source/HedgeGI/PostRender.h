@@ -32,7 +32,7 @@ public:
     static std::vector<Atlas> createAtlases(std::list<Texture>& textures);
 
     static hl::archive createArchive(const std::string& inputDirectoryPath, TargetEngine targetEngine,
-        hl::hh::mirage::raw_gi_texture_group* group, hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo);
+        hl::hh::mirage::raw_gi_texture_group* group, hl::hh::mirage::raw_gi_texture_group_info_v2* groupInfo, bool preferBC7);
 
-    static void process(const std::string& stageDirectoryPath, const std::string& inputDirectoryPath, Game game, TargetEngine targetEngine);
+    static void process(const std::string& stageDirectoryPath, const std::string& inputDirectoryPath, Game game, TargetEngine targetEngine, bool preferBC7);
 };

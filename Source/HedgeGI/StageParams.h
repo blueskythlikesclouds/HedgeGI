@@ -23,6 +23,7 @@ public:
 
     bool skipExistingFiles{ true };
     bool useExistingLightField{};
+    bool saveAsBc7{};
 
     size_t resolutionSuperSampleScale{ 1 };
 
