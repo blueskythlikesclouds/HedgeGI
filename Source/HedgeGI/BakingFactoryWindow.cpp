@@ -66,9 +66,9 @@ const Label OPTIMIZE_SEAMS_LABEL = { "Optimize Seams",
 const Label SKIP_EXISTING_FILES_LABEL = { "Skip Existing Files",
     "Skips instances that already have their resulting images in the output directory." };
 
-const Label SAVE_AS_BC7_LABEL = { "Save As BC7",
+const Label SAVE_AS_BC7_LABEL = { "Save as BC7",
     "Saves lightmap atlases using the higher-quality BC7 compression.\n\n" 
-    "This will only work in games that support handling said format, such as Unleashed Recompiled or Generations with the D3D11 mod." };
+    "This will only work in games that support handling said format, such as Unleashed Recompiled or Sonic Generations with the D3D11 mod." };
 
 const Label DENOISER_NONE_LABEL = { "None",
     "Disables denoising. This is going to cause resulting images to look really noisy." };

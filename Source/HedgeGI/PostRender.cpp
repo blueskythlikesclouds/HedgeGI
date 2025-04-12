@@ -500,6 +500,7 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                     *tmpImage);
             }
             else
+            {
                 DirectX::Compress(
                     atlasImage->GetImages(),
                     atlasImage->GetImageCount(),
@@ -508,6 +509,7 @@ hl::archive PostRender::createArchive(const std::string& inputDirectoryPath, Tar
                     DirectX::TEX_COMPRESS_PARALLEL,
                     DirectX::TEX_THRESHOLD_DEFAULT,
                     *tmpImage);
+            }
 
             atlasImage.swap(tmpImage);
         }
