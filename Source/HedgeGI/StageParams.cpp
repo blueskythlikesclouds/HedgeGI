@@ -16,6 +16,7 @@ void StageParams::loadProperties()
     outputDirectoryPath = propertyBag.getString(PROP("outputDirectoryPath"), stage->getDirectoryPath() + "-HedgeGI");
     mode = propertyBag.get(PROP("mode"), BakingFactoryMode::GI);
     skipExistingFiles = propertyBag.get(PROP("skipExistingFiles"), false);
+    saveAsBc7 = propertyBag.get(PROP("saveAsBc7"), false);
     resolutionSuperSampleScale = propertyBag.get(PROP("resolutionSuperSampleScale"), 1);
     useExistingLightField = propertyBag.get(PROP("useExistingLightField"), false);
 
@@ -33,6 +34,7 @@ void StageParams::storeProperties()
     propertyBag.setString(PROP("outputDirectoryPath"), outputDirectoryPath);
     propertyBag.set(PROP("mode"), mode);
     propertyBag.set(PROP("skipExistingFiles"), skipExistingFiles);
+    propertyBag.set(PROP("saveAsBc7"), saveAsBc7);
     propertyBag.set(PROP("resolutionSuperSampleScale"), resolutionSuperSampleScale);
     propertyBag.set(PROP("useExistingLightField"), useExistingLightField);
 }
