@@ -214,7 +214,7 @@ void PackService::packUnleashedOrGenerationsGI()
     const auto stage = get<Stage>();
     const auto params = get<StageParams>();
 
-    PostRender::process(stage->getDirectoryPath(), params->outputDirectoryPath, stage->getGame(), params->targetEngine);
+    PostRender::process(stage->getDirectoryPath(), params->outputDirectoryPath, stage->getGame(), params->targetEngine, params->saveAsBc7);
 }
 
 void PackService::packLostWorldOrForcesGI()
