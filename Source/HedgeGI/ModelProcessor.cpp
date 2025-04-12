@@ -125,8 +125,10 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
     Logger::logFormatted(LogType::Normal, "Saved %s", fileName.c_str());
 }
 
-void ModelProcessor::processGenerationsStage(const std::string& directoryPath, ProcModelFunc function)
+void ModelProcessor::processGenerationsOrUnleashedStage(const std::string& directoryPath, ProcModelFunc function)
 {
+    const bool isSWA = !std::filesystem::exists(directoryPath + "/" + getFileName(directoryPath) + ".ar.00");
+
     hl::packed_file_info pfi;
     {
         const std::string pfdFilePath = directoryPath + "/Stage.pfd";
@@ -143,14 +145,18 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
             auto name = toUtf8(entry.name());
 
             Logger::logFormatted(LogType::Normal, "Loading %s...", name.data());
-            
+
             hl::archive archive = CabinetCompression::load(entry.file_data(), entry.size());
             processArchive(archive, function);
 
-            Logger::logFormatted(LogType::Normal, "Compressing %s...", name.data());
+            Logger::logFormatted(LogType::Normal, "Saving %s...", name.data());
 
             hl::mem_stream stream;
-            CabinetCompression::save(archive, stream, name.data());
+
+            if (isSWA)
+                saveArchive(archive, stream);
+            else
+                CabinetCompression::save(archive, stream, name.data());
 
             entry = hl::archive_entry::make_regular_file(entry.name(), stream.get_size(), stream.get_data_ptr());
         }
@@ -159,7 +165,8 @@ void ModelProcessor::processGenerationsStage(const std::string& directoryPath, P
     }
 
     {
-        const std::string resourcesFilePath = directoryPath + "/" + getFileName(directoryPath) + ".ar.00";
+        const std::string resourcesFilePath = directoryPath + (isSWA ? "/../../#" : "/") + getFileName(directoryPath) + ".ar.00";
+
         if (!std::filesystem::exists(resourcesFilePath))
             return;
 
@@ -202,7 +209,7 @@ void ModelProcessor::processLostWorldOrForcesStage(const std::string& directoryP
 void ModelProcessor::processStage(const std::string& directoryPath, ProcModelFunc function)
 {
     if (std::filesystem::exists(directoryPath + "/Stage.pfd"))
-        processGenerationsStage(directoryPath, function);
+        processGenerationsOrUnleashedStage(directoryPath, function);
     else
         processLostWorldOrForcesStage(directoryPath, function);
 }
