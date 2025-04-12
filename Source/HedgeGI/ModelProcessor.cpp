@@ -1,5 +1,6 @@
 ﻿#include "ModelProcessor.h"
 
+#include "ArchiveCompression.h"
 #include "CabinetCompression.h"
 #include "FileStream.h"
 #include "Logger.h"
@@ -127,7 +128,7 @@ void ModelProcessor::processArchive(const std::string& filePath, ProcModelFunc f
 
 void ModelProcessor::processGenerationsOrUnleashedStage(const std::string& directoryPath, ProcModelFunc function)
 {
-    const bool isSWA = !std::filesystem::exists(directoryPath + "/" + getFileName(directoryPath) + ".ar.00");
+    const bool isUnleashed = !std::filesystem::exists(directoryPath + "/" + getFileName(directoryPath) + ".ar.00");
 
     hl::packed_file_info pfi;
     {
@@ -146,14 +147,14 @@ void ModelProcessor::processGenerationsOrUnleashedStage(const std::string& direc
 
             Logger::logFormatted(LogType::Normal, "Loading %s...", name.data());
 
-            hl::archive archive = CabinetCompression::load(entry.file_data(), entry.size());
+            hl::archive archive = ArchiveCompression::load(entry.file_data(), entry.size());
             processArchive(archive, function);
 
             Logger::logFormatted(LogType::Normal, "Saving %s...", name.data());
 
             hl::mem_stream stream;
 
-            if (isSWA)
+            if (isUnleashed)
                 saveArchive(archive, stream);
             else
                 CabinetCompression::save(archive, stream, name.data());
@@ -165,7 +166,7 @@ void ModelProcessor::processGenerationsOrUnleashedStage(const std::string& direc
     }
 
     {
-        const std::string resourcesFilePath = directoryPath + (isSWA ? "/../../#" : "/") + getFileName(directoryPath) + ".ar.00";
+        const std::string resourcesFilePath = directoryPath + (isUnleashed ? "/../../#" : "/") + getFileName(directoryPath) + ".ar.00";
 
         if (!std::filesystem::exists(resourcesFilePath))
             return;
