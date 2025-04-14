@@ -1,0 +1,47 @@
+name: Build HedgeGI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install CUDA 11.4
+        run: |
+          Invoke-WebRequest "https://developer.download.nvidia.com/compute/cuda/11.4.0/network_installers/cuda_11.4.0_win10_network.exe" -OutFile "CUDA.exe"
+          Start-Process -Wait "CUDA.exe" "-s nvcc_11.4 cudart_11.4"
+          echo "CUDA_PATH=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.4" >> $env:GITHUB_ENV
+        shell: pwsh
+
+      - name: Set up MSVC environment
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build HedgeGI
+        run: msbuild .\Source\HedgeGI.sln /p:Configuration=Release
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HedgeGI
+          path: .\Source\HedgeGI\bin\Release\HedgeGI.exe
+
+      - name: Upload Nightly Release
+        if: github.repository == 'blueskythlikesclouds/HedgeGI' && github.ref == 'refs/heads/master'
+        uses: andelf/nightly-release@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly
+          name: 'Nightly Release $$'
+          body: 'Nightly release based on ${{ github.sha }}'
+          prerelease: true
+          files: .\Source\HedgeGI\bin\Release\HedgeGI.exe

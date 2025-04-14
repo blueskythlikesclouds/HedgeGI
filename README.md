@@ -17,8 +17,7 @@ HedgeGI is a tool that allows you to bake global illumination and light field da
 
 ## Building
 
-* [Stable (release) builds](https://github.com/blueskythlikesclouds/HedgeGI/releases)
-* [Unstable (development) builds](https://ci.appveyor.com/project/blueskythlikesclouds/hedgegi/build/artifacts)
+Nightly development builds can be downloaded from the [Releases](https://github.com/blueskythlikesclouds/HedgeGI/releases) page.
 
 ### Manually building
 
