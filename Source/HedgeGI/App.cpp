@@ -9,6 +9,7 @@
 #include "LogListener.h"
 #include "MenuBar.h"
 #include "AppWindowPresenter.h"
+#include "Viewport.h"
 
 App::App() : currentTime(0)
 {
@@ -37,4 +38,8 @@ void App::run()
 {
     while (!document.get<AppWindow>()->getWindowShouldClose())
         update();
+    
+    auto viewport = document.get<Viewport>();
+    if (viewport != nullptr)
+        viewport->waitForBake();
 }

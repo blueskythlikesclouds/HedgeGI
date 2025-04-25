@@ -85,14 +85,8 @@ bool XCompression::checkSignature(void* data)
     return *(uint32_t*)data == 0xEE12F50F;
 }
 
-void XCompression::load(hl::archive& archive, void* data, size_t dataSize)
+void XCompression::decompress(void* data, size_t dataSize, hl::mem_stream& dstStream)
 {
-    if (!checkSignature(data))
-    {
-        loadArchive(archive, data, dataSize);
-        return;
-    }
-
     const XCompressHeader* header = static_cast<XCompressHeader*>(data);
 
     const int windowSize = (int)log2(HL_SWAP_U32(header->windowSize));
@@ -101,7 +95,6 @@ void XCompression::load(hl::archive& archive, void* data, size_t dataSize)
     const off_t uncompressedBlockSize = HL_SWAP_U32(header->uncompressedBlockSize);
 
     uint8_t* srcBytes = (uint8_t*)(header + 1);
-    hl::mem_stream dstStream;
 
     for (size_t i = 0; dstStream.get_size() < uncompressedSize && srcBytes < (uint8_t*)data + dataSize; i += uncompressedBlockSize)
     {
@@ -126,13 +119,4 @@ void XCompression::load(hl::archive& archive, void* data, size_t dataSize)
 
         srcBytes += compressedSize;
     }
-
-    loadArchive(archive, dstStream.get_data_ptr(), dstStream.get_size());
-}
-
-hl::archive XCompression::load(void* data, const size_t dataSize)
-{
-    hl::archive archive;
-    load(archive, data, dataSize);
-    return archive;
 }

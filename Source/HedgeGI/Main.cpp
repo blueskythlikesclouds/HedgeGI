@@ -21,5 +21,5 @@ int32_t main(int32_t argc, const char* argv[])
     }
 
     // Calling exit forces any async tasks to quit
-    exit(0);
+    std::_Exit(0);
 }

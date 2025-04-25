@@ -129,16 +129,9 @@ bool CabinetCompression::checkSignature(void* data)
     return *(uint32_t*)data == MAKEFOURCC('M', 'S', 'C', 'F');
 }
 
-void CabinetCompression::load(hl::archive& archive, void* data, size_t dataSize)
+void CabinetCompression::decompress(void* data, size_t dataSize, hl::mem_stream& destination)
 {
-    if (!checkSignature(data))
-    {
-        loadArchive(archive, data, dataSize);
-        return;
-    }
-
     hl::readonly_mem_stream source(data, dataSize);
-    hl::mem_stream destination;
 
     char cabinet[1]{};
     char cabPath[24]{};
@@ -160,15 +153,6 @@ void CabinetCompression::load(hl::archive& archive, void* data, size_t dataSize)
 
     FDICopy(fdi, cabinet, cabPath, 0, fdiNotify, nullptr, &destination);
     FDIDestroy(fdi);
-
-    loadArchive(archive, destination.get_data_ptr(), destination.get_size());
-}
-
-hl::archive CabinetCompression::load(void* data, const size_t dataSize)
-{
-    hl::archive archive;
-    load(archive, data, dataSize);
-    return archive;
 }
 
 void CabinetCompression::save(const hl::archive& archive, hl::stream& destination, char* fileName)

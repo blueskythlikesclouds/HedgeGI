@@ -4,14 +4,29 @@
 #include "Utilities.h"
 #include "XCompression.h"
 
-void ArchiveCompression::load(hl::archive& archive, void* data, size_t dataSize)
+bool ArchiveCompression::decompress(void* data, size_t dataSize, hl::mem_stream& destination)
 {
     if (CabinetCompression::checkSignature(data))
-        CabinetCompression::load(archive, data, dataSize);
-    
-    else if (XCompression::checkSignature(data))
-        XCompression::load(archive, data, dataSize);
+    {
+        CabinetCompression::decompress(data, dataSize, destination);
+        return true;
+    }
 
+    if (XCompression::checkSignature(data))
+    {
+        XCompression::decompress(data, dataSize, destination);
+        return true;
+    }
+
+    return false;
+}
+
+void ArchiveCompression::load(hl::archive& archive, void* data, size_t dataSize)
+{
+    hl::mem_stream destination;
+
+    if (decompress(data, dataSize, destination))
+        loadArchive(archive, destination.get_data_ptr(), destination.get_size());
     else
         loadArchive(archive, data, dataSize);
 }
