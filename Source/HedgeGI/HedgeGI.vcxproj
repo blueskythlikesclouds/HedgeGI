@@ -67,7 +67,7 @@
       <AdditionalIncludeDirectories>..\..\Dependencies;..\..\Dependencies\DirectXTex\include;..\..\Dependencies\Embree\include\embree4;..\..\Dependencies\HedgeLib\include;..\..\Dependencies\opencv\build\include;..\..\Dependencies\optix\include;$(CUDA_PATH)\include;..\..\Dependencies\parallel_hashmap;..\..\Dependencies\oidn\include;..\..\Dependencies\glad\include;..\..\Dependencies\glfw\include;..\..\Dependencies\imgui;..\..\Dependencies\imgui\backends;..\..\Dependencies\tinyxml2;..\..\Dependencies\oneTBB\include;..\..\Dependencies\mspack;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <StringPooling>true</StringPooling>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <OmitFramePointers>true</OmitFramePointers>
