@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Logger.h"
 #include "Utilities.h"
+#include "XCompression.h"
 
 class PostRender::TextureNode
 {
@@ -678,6 +679,9 @@ void PostRender::process(const std::string& stageDirectoryPath, const std::strin
 
                 if (game == Game::Generations)
                     CabinetCompression::save(archive, stream, name);
+
+                else if (game == Game::Unleashed)
+                    XCompression::save(archive, stream);
 
                 else
                     saveArchive(archive, stream);

@@ -1,4 +1,5 @@
 ﻿#include "XCompression.h"
+#include "CabinetCompression.h"
 #include "Utilities.h"
 
 // Reference: https://github.com/gildor2/UEViewer/blob/master/Unreal/UnCoreCompression.cpp
@@ -85,7 +86,7 @@ bool XCompression::checkSignature(void* data)
     return *(uint32_t*)data == 0xEE12F50F;
 }
 
-void XCompression::decompress(void* data, size_t dataSize, hl::mem_stream& dstStream)
+void XCompression::decompress(void* data, size_t dataSize, hl::stream& dstStream)
 {
     const XCompressHeader* header = static_cast<XCompressHeader*>(data);
 
@@ -119,4 +120,68 @@ void XCompression::decompress(void* data, size_t dataSize, hl::mem_stream& dstSt
 
         srcBytes += compressedSize;
     }
+}
+
+void XCompression::compress(hl::stream& source, hl::stream& destination)
+{
+    hl::mem_stream cabStream;
+    char fileName[] = "XCompression";
+    CabinetCompression::compress(source, cabStream, fileName, 17);
+
+    size_t headerPos = destination.tell();
+    destination.write_nulls(sizeof(XCompressHeader) + sizeof(uint32_t));
+
+    uint8_t* dataPtr = cabStream.get_data_ptr<uint8_t>();
+    uint32_t dataPos = *reinterpret_cast<uint32_t*>(dataPtr + 0x24);
+    uint16_t dataCount = *reinterpret_cast<uint16_t*>(dataPtr + 0x28);
+
+    dataPtr += dataPos;
+    for (size_t i = 0; i < dataCount; i++)
+    {
+        dataPtr += sizeof(uint32_t);
+
+        uint16_t compressedSize = *reinterpret_cast<uint16_t*>(dataPtr);
+        dataPtr += sizeof(uint16_t);
+
+        uint16_t uncompressedSize = *reinterpret_cast<uint16_t*>(dataPtr);
+        dataPtr += sizeof(uint16_t);
+
+        if (uncompressedSize != 0x8000) 
+        {
+            destination.write_obj<uint8_t>(0xFF);
+            destination.write_obj(HL_SWAP_U16(uncompressedSize));
+        }
+
+        destination.write_obj(HL_SWAP_U16(compressedSize));
+        destination.write(compressedSize, dataPtr);
+
+        dataPtr += compressedSize;
+    }
+
+    destination.write_nulls(5);
+    size_t endPos = destination.tell();
+
+    XCompressHeader header = {};
+    header.identifier = HL_SWAP_U32(0xFF512EE);
+    header.version = HL_SWAP_U32(0x1030000);
+    header.windowSize = HL_SWAP_U32(1 << 17);
+    header.compressionPartitionSize = HL_SWAP_U32(0x80000);
+    header.uncompressedSize = HL_SWAP_U64(source.get_size());
+    header.compressedSize = HL_SWAP_U64(endPos - (headerPos + sizeof(XCompressHeader)));
+    header.uncompressedBlockSize = HL_SWAP_U32(source.get_size());
+    header.compressedBlockSizeMax = HL_SWAP_U32(endPos - (headerPos + sizeof(XCompressHeader) + sizeof(uint32_t)));
+
+    destination.seek(hl::seek_mode::beg, headerPos);
+    destination.write_obj(header);
+    destination.write_obj(header.compressedBlockSizeMax);
+
+    destination.seek(hl::seek_mode::beg, endPos);
+}
+
+void XCompression::save(const hl::archive& archive, hl::stream& destination)
+{
+    hl::mem_stream source;
+    saveArchive(archive, source);
+
+    compress(source, destination);
 }

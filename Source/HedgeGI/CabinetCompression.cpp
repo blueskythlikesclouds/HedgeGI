@@ -129,7 +129,7 @@ bool CabinetCompression::checkSignature(void* data)
     return *(uint32_t*)data == MAKEFOURCC('M', 'S', 'C', 'F');
 }
 
-void CabinetCompression::decompress(void* data, size_t dataSize, hl::mem_stream& destination)
+void CabinetCompression::decompress(void* data, size_t dataSize, hl::stream& destination)
 {
     hl::readonly_mem_stream source(data, dataSize);
 
@@ -155,11 +155,8 @@ void CabinetCompression::decompress(void* data, size_t dataSize, hl::mem_stream&
     FDIDestroy(fdi);
 }
 
-void CabinetCompression::save(const hl::archive& archive, hl::stream& destination, char* fileName)
+void CabinetCompression::compress(hl::stream& source, hl::stream& destination, char* fileName, int windowSize)
 {
-    hl::mem_stream source;
-    saveArchive(archive, source);
-
     CCAB ccab;
     ZeroMemory(&ccab, sizeof(ccab));
 
@@ -183,7 +180,7 @@ void CabinetCompression::save(const hl::archive& archive, hl::stream& destinatio
         nullptr
     );
 
-    char sourceFile[24] {};
+    char sourceFile[24]{};
     sprintf(sourceFile, "%p", &source);
 
     FCIAddFile(
@@ -194,7 +191,7 @@ void CabinetCompression::save(const hl::archive& archive, hl::stream& destinatio
         fciGetNextCabinet,
         fciStatus,
         fciGetOpenInfo,
-        tcompTYPE_MSZIP);
+        TCOMPfromLZXWindow(windowSize));
 
     FCIFlushCabinet(
         fci,
@@ -203,4 +200,12 @@ void CabinetCompression::save(const hl::archive& archive, hl::stream& destinatio
         fciStatus);
 
     FCIDestroy(fci);
+}
+
+void CabinetCompression::save(const hl::archive& archive, hl::stream& destination, char* fileName)
+{
+    hl::mem_stream source;
+    saveArchive(archive, source);
+
+    compress(source, destination, fileName, 18);
 }

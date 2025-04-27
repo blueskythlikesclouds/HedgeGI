@@ -5,6 +5,7 @@
 #include "FileStream.h"
 #include "Logger.h"
 #include "Utilities.h"
+#include "XCompression.h"
 
 bool ModelProcessor::processArchive(hl::archive& archive, ProcModelFunc function)
 {
@@ -155,7 +156,7 @@ void ModelProcessor::processGenerationsOrUnleashedStage(const std::string& direc
             hl::mem_stream stream;
 
             if (isUnleashed)
-                saveArchive(archive, stream);
+                XCompression::save(archive, stream);
             else
                 CabinetCompression::save(archive, stream, name.data());
 

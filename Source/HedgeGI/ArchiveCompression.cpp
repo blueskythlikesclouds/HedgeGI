@@ -4,7 +4,7 @@
 #include "Utilities.h"
 #include "XCompression.h"
 
-bool ArchiveCompression::decompress(void* data, size_t dataSize, hl::mem_stream& destination)
+bool ArchiveCompression::decompress(void* data, size_t dataSize, hl::stream& destination)
 {
     if (CabinetCompression::checkSignature(data))
     {
