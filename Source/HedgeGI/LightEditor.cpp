@@ -45,6 +45,12 @@ const Label LIGHT_OUTER_RADIUS_LABEL = { "Outer Radius",
 const Label LIGHT_RADIUS_LABEL = { "Radius",
     "Radius of the light." };
 
+const Label SHADOW_RADIUS_LABEL = { "Shadow Radius",
+    "Radius of the shadow. Smaller values will produce sharper shadows whereas higher values will soften them." };
+
+const Label CAST_SHADOW_LABEL = { "Cast Shadow",
+    "Whether the light is going to cast a shadow." };
+
 const char* const LIGHT_SAVE_CHANGES_DESC = "Packs every changed light into stage files.";
 
 void LightEditor::drawBillboardsAndUpdateSelection()
@@ -341,6 +347,8 @@ void LightEditor::update(float deltaTime)
                 {
                     params->dirtyBVH |= dragProperty(LIGHT_INNER_RADIUS_LABEL, selection->range.z(), 0.1f, 0.0f, selection->range.w());
                     params->dirtyBVH |= dragProperty(LIGHT_OUTER_RADIUS_LABEL, selection->range.w(), 0.1f, selection->range.z(), INFINITY);
+                    params->dirty |= dragProperty(SHADOW_RADIUS_LABEL, selection->shadowRadius, 0.001f, 0.0f, 1.0f);
+                    params->dirty |= property(CAST_SHADOW_LABEL, selection->castShadow);
                 }
                 else if (params->targetEngine == TargetEngine::HE2)
                 {

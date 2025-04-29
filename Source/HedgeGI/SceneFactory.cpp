@@ -575,6 +575,24 @@ std::unique_ptr<Light> SceneFactory::createLight(hl::hh::mirage::raw_light* ligh
     newLight->range[2] = light->range.z;
     newLight->range[3] = light->range.w;
 
+    // We store HedgeGI parameters in the unused X value.
+    // 0.0 indicates vanilla, the parameters are defaulted in that case.
+    // Negative indicates disabled shadows.
+    // X - 1.0 indicates shadow radius.
+
+    if (newLight->range[0] != 0.0f)
+    {
+        newLight->shadowRadius = abs(newLight->range[0]) - 1.0f;
+        newLight->castShadow = newLight->range[0] >= 0.0f;
+    }
+    else
+    {
+        if (newLight->range[3] != 0.0f)
+            newLight->shadowRadius = 1.0f / newLight->range[3];
+
+        newLight->castShadow = true;
+    }
+
     return newLight;
 }
 

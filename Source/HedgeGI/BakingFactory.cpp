@@ -408,29 +408,20 @@ BakingFactory::TraceResult BakingFactory::pathTrace(const RaytracingContext& ray
                     attenuation = 1.0f;
                 }
 
-                if (targetEngine == TargetEngine::HE1 || light->type == LightType::Directional)
+                if (light->type == LightType::Directional || (targetEngine == TargetEngine::HE1 && light->castShadow))
                 {
                     // Check for shadow intersection
-                    Vector3 shadowDirection;
-
-                    if (tracingFromEye)
-                    {
-                        const float radius = light->type == LightType::Directional ? bakeParams.shadow.radius : 1.0f / light->range.w();
-
-                        Vector3 shadowSample(
-                            (random.next() * 2 - 1) * radius,
-                            (random.next() * 2 - 1) * radius,
-                            1);
-
-                        Vector3 tangent, binormal;
-                        computeTangent(lightDirection, tangent, binormal);
-
-                        shadowDirection = -tangentToWorld(shadowSample, tangent, binormal, lightDirection).normalized();
-                    }
-                    else
-                    {
-                        shadowDirection = -lightDirection;
-                    }
+                    const float radius = light->type == LightType::Directional ? bakeParams.shadow.radius : light->shadowRadius;
+                    
+                    Vector3 shadowSample(
+                        (random.next() * 2 - 1) * radius,
+                        (random.next() * 2 - 1) * radius,
+                        1);
+                    
+                    Vector3 tangent, binormal;
+                    computeTangent(lightDirection, tangent, binormal);
+                    
+                    Vector3 shadowDirection = -tangentToWorld(shadowSample, tangent, binormal, lightDirection).normalized();
 
                     RTCRay ray {};
 

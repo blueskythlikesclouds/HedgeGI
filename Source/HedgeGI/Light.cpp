@@ -47,7 +47,7 @@ void Light::save(hl::stream& stream) const
         { position.x(), position.y(), position.z() },
         { color.x(), color.y(), color.z() },
         0,
-        { range.x(), range.y(), range.z(), range.w() }
+        { (shadowRadius + 1.0f) * (castShadow ? 1.0f : -1.0f), range.y(), range.z(), range.w()}
     };
 
     hl::endian_swap(*(hl::u32*)&hhLight.type);

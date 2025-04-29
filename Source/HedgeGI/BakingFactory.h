@@ -250,11 +250,14 @@ void BakingFactory::bake(const RaytracingContext& raytracingContext, std::vector
                     attenuation *= saturate(bakePoint.normal.dot(-lightDirection));
                     if (attenuation == 0.0f) continue;
 
-                    Vector3 lightTangent, lightBinormal;
-                    computeTangent(lightDirection, lightTangent, lightBinormal);
+                    if (light->castShadow)
+                    {
+                        Vector3 lightTangent, lightBinormal;
+                        computeTangent(lightDirection, lightTangent, lightBinormal);
 
-                    attenuation *= sampleShadow<TBakePoint>(raytracingContext,
-                        bakePoint.position, lightDirection, lightTangent, lightBinormal, distance, 1.0f / light->range.w(), bakeParams, random);
+                        attenuation *= sampleShadow<TBakePoint>(raytracingContext,
+                            bakePoint.position, lightDirection, lightTangent, lightBinormal, distance, light->shadowRadius, bakeParams, random);
+                    }
 
                     bakePoint.addSample(light->color * attenuation, lightDirection);
                 }
