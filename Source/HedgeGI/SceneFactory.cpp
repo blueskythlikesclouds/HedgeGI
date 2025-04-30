@@ -265,8 +265,32 @@ std::unique_ptr<Material> SceneFactory::createMaterial(T* material, const hl::ar
     return newMaterial;
 }
 
-std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh, const Affine3& transformation) const
+std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh, const Affine3& transformation, bool loadingModel) const
 {
+    Material* material = nullptr;
+
+    for (auto& alsoMaterial : scene->materials)
+    {
+        if (strcmp(alsoMaterial->name.c_str(), mesh->materialName.get()) != 0)
+            continue;
+
+        material = alsoMaterial.get();
+        break;
+    }
+
+    if (!material)
+    {
+        if (loadingModel) // We want existing sky materials when loading models.
+            return nullptr;
+
+        Logger::logFormatted(LogType::Error, "Failed to find %s.material", mesh->materialName.get());
+    }
+    else
+    {
+        if (loadingModel && material->type != MaterialType::Sky) // We want sky materials when loading models.
+            return nullptr;
+    }
+
     std::unique_ptr<Mesh> newMesh = std::make_unique<Mesh>();
 
     newMesh->vertexCount = mesh->vertexCount;
@@ -395,18 +419,8 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh
     newMesh->vertexCount = (uint32_t) meshopt_optimizeVertexFetch(
         newMesh->vertices.get(), (unsigned*) newMesh->triangles.get(), newMesh->triangleCount * 3, newMesh->vertices.get(), newMesh->vertexCount, sizeof(Vertex));
 
-    for (auto& material : scene->materials)
-    {
-        if (strcmp(material->name.c_str(), mesh->materialName.get()) != 0)
-            continue;
-
-        newMesh->material = material.get();
-        break;
-    }
-
-    if (!newMesh->material)
-        Logger::logFormatted(LogType::Error, "Failed to find %s.material", mesh->materialName.get());
-
+    newMesh->material = material;
+    
     if (anyInvalid)
         newMesh->generateTangents();
 
@@ -415,9 +429,12 @@ std::unique_ptr<Mesh> SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh
     return newMesh;
 }
 
-void SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh, const MeshType type, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+void SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh, const MeshType type, const Affine3& transformation, std::vector<const Mesh*>& meshes, bool loadingModel)
 {
-    std::unique_ptr<Mesh> newMesh = createMesh(mesh, transformation);
+    std::unique_ptr<Mesh> newMesh = createMesh(mesh, transformation, loadingModel);
+    if (newMesh == nullptr)
+        return;
+
     newMesh->type = type;
 
     meshes.push_back(newMesh.get());
@@ -426,42 +443,42 @@ void SceneFactory::createMesh(hl::hh::mirage::raw_mesh_r1* mesh, const MeshType 
     scene->meshes.push_back(std::move(newMesh));
 }
 
-void SceneFactory::createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group_r1>>* meshGroups, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+void SceneFactory::createMeshGroups(hl::arr32<hl::off32<hl::hh::mirage::raw_mesh_group_r1>>* meshGroups, const Affine3& transformation, std::vector<const Mesh*>& meshes, bool loadingModel)
 {
     for (auto& meshGroup : *meshGroups)
     {
         for (auto& opaq : meshGroup->opaq)
-            createMesh(opaq.get(), MeshType::Opaque, transformation, meshes);
+            createMesh(opaq.get(), MeshType::Opaque, transformation, meshes, loadingModel);
 
         for (auto& trans : meshGroup->trans)
-            createMesh(trans.get(), MeshType::Transparent, transformation, meshes);
+            createMesh(trans.get(), MeshType::Transparent, transformation, meshes, loadingModel);
 
         for (auto& punch : meshGroup->punch)
-            createMesh(punch.get(), MeshType::Punch, transformation, meshes);
+            createMesh(punch.get(), MeshType::Punch, transformation, meshes, loadingModel);
 
         for (const auto& specialMeshGroup : meshGroup->special)
         {
             for (size_t i = 0; i < specialMeshGroup.meshCount; i++)
-                createMesh(specialMeshGroup.meshes[i].get(), MeshType::Special, transformation, meshes);
+                createMesh(specialMeshGroup.meshes[i].get(), MeshType::Special, transformation, meshes, loadingModel);
         }
     }
 }
 
-void SceneFactory::createMeshGroup(hl::hh::mirage::raw_mesh_slot_r1* meshGroup, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+void SceneFactory::createMeshGroup(hl::hh::mirage::raw_mesh_slot_r1* meshGroup, const Affine3& transformation, std::vector<const Mesh*>& meshes, bool loadingModel)
 {
     for (auto& opaq : meshGroup[0]) // opaq
-        createMesh(opaq.get(), MeshType::Opaque, transformation, meshes);
+        createMesh(opaq.get(), MeshType::Opaque, transformation, meshes, loadingModel);
 
     for (auto& trans : meshGroup[1]) // trans
-        createMesh(trans.get(), MeshType::Transparent, transformation, meshes);
+        createMesh(trans.get(), MeshType::Transparent, transformation, meshes, loadingModel);
 
     for (auto& punch : meshGroup[2]) // punch
-        createMesh(punch.get(), MeshType::Punch, transformation, meshes);
+        createMesh(punch.get(), MeshType::Punch, transformation, meshes, loadingModel);
 }
 
 #include "hl_hh_model.inl"
 
-bool SceneFactory::createModel(void* rawModel, const Affine3& transformation, std::vector<const Mesh*>& meshes)
+bool SceneFactory::createModel(void* rawModel, const Affine3& transformation, std::vector<const Mesh*>& meshes, bool loadingModel)
 {
     // Check marker to ensure data doesn't get corrupted due to repeating fix calls.
     uint32_t* marker = (uint32_t*)rawModel + 2;
@@ -495,7 +512,7 @@ bool SceneFactory::createModel(void* rawModel, const Affine3& transformation, st
             hl::hh::mirage::in_swap_recursive(*meshGroups);
         }
 
-        createMeshGroups(meshGroups, transformation, meshes);
+        createMeshGroups(meshGroups, transformation, meshes, loadingModel);
     }
     else
     {
@@ -511,7 +528,7 @@ bool SceneFactory::createModel(void* rawModel, const Affine3& transformation, st
             hl::hh::mirage::in_swap_recursive(meshGroup[2]); // punch
         }
 
-        createMeshGroup(meshGroup, transformation, meshes);
+        createMeshGroup(meshGroup, transformation, meshes, loadingModel);
     }
 
     *marker = ~0;
@@ -542,7 +559,7 @@ std::unique_ptr<Instance> SceneFactory::createInstance(hl::hh::mirage::raw_terra
     Affine3 transformationAffine;
     transformationAffine = transformationMatrix;
 
-    if (!createModel(rawModel, transformationAffine, newInstance->meshes))
+    if (!createModel(rawModel, transformationAffine, newInstance->meshes, false))
         return nullptr;
 
     if (instance)
@@ -714,7 +731,7 @@ void SceneFactory::loadResources(const hl::archive& archive)
             group.run([&]
             {
                 std::unique_ptr<Model> newModel = std::make_unique<Model>();
-                createModel((void*)entry.file_data(), Affine3::Identity(), newModel->meshes);
+                createModel((void*)entry.file_data(), Affine3::Identity(), newModel->meshes, true);
 
                 newModel->name = getFileNameWithoutExtension(toUtf8(entry.name()).data());
 
