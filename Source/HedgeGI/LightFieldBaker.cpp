@@ -47,6 +47,9 @@ namespace
         PointQueryFuncUserData* userData = (PointQueryFuncUserData*)args->userPtr;
 
         const Mesh& mesh = *userData->scene->meshes[args->geomID];
+        if (mesh.material != nullptr && mesh.material->type == MaterialType::Sky)
+            return false;
+
         const Triangle& triangle = mesh.triangles[args->primID];
         const Vertex& a = mesh.vertices[triangle.a];
         const Vertex& b = mesh.vertices[triangle.b];
