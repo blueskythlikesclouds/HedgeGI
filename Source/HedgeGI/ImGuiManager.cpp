@@ -1,6 +1,7 @@
 ﻿#include "ImGuiManager.h"
 #include "AppData.h"
 #include "AppWindow.h"
+#include <ShellScalingApi.h>
 
 void ImGuiManager::initializeImGui()
 {
@@ -111,7 +112,7 @@ void ImGuiManager::initializeFonts()
     config.OversampleV = 2;
 
     font = io.Fonts->AddFontFromFileTTF((wideCharToMultiByte(windowsDirectoryPath) + "\\Fonts\\segoeui.ttf").c_str(),
-        16.0f, &config, io.Fonts->GetGlyphRangesDefault());
+        16.5f * getDpiScaling(), &config, io.Fonts->GetGlyphRangesDefault());
 
     io.Fonts->Build();
 }
@@ -144,6 +145,19 @@ void ImGuiManager::initializeDocks()
     ImGui::DockBuilderDockWindow("Logs", bottomRightId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
+}
+
+float ImGuiManager::getDpiScaling()
+{
+    //Get current monitor
+    auto activeWindow = GetActiveWindow();
+    HMONITOR monitor = MonitorFromWindow(activeWindow, MONITOR_DEFAULTTONEAREST);
+
+    UINT dpiX = 0, dpiY = 0;
+    //Get the DPI scaling factor for the current monitor
+    //(e.g 120% = "120")
+    HRESULT result = GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY);
+    return dpiX / 100.0f;
 }
 
 ImGuiManager::ImGuiManager() : font(nullptr)
