@@ -84,9 +84,12 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib;..\..\Dependencies\HedgeLib\lib;..\..\Dependencies\oneTBB\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree4.lib;embree_sse42.lib;embree_avx.lib;embree_avx2.lib;lexers.lib;math.lib;simd.lib;sys.lib;tasking.lib;tbb12.lib;common.lib;dnnl.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree4.lib;embree_sse42.lib;embree_avx.lib;embree_avx2.lib;lexers.lib;math.lib;simd.lib;sys.lib;tasking.lib;tbb12.lib;common.lib;dnnl.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;shcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent />
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -112,10 +115,13 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\..\Dependencies\Embree\lib;$(CUDA_PATH)\lib\x64;..\..\Dependencies\oidn\lib;..\..\Dependencies\glfw\lib;..\..\Dependencies\DirectXTex\lib;..\..\Dependencies\HedgeLib\lib;..\..\Dependencies\oneTBB\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree4.lib;embree_sse42.lib;embree_avx.lib;embree_avx2.lib;lexers.lib;math.lib;simd.lib;sys.lib;tasking.lib;tbb12.lib;common.lib;dnnl.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cuda.lib;cudart_static.lib;d3d11.lib;embree4.lib;embree_sse42.lib;embree_avx.lib;embree_avx2.lib;lexers.lib;math.lib;simd.lib;sys.lib;tasking.lib;tbb12.lib;common.lib;dnnl.lib;OpenImageDenoise.lib;glfw3.lib;DirectXTex.lib;HedgeLib.lib;lz4.lib;cabinet.lib;zlibstatic.lib;shcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration />
     </Link>
     <PostBuildEvent />
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Dependencies\glad\src\glad.c">

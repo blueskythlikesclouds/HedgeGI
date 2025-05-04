@@ -11,6 +11,7 @@ class ImGuiManager final : public Component
     void initializeStyle();
     void initializeFonts();
     void initializeDocks();
+    float getDpiScaling();
 
 public:
     ImGuiManager();
