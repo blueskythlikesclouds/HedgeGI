@@ -92,7 +92,7 @@ const Label RESOLUTION_SUPERSAMPLE_SCALE = { "Resolution Supersample Scale",
 
 const char* const BAKE_DESC = "Bakes the current stage.";
 
-#define PACK_DESC_ "\n\nFor Sonic Generations, please ensure your stage has correctly gone through the Pre-Render pass in GI Atlas Converter."
+#define PACK_DESC_ "\n\nFor Sonic Generations & Sonic Unleashed, please ensure your stage has correctly gone through the Pre-Render pass in GI Atlas Converter."
 
 const char* const BAKE_AND_PACK_DESC = "Bakes the current stage and immediately packs the result into the files." PACK_DESC_;
 
